@@ -680,26 +680,6 @@ var mergeConfigCmd = &cli.Command{
 
 		edgeConfig := cfg.(*config.EdgeCfg)
 
-		if len(edgeConfig.Basic.Token) == 0 {
-			_, lr, err := openRepoAndLock(cctx)
-			if err != nil {
-				return xerrors.Errorf("open repo error %w", err)
-			}
-			defer lr.Close()
-
-			if err := RegitsterNode(lr, newEdgeConfig.Network.LocatorURL, types.NodeEdge); err != nil {
-				return xerrors.Errorf("import private key error %w", err)
-			}
-
-			// reload config
-			cfg, err := config.FromFile(configPath, config.DefaultEdgeCfg())
-			if err != nil {
-				return xerrors.Errorf("load local config file error %w", err)
-			}
-
-			edgeConfig = cfg.(*config.EdgeCfg)
-		}
-
 		edgeConfig.Storage = newEdgeConfig.Storage
 		edgeConfig.Memory = newEdgeConfig.Memory
 		edgeConfig.CPU = newEdgeConfig.CPU
@@ -735,12 +715,7 @@ func checkPath(path string) error {
 	return nil
 }
 
-func RegitsterNode(lr repo.LockedRepo, locatorURL string, nodeType types.NodeType) error {
-	schedulerURL, err := getUserAccessPoint(locatorURL)
-	if err != nil {
-		return err
-	}
-
+func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL string, nodeType types.NodeType) error {
 	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
 	if err != nil {
 		return err
@@ -797,6 +772,15 @@ func RegitsterNode(lr repo.LockedRepo, locatorURL string, nodeType types.NodeTyp
 		cfg.Basic.Token = base64.StdEncoding.EncodeToString(tokenBytes)
 		cfg.AreaID = info.AreaID
 	})
+}
+
+func RegitsterNode(lr repo.LockedRepo, locatorURL string, nodeType types.NodeType) error {
+	schedulerURL, err := getUserAccessPoint(locatorURL)
+	if err != nil {
+		return err
+	}
+
+	return RegisterNodeWithScheduler(lr, schedulerURL, locatorURL, nodeType)
 }
 
 var stateCmd = &cli.Command{
