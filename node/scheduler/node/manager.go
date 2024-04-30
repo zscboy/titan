@@ -302,9 +302,9 @@ func (m *Manager) DistributeNodeWeight(node *Node) {
 
 // RepayNodeWeight Repay Node Weight
 func (m *Manager) RepayNodeWeight(node *Node) {
-	if node.Type == types.NodeValidator {
-		return
-	}
+	// if node.Type == types.NodeValidator {
+	// 	return
+	// }
 
 	if node.Type == types.NodeCandidate {
 		m.weightMgr.repayCandidateWeight(node.selectWeights)
@@ -346,24 +346,23 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
 
 	mc := m.NodeCalculateMCx()
+
 	profit := mc * mcCount
 	incomeIncr := (mc * 360)
 
 	onlineDuration := int((saveInfoInterval * keepaliveTime) / time.Minute)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
-		nodeID := key.(string)
 		node := value.(*Node)
 		if node == nil {
-			log.Warnf("nodesKeepalive is nil %s", nodeID)
 			return true
 		}
 
 		if m.nodeKeepalive(node, t) {
-			if isSave {
-				// add node mc
-				node.IncomeIncr = incomeIncr
+			// add node mc
+			node.IncomeIncr = incomeIncr
 
+			if isSave {
 				nodes = append(nodes, &types.NodeSnapshot{
 					NodeID:             node.NodeID,
 					OnlineDuration:     onlineDuration,
@@ -382,18 +381,16 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	})
 
 	m.candidateNodes.Range(func(key, value interface{}) bool {
-		nodeID := key.(string)
 		node := value.(*Node)
 		if node == nil {
-			log.Warnf("nodesKeepalive is nil %s", nodeID)
 			return true
 		}
 
 		if m.nodeKeepalive(node, t) {
-			if isSave {
-				// add node mc
-				node.IncomeIncr = incomeIncr
+			// add node mc
+			node.IncomeIncr = incomeIncr
 
+			if isSave {
 				nodes = append(nodes, &types.NodeSnapshot{
 					NodeID:             node.NodeID,
 					OnlineDuration:     onlineDuration,
@@ -411,7 +408,7 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		return true
 	})
 
-	if isSave {
+	if len(nodes) > 0 {
 		eList, err := m.UpdateOnlineDuration(nodes)
 		if err != nil {
 			log.Errorf("UpdateNodeInfos err:%s", err.Error())

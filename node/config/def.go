@@ -147,7 +147,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		DatabaseAddress:         "mysql_user:mysql_password@tcp(127.0.0.1:3306)/titan",
 		EnableValidation:        true,
 		EtcdAddresses:           []string{},
-		CandidateReplicas:       0,
+		CandidateReplicas:       1,
 		ValidatorRatio:          1,
 		ValidatorBaseBwDn:       100,
 		ValidationProfit:        0,
@@ -156,11 +156,11 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		LotusRPCAddress:         "http://api.node.glif.io/rpc/v0",
 		LotusToken:              "",
 		EdgeDownloadRatio:       0.7,
-		AssetPullTaskLimit:      100,
+		AssetPullTaskLimit:      10,
 		UploadAssetReplicaCount: 10,
 		UploadAssetExpiration:   150,
 		IPLimit:                 5,
-		FillAssetEdgeCount:      4000,
+		FillAssetEdgeCount:      500,
 		L2ValidatorCount:        0,
 		StorageCandidates:       []string{},
 		NodeScoreLevel: map[string][]int{
@@ -181,7 +181,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		Weight:                   100,
 		MaxAPIKey:                5,
 		// Maximum number of node registrations for the same IP on the same day
-		MaxNumberOfRegistrations: 15,
+		MaxNumberOfRegistrations: 50,
 	}
 }
 

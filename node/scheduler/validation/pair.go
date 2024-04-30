@@ -3,7 +3,6 @@ package validation
 import (
 	"math"
 	"math/rand"
-	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/docker/go-units"
@@ -348,22 +347,3 @@ func (m *Manager) PairValidatorsAndValidatableNodes() []*VWindow {
 	return m.vWindows
 }
 
-func (m *Manager) initCfg() {
-	cfg, err := m.config()
-	if err != nil {
-		log.Errorf("get schedulerConfig err:%s", err.Error())
-
-		m.electionCycle = electionCycle
-		return
-	}
-
-	m.validatorBaseBwDn = float64(cfg.ValidatorBaseBwDn * units.MiB)
-	m.lotusRPCAddress = cfg.LotusRPCAddress
-
-	m.enableValidation = cfg.EnableValidation
-	m.validationProfit = cfg.ValidationProfit
-
-	m.l2ValidatorCount = cfg.L2ValidatorCount
-	m.validatorRatio = cfg.ValidatorRatio
-	m.electionCycle = time.Duration(cfg.ElectionCycle) * time.Hour
-}

@@ -41,11 +41,9 @@ func (m *Manager) startValidationTicker() {
 			// Set the timeout status of the previous verification
 			m.updateTimeoutResultInfo()
 
-			if enable := m.enableValidation; !enable {
+			if !m.enableValidation {
 				continue
 			}
-
-			m.profit = m.validationProfit
 
 			if err := m.startValidate(); err != nil {
 				log.Errorf("start new round: %v", err)

@@ -91,11 +91,19 @@ func (wm *weightManager) getWeight(undistributed map[int]string, max *int) int {
 
 // Repays the selection weight to candidate undistributed weights
 func (wm *weightManager) repayCandidateWeight(weights []int) {
+	if weights == nil {
+		return
+	}
+
 	wm.repayWeight(weights, wm.candidateLock, wm.distributedCandidates, wm.undistributedCandidates)
 }
 
 // Repays the selection weight to edge undistributed weights
 func (wm *weightManager) repayEdgeWeight(weights []int) {
+	if weights == nil {
+		return
+	}
+
 	wm.repayWeight(weights, wm.edgeLock, wm.distributedEdges, wm.undistributedEdges)
 }
 

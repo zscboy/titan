@@ -183,7 +183,7 @@ func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 }
 
 // UpdateValidators update validators
-func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) error {
+func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID, cleanOld bool) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -196,19 +196,18 @@ func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID) err
 		}
 	}()
 
-	// clean old validators
-	dQuery := fmt.Sprintf(`DELETE FROM %s WHERE scheduler_sid=? `, validatorsTable)
-	_, err = tx.Exec(dQuery, serverID)
-	if err != nil {
-		return err
+	if cleanOld {
+		// clean old validators
+		dQuery := fmt.Sprintf(`DELETE FROM %s WHERE scheduler_sid=? `, validatorsTable)
+		_, err = tx.Exec(dQuery, serverID)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, nodeID := range nodeIDs {
 		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, scheduler_sid) VALUES (?, ?)`, validatorsTable)
-		_, err = tx.Exec(iQuery, nodeID, serverID)
-		if err != nil {
-			return err
-		}
+		tx.Exec(iQuery, nodeID, serverID)
 	}
 
 	return tx.Commit()

@@ -476,12 +476,12 @@ func (s *Scheduler) GetRetrieveEventRecords(ctx context.Context, nodeID string, 
 // }
 
 // ElectValidators elect validators
-func (s *Scheduler) ElectValidators(ctx context.Context, nodeIDs []string) error {
+func (s *Scheduler) ElectValidators(ctx context.Context, nodeIDs []string, cleanOld bool) error {
 	if len(nodeIDs) == 0 {
 		return nil
 	}
 
-	return s.ValidationMgr.CompulsoryElection(nodeIDs)
+	return s.ValidationMgr.CompulsoryElection(nodeIDs, cleanOld)
 }
 
 func (s *Scheduler) AddProfits(ctx context.Context, nodes []string, profit float64) error {

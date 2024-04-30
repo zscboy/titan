@@ -145,6 +145,11 @@ var electValidatorsCmd = &cli.Command{
 			Usage: "node id list",
 			Value: &cli.StringSlice{},
 		},
+		&cli.BoolFlag{
+			Name:  "clean",
+			Usage: "Whether to clean up old validators",
+			Value: false,
+		},
 	},
 	Before: func(cctx *cli.Context) error {
 		return nil
@@ -155,6 +160,8 @@ var electValidatorsCmd = &cli.Command{
 			return nil
 		}
 
+		clean := cctx.Bool("clean")
+
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
 		if err != nil {
@@ -162,7 +169,7 @@ var electValidatorsCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.ElectValidators(ctx, nodeIDs)
+		return schedulerAPI.ElectValidators(ctx, nodeIDs, clean)
 	},
 }
 

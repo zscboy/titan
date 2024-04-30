@@ -245,5 +245,5 @@ type Scheduler interface {
 	// GetValidationInfo get information related to validation and election
 	GetValidationInfo(ctx context.Context) (*types.ValidationInfo, error) //perm:web,admin
 	// ElectValidators
-	ElectValidators(ctx context.Context, nodeIDs []string) error //perm:admin
+	ElectValidators(ctx context.Context, nodeIDs []string, cleanOld bool) error //perm:admin
 }

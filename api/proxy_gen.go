@@ -389,7 +389,7 @@ type SchedulerStruct struct {
 
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) (error) `perm:"admin"`
 
-		ElectValidators func(p0 context.Context, p1 []string) (error) `perm:"admin"`
+		ElectValidators func(p0 context.Context, p1 []string, p2 bool) (error) `perm:"admin"`
 
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
@@ -1713,14 +1713,14 @@ func (s *SchedulerStub) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) (erro
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ElectValidators(p0 context.Context, p1 []string) (error) {
+func (s *SchedulerStruct) ElectValidators(p0 context.Context, p1 []string, p2 bool) (error) {
 	if s.Internal.ElectValidators == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.ElectValidators(p0, p1)
+	return s.Internal.ElectValidators(p0, p1, p2)
 }
 
-func (s *SchedulerStub) ElectValidators(p0 context.Context, p1 []string) (error) {
+func (s *SchedulerStub) ElectValidators(p0 context.Context, p1 []string, p2 bool) (error) {
 	return ErrNotSupported
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/docker/go-units"
 	"github.com/filecoin-project/pubsub"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -77,8 +78,6 @@ type Manager struct {
 
 	nextElectionTime time.Time
 
-	profit float64
-
 	// validation result worker
 	resultQueue chan *api.ValidationResult
 
@@ -93,13 +92,11 @@ type Manager struct {
 	lotusRPCAddress   string
 
 	enableValidation bool
-	validationProfit float64
 
 	validationProfits     map[string]float64
 	validationProfitsLock sync.Mutex
 
 	l2ValidatorCount int
-	validatorRatio   float64
 	electionCycle    time.Duration
 }
 
@@ -121,6 +118,24 @@ func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtyp
 	manager.initCfg()
 
 	return manager
+}
+
+func (m *Manager) initCfg() {
+	cfg, err := m.config()
+	if err != nil {
+		log.Errorf("get schedulerConfig err:%s", err.Error())
+
+		m.electionCycle = electionCycle
+		return
+	}
+
+	m.validatorBaseBwDn = float64(cfg.ValidatorBaseBwDn * units.MiB)
+	m.lotusRPCAddress = cfg.LotusRPCAddress
+
+	m.enableValidation = cfg.EnableValidation
+
+	m.l2ValidatorCount = cfg.L2ValidatorCount
+	m.electionCycle = time.Duration(cfg.ElectionCycle) * time.Hour
 }
 
 // Start start validate and elect task

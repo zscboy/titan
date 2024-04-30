@@ -69,15 +69,41 @@ func (m *Manager) elect() error {
 	return nil
 }
 
-func (m *Manager) CompulsoryElection(validators []string) error {
+func (m *Manager) CompulsoryElection(validators []string, cleanOld bool) error {
+	vMap := make(map[string]struct{})
+
 	for _, nid2 := range validators {
-		node := m.nodeMgr.GetNode(nid2)
-		if node != nil {
-			node.Type = types.NodeValidator
+		vMap[nid2] = struct{}{}
+
+		node := m.nodeMgr.GetCandidateNode(nid2)
+		if node == nil {
+			continue
+		}
+
+		if node.Type == types.NodeValidator {
+			continue
+		}
+
+		m.nodeMgr.RepayNodeWeight(node)
+		node.Type = types.NodeValidator
+	}
+
+	if cleanOld {
+		_, nodes := m.nodeMgr.GetAllCandidateNodes()
+
+		for _, node := range nodes {
+			if node.Type != types.NodeValidator {
+				continue
+			}
+
+			if _, exists := vMap[node.NodeID]; !exists {
+				node.Type = types.NodeCandidate
+				m.nodeMgr.DistributeNodeWeight(node)
+			}
 		}
 	}
 
-	return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID)
+	return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID, cleanOld)
 }
 
 // StartElection triggers an election manually.
