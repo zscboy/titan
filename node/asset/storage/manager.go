@@ -213,13 +213,23 @@ func (m *Manager) GetDiskUsageStat() (totalSpace, usage float64) {
 		return 0, 0
 	}
 
-	usageStat, err := disk.Usage(m.opts.AssetsPaths[0])
-	if err != nil {
-		log.Errorf("get disk usage stat error: %s", err)
-		return 0, 0
+	// TODO: m.opts.AssetsPaths can not in same disk partition
+
+	total := float64(0)
+	used := float64(0)
+	for _, assetPath := range m.opts.AssetsPaths {
+		usageStat, err := disk.Usage(assetPath)
+		if err != nil {
+			log.Errorf("get disk usage stat error: %s", err)
+			return total, used / total * 100
+		}
+
+		total += float64(usageStat.Total)
+		used += usageStat.UsedPercent / 100 * float64(usageStat.Total)
 	}
-	// TODO stat assets storage
-	return float64(usageStat.Total), usageStat.UsedPercent
+
+	log.Infof("total %0.2f, used percent %0.2f ", total, used/total*100)
+	return total, used / total * 100
 }
 
 // GetFileSystemType retrieves the type of the file system

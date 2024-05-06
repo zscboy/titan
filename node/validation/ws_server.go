@@ -92,6 +92,7 @@ func (h *Handler) handleValidation(w http.ResponseWriter, r *http.Request) {
 
 		if messageType == websocket.CloseMessage {
 			bw.result.Token = string(p)
+			bw.result.IsCancel = true
 			return
 		}
 
