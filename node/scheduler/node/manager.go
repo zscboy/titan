@@ -351,9 +351,9 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	profitP := mcP * mcCount
 	incomeIncrP := (mcP * 360)
 
-	mc := m.NodeCalculateMCx(false)
-	profit := mc * mcCount
-	incomeIncr := (mc * 360)
+	mcW := m.NodeCalculateMCx(false)
+	profitW := mcW * mcCount
+	incomeIncrW := (mcW * 360)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -362,6 +362,8 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
+			incomeIncr := incomeIncrW
+			profit := profitW
 			if node.IsPhone {
 				incomeIncr = incomeIncrP
 				profit = profitP
@@ -395,6 +397,8 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
+			incomeIncr := incomeIncrW
+			profit := profitW
 			if node.IsPhone {
 				incomeIncr = incomeIncrP
 				profit = profitP
