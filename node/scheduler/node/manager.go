@@ -345,12 +345,15 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	// detailsList := make([]*types.ProfitDetails, 0)
 	mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
 
-	mc := m.NodeCalculateMCx()
+	onlineDuration := int((saveInfoInterval * keepaliveTime) / time.Minute)
 
+	mcP := m.NodeCalculateMCx(true)
+	profitP := mcP * mcCount
+	incomeIncrP := (mcP * 360)
+
+	mc := m.NodeCalculateMCx(false)
 	profit := mc * mcCount
 	incomeIncr := (mc * 360)
-
-	onlineDuration := int((saveInfoInterval * keepaliveTime) / time.Minute)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -359,6 +362,11 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
+			if node.IsPhone {
+				incomeIncr = incomeIncrP
+				profit = profitP
+			}
+
 			// add node mc
 			node.IncomeIncr = incomeIncr
 
@@ -387,6 +395,11 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
+			if node.IsPhone {
+				incomeIncr = incomeIncrP
+				profit = profitP
+			}
+
 			// add node mc
 			node.IncomeIncr = incomeIncr
 

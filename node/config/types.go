@@ -200,4 +200,7 @@ type SchedulerCfg struct {
 	StorageCandidates []string
 
 	L2ValidatorCount int
+
+	AndroidSymbol string
+	IOSSymbol     string
 }

@@ -182,6 +182,8 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		MaxAPIKey:                5,
 		// Maximum number of node registrations for the same IP on the same day
 		MaxNumberOfRegistrations: 50,
+		AndroidSymbol:            "Android",
+		IOSSymbol:                "IOS",
 	}
 }
 

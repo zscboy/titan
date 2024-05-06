@@ -66,6 +66,8 @@ type Node struct {
 	resetNumberOfIPChangesTime time.Time
 
 	IsNewVersion bool
+
+	IsPhone bool
 }
 
 // API represents the node API

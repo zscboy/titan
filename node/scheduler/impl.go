@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
@@ -155,9 +156,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.AvailableDiskSpace = nodeInfo.DiskSpace
 	}
 
-	if nodeInfo.AvailableDiskSpace > availableDiskLimit {
-		nodeInfo.AvailableDiskSpace = availableDiskLimit
-	}
 	if nodeType == types.NodeCandidate {
 		isValidator, err := s.db.IsValidator(nodeID)
 		if err != nil {
@@ -169,6 +167,10 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 		nodeInfo.AvailableDiskSpace = nodeInfo.DiskSpace * 0.9
 	} else {
+		if nodeInfo.AvailableDiskSpace > availableDiskLimit {
+			nodeInfo.AvailableDiskSpace = availableDiskLimit
+		}
+
 		err = checkNodeParameters(&nodeInfo)
 		if err != nil {
 			return err
@@ -188,6 +190,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	if err != nil {
 		return xerrors.Errorf("LoadReplicaSizeByNodeID %s err:%s", nodeID, err.Error())
 	}
+
 	nodeInfo.TitanDiskUsage = float64(size)
 	if nodeInfo.AvailableDiskSpace < float64(size) {
 		nodeInfo.AvailableDiskSpace = float64(roundUpToNextGB(size))
@@ -206,6 +209,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
+	cNode.IsPhone = strings.Contains(nodeInfo.SystemVersion, s.SchedulerCfg.AndroidSymbol) || strings.Contains(nodeInfo.SystemVersion, s.SchedulerCfg.IOSSymbol)
+
 	cNode.BandwidthDown = nodeInfo.BandwidthDown
 	cNode.BandwidthUp = nodeInfo.BandwidthUp
 	cNode.PortMapping = nodeInfo.PortMapping
@@ -217,7 +222,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.DiskSpace = nodeInfo.DiskSpace
 	cNode.TitanDiskUsage = nodeInfo.TitanDiskUsage
 	cNode.DiskUsage = nodeInfo.DiskUsage
-	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx() * 360)
+	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
 
 	// pCount, err := s.db.GetNodePullingCount(nodeID)
 	// if err == nil {
@@ -253,6 +258,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
+	} else {
+		cNode.NATType = types.NatTypeNo
 	}
 
 	s.DataSync.AddNodeToList(nodeID)
