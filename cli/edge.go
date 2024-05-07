@@ -775,12 +775,33 @@ func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL stri
 }
 
 func RegitsterNode(lr repo.LockedRepo, locatorURL string, nodeType types.NodeType) error {
-	schedulerURL, err := getUserAccessPoint(locatorURL)
+	if nodeType != types.NodeEdge && nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
+		return fmt.Errorf("RegitsterNode, invalid node type %s %d", nodeType.String(), nodeType)
+	}
+
+	var err error
+	var schedulerURL string
+	if nodeType == types.NodeEdge {
+		schedulerURL, err = getUserAccessPoint(locatorURL)
+	} else {
+		schedulerURL, err = allocateSchedulerForNode(locatorURL, nodeType)
+	}
+
 	if err != nil {
 		return err
 	}
 
 	return RegisterNodeWithScheduler(lr, schedulerURL, locatorURL, nodeType)
+}
+
+func allocateSchedulerForNode(locatorURL string, nodeType types.NodeType) (string, error) {
+	locator, close, err := client.NewLocator(context.Background(), locatorURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
+	if err != nil {
+		return "", err
+	}
+	defer close()
+
+	return locator.AllocateSchedulerForNode(context.Background(), nodeType)
 }
 
 var stateCmd = &cli.Command{

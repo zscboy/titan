@@ -155,6 +155,10 @@ var daemonStartCmd = &cli.Command{
 			Usage: "--url=https://titan-server-domain/rpc/v0",
 			Value: "",
 		},
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "--node-type=2, 2:candidate, 3:validator",
+		},
 	},
 
 	Before: func(cctx *cli.Context) error {
@@ -199,7 +203,12 @@ var daemonStartCmd = &cli.Command{
 				return fmt.Errorf("Must set --url for --init")
 			}
 
-			if err := lcli.RegitsterNode(lr, locatorURL, types.NodeCandidate); err != nil {
+			nodeType := cctx.Int("node-type")
+			if nodeType != int(types.NodeCandidate) && nodeType != int(types.NodeValidator) {
+				return fmt.Errorf("Must set --node-type=2 or --node-type=3")
+			}
+
+			if err := lcli.RegitsterNode(lr, locatorURL, types.NodeType(nodeType)); err != nil {
 				return err
 			}
 		}

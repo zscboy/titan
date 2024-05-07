@@ -621,6 +621,58 @@ func (l *Locator) GetSchedulerWithAPIKey(ctx context.Context, apiKey string) (st
 	return schedulerURL, nil
 }
 
+func (l *Locator) AllocateSchedulerForNode(ctx context.Context, nodeType types.NodeType) (string, error) {
+	configs := l.GetAllSchedulerConfigs()
+	schedulerAPIs, err := l.getOrNewSchedulerAPIs(configs)
+	if err != nil {
+		return "", err
+	}
+
+	if len(schedulerAPIs) == 0 {
+		return "", fmt.Errorf("no scheduler exist")
+	}
+
+	timeout, err := time.ParseDuration(l.Timeout)
+	if err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout*time.Second)
+	defer cancel()
+
+	type scheduler struct {
+		nodeCount int
+		url       string
+	}
+	schedulers := make([]scheduler, 0)
+	wg := &sync.WaitGroup{}
+	for _, api := range schedulerAPIs {
+		wg.Add(1)
+
+		go func(ctx context.Context, s *SchedulerAPI) {
+			defer wg.Done()
+
+			if count, err := s.GetOnlineNodeCount(ctx, nodeType); err == nil {
+				schedulers = append(schedulers, scheduler{nodeCount: count, url: s.config.SchedulerURL})
+			} else {
+				log.Debugf("GetOnlineNodeCount %s", err.Error())
+			}
+		}(ctx, api)
+	}
+	wg.Wait()
+
+	sort.Slice(schedulers, func(i, j int) bool {
+		return schedulers[i].nodeCount < schedulers[j].nodeCount
+	})
+
+	if len(schedulers) > 0 {
+		return schedulers[0].url, nil
+	}
+
+	return "", fmt.Errorf("can not find scheduler")
+
+}
+
 func convertAreasToMap(areas []string) map[string]struct{} {
 	areaMap := make(map[string]struct{})
 	for _, area := range areas {
