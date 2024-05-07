@@ -78,6 +78,8 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	for _, node := range nodes {
 		cNode := node
 
+		m.createSeedWorkload(info, cNode.NodeID)
+
 		err := cNode.PullAsset(ctx.Context(), info.CID, cInfo)
 		if err != nil {
 			log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
@@ -93,8 +95,6 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		if err != nil {
 			log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())
 		}
-
-		m.createSeedWorkload(info, cNode.NodeID)
 	}
 
 	m.startAssetTimeoutCounting(info.Hash.String(), 0, info.Size)
@@ -252,6 +252,10 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	// }
 
 	// send a pull request to the node
+	err = m.SaveTokenPayload(workloads)
+	if err != nil {
+		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
+	}
 
 	for _, node := range nodes {
 		cNode := node
@@ -275,13 +279,6 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	}
 
 	m.startAssetTimeoutCounting(info.Hash.String(), 0, info.Size)
-
-	// go func() {
-	err = m.SaveTokenPayload(workloads)
-	if err != nil {
-		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
-	}
-	// }()
 
 	return ctx.Send(PullRequestSent{})
 }
@@ -364,6 +361,11 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(SelectFailed{error: xerrors.Errorf("GenerateToken; %s", err.Error())})
 	}
 
+	err = m.SaveTokenPayload(workloads)
+	if err != nil {
+		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
+	}
+
 	for _, node := range nodes {
 		cNode := node
 		go func() {
@@ -383,13 +385,6 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 			}
 		}()
 	}
-
-	// go func() {
-	err = m.SaveTokenPayload(workloads)
-	if err != nil {
-		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
-	}
-	// }()
 
 	// Wait send to node
 	if err := failedCoolDown(ctx, info, WaitTime); err != nil {

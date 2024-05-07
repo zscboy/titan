@@ -187,11 +187,12 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID string) error {
 	list, err := m.LoadWorkloadRecord(&types.WorkloadRecord{AssetCID: data.AssetCID, ClientID: nodeID, Status: types.WorkloadStatusCreate})
 	if err != nil {
-		log.Errorf("HandleNodeWorkload LoadWorkloadRecord error: %s", err.Error())
+		log.Errorf("handleNodeWorkload AssetCID:%s , %s LoadWorkloadRecord error: %s", data.AssetCID, nodeID, err.Error())
 		return err
 	}
 
 	if len(list) == 0 {
+		log.Errorf("handleNodeWorkload list is nil : %s, %s", data.AssetCID, nodeID)
 		return nil
 	}
 
@@ -205,7 +206,7 @@ outerLoop:
 		dec := gob.NewDecoder(bytes.NewBuffer(info.Workloads))
 		err := dec.Decode(&ws)
 		if err != nil {
-			log.Errorf("HandleNodeWorkload decode data to []*types.Workload error: %s", err.Error())
+			log.Errorf("handleNodeWorkload decode data to []*types.Workload error: %s", err.Error())
 			continue
 		}
 
@@ -228,6 +229,7 @@ outerLoop:
 	}
 
 	if record == nil {
+		log.Errorf("handleNodeWorkload record is nil : %s, %s", data.AssetCID, nodeID)
 		return nil
 	}
 
@@ -235,7 +237,7 @@ outerLoop:
 	record.Status = types.WorkloadStatusSucceeded
 	err = m.UpdateWorkloadRecord(record)
 	if err != nil {
-		log.Errorf("HandleNodeWorkload UpdateWorkloadRecord error: %s", err.Error())
+		log.Errorf("handleNodeWorkload UpdateWorkloadRecord error: %s", err.Error())
 		return err
 	}
 
@@ -294,12 +296,12 @@ outerLoop:
 
 	// Retrieve Event
 	if err := m.SaveRetrieveEventInfo(eventList); err != nil {
-		log.Errorf("HandleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+		log.Errorf("handleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
 	}
 
 	err = m.nodeMgr.AddNodeProfits(detailsList)
 	if err != nil {
-		log.Errorf("HandleNodeWorkload AddNodeProfits err:%s", err.Error())
+		log.Errorf("handleNodeWorkload AddNodeProfits err:%s", err.Error())
 	}
 
 	return nil
