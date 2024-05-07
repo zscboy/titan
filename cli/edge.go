@@ -80,7 +80,7 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("disk space: %s \n", units.BytesSize(info.DiskSpace))
 		fmt.Printf("titan disk usage: %s\n", units.BytesSize(info.TitanDiskUsage))
 		fmt.Printf("titan disk space: %s\n", units.BytesSize(info.AvailableDiskSpace))
-		fmt.Printf("fsType: %s \n", info.IoSystem)
+		fmt.Printf("fsType: %s \n", info.DiskType)
 		fmt.Printf("mac: %s \n", info.MacLocation)
 		fmt.Printf("download bandwidth: %s \n", units.BytesSize(float64(info.BandwidthDown)))
 		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))

@@ -14,6 +14,7 @@ var CandidateCmds = []*cli.Command{
 	keyCmds,
 	configCmds,
 	registerCmds,
+	bindCmd,
 }
 
 var registerCmds = &cli.Command{
