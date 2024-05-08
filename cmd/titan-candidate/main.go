@@ -294,6 +294,7 @@ var daemonStartCmd = &cli.Command{
 			node.Override(new(dtypes.NodeID), dtypes.NodeID(nodeID)),
 			node.Override(new(api.Scheduler), schedulerAPI),
 			node.Override(new(dtypes.ShutdownChan), shutdownChan),
+			node.Override(new(*quic.Transport), transport),
 			node.Override(new(*asset.Manager), modules.NewAssetsManager(ctx, &candidateCfg.Puller, candidateCfg.IPFSAPIURL)),
 			node.Override(new(dtypes.NodeMetadataPath), func() dtypes.NodeMetadataPath {
 				metadataPath := candidateCfg.MetadataPath

@@ -14,9 +14,6 @@ type Edge interface {
 	DataSync
 	Asset
 	WaitQuiet(ctx context.Context) error //perm:admin
-	// ExternalServiceAddress check service address with different candidate
-	// if behind nat, service address maybe different
-	ExternalServiceAddress(ctx context.Context, candidateURL string) (string, error) //perm:admin
 	// UserNATTravel build connection for user
 	UserNATPunch(ctx context.Context, userServiceAddress string, req *types.NatPunchReq) error //perm:admin
 	// GetEdgeOnlineStateFromScheduler this online state is get from scheduler

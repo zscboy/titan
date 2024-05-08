@@ -154,6 +154,8 @@ type CommonStruct struct {
 
 		Discover func(p0 context.Context) (types.OpenRPCDocument, error) `perm:"admin"`
 
+		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
+
 		LogAlerts func(p0 context.Context) ([]alerting.Alert, error) `perm:"admin"`
 
 		LogList func(p0 context.Context) ([]string, error) `perm:"admin"`
@@ -205,8 +207,6 @@ type EdgeStruct struct {
 	AssetStruct
 
 	Internal struct {
-		ExternalServiceAddress func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
-
 		GetEdgeOnlineStateFromScheduler func(p0 context.Context) (bool, error) `perm:"default"`
 
 		UserNATPunch func(p0 context.Context, p1 string, p2 *types.NatPunchReq) error `perm:"admin"`
@@ -970,6 +970,17 @@ func (s *CommonStub) Discover(p0 context.Context) (types.OpenRPCDocument, error)
 	return *new(types.OpenRPCDocument), ErrNotSupported
 }
 
+func (s *CommonStruct) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
+	if s.Internal.ExternalServiceAddress == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.ExternalServiceAddress(p0, p1)
+}
+
+func (s *CommonStub) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *CommonStruct) LogAlerts(p0 context.Context) ([]alerting.Alert, error) {
 	if s.Internal.LogAlerts == nil {
 		return *new([]alerting.Alert), ErrNotSupported
@@ -1078,17 +1089,6 @@ func (s *DeviceStruct) GetNodeInfo(p0 context.Context) (types.NodeInfo, error) {
 
 func (s *DeviceStub) GetNodeInfo(p0 context.Context) (types.NodeInfo, error) {
 	return *new(types.NodeInfo), ErrNotSupported
-}
-
-func (s *EdgeStruct) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
-	if s.Internal.ExternalServiceAddress == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.ExternalServiceAddress(p0, p1)
-}
-
-func (s *EdgeStub) ExternalServiceAddress(p0 context.Context, p1 string) (string, error) {
-	return "", ErrNotSupported
 }
 
 func (s *EdgeStruct) GetEdgeOnlineStateFromScheduler(p0 context.Context) (bool, error) {
