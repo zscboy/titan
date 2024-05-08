@@ -40,6 +40,7 @@ func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, shutdownChan dtypes.S
 	commAPI := CommonAPI{
 		APISecret:    secret,
 		ShutdownChan: shutdownChan,
+		Transport:    Transport,
 	}
 
 	return commAPI, nil
