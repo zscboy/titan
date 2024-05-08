@@ -617,7 +617,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 
 	handler := EdgeHandler(edgeAPI.AuthVerify, edgeAPI, true)
 	handler = httpServer.NewHandler(handler)
-	handler = validation.AppendHandler(handler, schedulerAPI, privateKey)
+	handler = validation.AppendHandler(handler, schedulerAPI, privateKey, time.Duration(edgeCfg.ValidateDuration)*time.Second)
 
 	httpSrv := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
