@@ -269,6 +269,8 @@ type NodeAPIStruct struct {
 
 		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) error `perm:"edge"`
 
+		FreeUpDiskSpace func(p0 context.Context, p1 string, p2 int64) (error) `perm:"edge,candidate,web,locator"`
+
 		GetAssetSourceDownloadInfo func(p0 context.Context, p1 string) (*types.AssetSourceDownloadInfoRsp, error) `perm:"edge,candidate,web,locator"`
 
 		GetAssetView func(p0 context.Context, p1 string, p2 bool) (*types.AssetView, error) `perm:"admin"`
@@ -1286,6 +1288,17 @@ func (s *NodeAPIStruct) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions
 }
 
 func (s *NodeAPIStub) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions) error {
+	return ErrNotSupported
+}
+
+func (s *NodeAPIStruct) FreeUpDiskSpace(p0 context.Context, p1 string, p2 int64) (error) {
+	if s.Internal.FreeUpDiskSpace == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.FreeUpDiskSpace(p0, p1, p2)
+}
+
+func (s *NodeAPIStub) FreeUpDiskSpace(p0 context.Context, p1 string, p2 int64) (error) {
 	return ErrNotSupported
 }
 

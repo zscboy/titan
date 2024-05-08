@@ -71,7 +71,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 		return nil, xerrors.New("invalid edge node id")
 	}
 
-	if (nodeType == types.NodeCandidate || nodeType != types.NodeValidator) && !strings.HasPrefix(nodeID, "c_") {
+	if (nodeType == types.NodeCandidate || nodeType == types.NodeValidator) && !strings.HasPrefix(nodeID, "c_") {
 		return nil, xerrors.New("invalid candidate node id")
 	}
 
@@ -1221,4 +1221,9 @@ func (s *Scheduler) GetProfitDetailsForNode(ctx context.Context, nodeID string, 
 	}
 
 	return info, nil
+}
+
+// FreeUpDiskSpace Request to free up disk space
+func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) error {
+	return nil
 }

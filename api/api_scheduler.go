@@ -152,6 +152,8 @@ type NodeAPI interface {
 	AddProfits(ctx context.Context, nodes []string, profit float64) error //perm:admin
 	// GetProfitDetailsForNode retrieves a profit list of node
 	GetProfitDetailsForNode(ctx context.Context, nodeID string, limit, offset int, ts []int) (*types.ListNodeProfitDetailsRsp, error) //perm:web,admin
+	// FreeUpDiskSpace  Request to free up disk space
+	FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) error //perm:edge,candidate,web,locator
 }
 
 // UserAPI is an interface for user
