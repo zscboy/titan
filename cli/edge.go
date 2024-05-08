@@ -733,10 +733,10 @@ func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL stri
 	var nodeID string
 	if nodeType == types.NodeEdge {
 		nodeID = fmt.Sprintf("e_%s", uuid.NewString())
-	} else if nodeType == types.NodeCandidate {
+	} else if nodeType == types.NodeCandidate || nodeType == types.NodeValidator {
 		nodeID = fmt.Sprintf("c_%s", uuid.NewString())
 	} else {
-		return fmt.Errorf("invalid node type %s", nodeType.String())
+		return fmt.Errorf("RegisterNodeWithScheduler, invalid node type %s", nodeType.String())
 	}
 
 	info, err := schedulerAPI.RegisterNode(context.Background(), nodeID, string(pem), nodeType)
