@@ -259,7 +259,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
 	} else {
-		// go s.NatManager.DetermineCandidateNATType(context.Background(), nodeID)
+		go s.NatManager.DetermineCandidateNATType(context.Background(), nodeID)
 	}
 
 	s.DataSync.AddNodeToList(nodeID)

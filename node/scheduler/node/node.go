@@ -80,8 +80,8 @@ type API struct {
 	api.Asset
 	WaitQuiet func(ctx context.Context) error
 	// edge api
-	ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
-	UserNATPunch           func(ctx context.Context, sourceURL string, req *types.NatPunchReq) error
+	// ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
+	UserNATPunch func(ctx context.Context, sourceURL string, req *types.NatPunchReq) error
 	// candidate api
 	GetBlocksOfAsset        func(ctx context.Context, assetCID string, randomSeed int64, randomCount int) ([]string, error)
 	CheckNetworkConnectable func(ctx context.Context, network, targetURL string) (bool, error)
@@ -100,14 +100,14 @@ func New() *Node {
 // APIFromEdge creates a new API from an Edge API
 func APIFromEdge(api api.Edge) *API {
 	a := &API{
-		Common:                 api,
-		Device:                 api,
-		Validation:             api,
-		DataSync:               api,
-		Asset:                  api,
-		WaitQuiet:              api.WaitQuiet,
-		ExternalServiceAddress: api.ExternalServiceAddress,
-		UserNATPunch:           api.UserNATPunch,
+		Common:     api,
+		Device:     api,
+		Validation: api,
+		DataSync:   api,
+		Asset:      api,
+		WaitQuiet:  api.WaitQuiet,
+		// ExternalServiceAddress: api.ExternalServiceAddress,
+		UserNATPunch: api.UserNATPunch,
 	}
 	return a
 }
