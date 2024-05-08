@@ -254,49 +254,12 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64)
 		}
 
 		if err := m.pullAssetFromAWS(node, bucket); err == nil {
-			// log.Warnf("requestNodePullAsset pullAssetFromAWS error %s", err.Error())
+			log.Infof("awsTask pullAssetFromAWS node %s %s", node.NodeID, bucket)
 			cCount++
 		}
 	}
 
-	// eNodes := m.nodeMgr.GetAllEdgeNode()
-	// sort.Slice(eNodes, func(i, j int) bool {
-	// 	return eNodes[i].TitanDiskUsage < eNodes[j].TitanDiskUsage
-	// })
-
-	eCount := 0
-	// for i := 0; i < len(eNodes); i++ {
-	// 	if eCount >= int(edgeCount) {
-	// 		break
-	// 	}
-	// 	node := eNodes[i]
-
-	// 	if !node.DiskEnough(size) {
-	// 		continue
-	// 	}
-
-	// 	if node.PullAssetCount > 0 {
-	// 		continue
-	// 	}
-	// 	// pCount, err := m.nodeMgr.GetNodePullingCount(node.NodeID)
-	// 	// if err != nil || pCount > 0 {
-	// 	// 	continue
-	// 	// }
-
-	// 	if exist, err := m.checkAssetIfExist(node, cid); err != nil {
-	// 		// log.Warnf("requestNodePullAsset checkAssetIfExist error %s", err)
-	// 		continue
-	// 	} else if exist {
-	// 		continue
-	// 	}
-
-	// 	if err := m.pullAssetFromAWS(node, bucket); err == nil {
-	// 		// log.Warnf("requestNodePullAsset pullAssetFromAWS error %s", err.Error())
-	// 		eCount++
-	// 	}
-	// }
-
-	m.updateFillAssetInfo(bucket, int64(cCount+eCount), 0)
+	m.updateFillAssetInfo(bucket, int64(cCount), 0)
 }
 
 func (m *Manager) pullAssetFromAWS(node *node.Node, bucket string) error {

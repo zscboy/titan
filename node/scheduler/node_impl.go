@@ -1225,5 +1225,12 @@ func (s *Scheduler) GetProfitDetailsForNode(ctx context.Context, nodeID string, 
 
 // FreeUpDiskSpace Request to free up disk space
 func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) error {
+	nID := handler.GetNodeID(ctx)
+	if nID != "" {
+		nodeID = nID
+	}
+
+	// limit
+
 	return nil
 }

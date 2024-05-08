@@ -142,6 +142,7 @@ func (m *Manager) initCfg() {
 func (m *Manager) Start(ctx context.Context) {
 	go m.startValidationTicker()
 	go m.startElectionTicker()
+	go m.handValidatorProfits()
 
 	m.subscribeNodeEvents()
 	m.handleResults()

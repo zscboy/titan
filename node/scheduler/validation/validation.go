@@ -18,6 +18,8 @@ import (
 const (
 	validationInterval = 30 * time.Minute // validation start-up time interval (Unit:minute)
 
+	handValidatorProfitsInterval = 5 * time.Minute // validation start-up time interval (Unit:minute)
+
 	duration = 10 // Validation duration per node (Unit:Second)
 
 	// Processing validation result data from 30 days ago
@@ -30,12 +32,17 @@ const (
 
 // startValidationTicker starts the validation process.
 func (m *Manager) startValidationTicker() {
-	ticker := time.NewTicker(validationInterval)
-	defer ticker.Stop()
+	nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
+	duration := nextTick.Sub(time.Now())
+
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-timer.C:
+			timer.Reset(validationInterval)
+
 			// save validator profits
 			m.addValidatorProfitsAndInitMap()
 			// Set the timeout status of the previous verification
@@ -51,6 +58,18 @@ func (m *Manager) startValidationTicker() {
 		case <-m.close:
 			return
 		}
+	}
+}
+
+func (m *Manager) handValidatorProfits() {
+	ticker := time.NewTicker(handValidatorProfitsInterval)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+
+		// save validator profits
+		m.addValidatorProfitsAndInitMap()
 	}
 }
 
@@ -337,15 +356,6 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	}
 
 	m.addValidationProfit(vr.Validator, size)
-	// vNode := m.nodeMgr.GetNode(vr.Validator)
-	// if vNode != nil {
-	// 	dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, vr.Bandwidth)
-	// 	if dInfo != nil {
-	// 		dInfo.CID = vr.CID
-
-	// 		detailsList = append(detailsList, dInfo)
-	// 	}
-	// }
 
 	err := m.nodeMgr.UpdateValidationResultInfo(resultInfo)
 	if err != nil {
@@ -355,11 +365,11 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	return m.nodeMgr.AddNodeProfits(detailsList)
 }
 
-func (m *Manager) addValidationProfit(nideID string, size float64) {
+func (m *Manager) addValidationProfit(nodeID string, size float64) {
 	m.validationProfitsLock.Lock()
 	defer m.validationProfitsLock.Unlock()
 
-	m.validationProfits[nideID] += size
+	m.validationProfits[nodeID] += size
 }
 
 func (m *Manager) addValidatorProfitsAndInitMap() {
