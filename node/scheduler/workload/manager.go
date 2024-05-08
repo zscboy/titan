@@ -185,47 +185,59 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 
 // handleNodeWorkload handle node workload
 func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID string) error {
-	list, err := m.LoadWorkloadRecord(&types.WorkloadRecord{AssetCID: data.AssetCID, ClientID: nodeID, Status: types.WorkloadStatusCreate})
-	if err != nil {
-		log.Errorf("handleNodeWorkload AssetCID:%s , %s LoadWorkloadRecord error: %s", data.AssetCID, nodeID, err.Error())
-		return err
-	}
-
-	if len(list) == 0 {
-		log.Errorf("handleNodeWorkload list is nil : %s, %s", data.AssetCID, nodeID)
-		return nil
-	}
-
 	var record *types.WorkloadRecord
+	var err error
 	downloadTotalSize := int64(0)
 
-outerLoop:
-	for _, info := range list {
-
-		ws := make([]*types.Workload, 0)
-		dec := gob.NewDecoder(bytes.NewBuffer(info.Workloads))
-		err := dec.Decode(&ws)
+	if data.WorkloadID != "" {
+		record, err = m.LoadWorkloadRecordOfID(data.WorkloadID, types.WorkloadStatusCreate)
 		if err != nil {
-			log.Errorf("handleNodeWorkload decode data to []*types.Workload error: %s", err.Error())
-			continue
+			log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
+			return err
 		}
-
-		sourceIDSet := make(map[string]struct{})
-		for _, w := range ws {
-			sourceIDSet[w.SourceID] = struct{}{}
-		}
-
-		downloadTotalSize = int64(0)
 
 		for _, dw := range data.Workloads {
 			downloadTotalSize += dw.DownloadSize
-			if _, exists := sourceIDSet[dw.SourceID]; !exists {
-				continue outerLoop
-			}
+		}
+	} else {
+		list, err := m.LoadWorkloadRecord(&types.WorkloadRecord{AssetCID: data.AssetCID, ClientID: nodeID, Status: types.WorkloadStatusCreate})
+		if err != nil {
+			log.Errorf("handleNodeWorkload AssetCID:%s , %s LoadWorkloadRecord error: %s", data.AssetCID, nodeID, err.Error())
+			return err
 		}
 
-		record = info
-		break // Find the first matching workload, no need to continue
+		if len(list) == 0 {
+			log.Errorf("handleNodeWorkload list is nil : %s, %s", data.AssetCID, nodeID)
+			return nil
+		}
+
+	outerLoop:
+		for _, info := range list {
+			ws := make([]*types.Workload, 0)
+			dec := gob.NewDecoder(bytes.NewBuffer(info.Workloads))
+			err := dec.Decode(&ws)
+			if err != nil {
+				log.Errorf("handleNodeWorkload decode data to []*types.Workload error: %s", err.Error())
+				continue
+			}
+
+			sourceIDSet := make(map[string]struct{})
+			for _, w := range ws {
+				sourceIDSet[w.SourceID] = struct{}{}
+			}
+
+			downloadTotalSize = int64(0)
+
+			for _, dw := range data.Workloads {
+				downloadTotalSize += dw.DownloadSize
+				if _, exists := sourceIDSet[dw.SourceID]; !exists {
+					continue outerLoop
+				}
+			}
+
+			record = info
+			break // Find the first matching workload, no need to continue
+		}
 	}
 
 	if record == nil {

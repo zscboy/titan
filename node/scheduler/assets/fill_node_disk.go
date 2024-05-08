@@ -381,6 +381,7 @@ func (m *Manager) updateFillAssetInfo(bucket string, count int64, replica int) {
 		Expiration: time.Now().Add(2 * time.Hour),
 		Bucket:     bucket,
 		Replicas:   replica,
+		CreateTime: time.Now(),
 	}
 
 	infoI, exist := m.fillAssets.Load(bucket)
@@ -393,7 +394,7 @@ func (m *Manager) updateFillAssetInfo(bucket string, count int64, replica int) {
 	m.fillAssets.Store(bucket, info)
 }
 
-func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string) {
+func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string, size int64) {
 	infoI, exist := m.fillAssets.Load(bucket)
 	if !exist || infoI == nil {
 		return
@@ -416,6 +417,12 @@ func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string) {
 	}
 
 	m.fillAssets.Store(bucket, info)
+
+	// workload
+	wID := m.createSeedWorkload(AssetPullingInfo{CID: cid, Size: size}, nodeID)
+	costTime := int64(time.Since(info.CreateTime) / time.Millisecond)
+
+	m.workloadMgr.PushResult(&types.WorkloadRecordReq{AssetCID: cid, WorkloadID: wID, Workloads: []types.Workload{{SourceID: types.DownloadSourceAWS.String(), DownloadSize: size, CostTime: costTime}}}, nodeID)
 }
 
 func (m *Manager) getPullAssetTask() *fillAssetInfo {
@@ -441,6 +448,7 @@ type fillAssetInfo struct {
 	Cid           string
 	Bucket        string
 	Replicas      int
+	CreateTime    time.Time
 }
 
 type fillAssetNodeInfo struct {

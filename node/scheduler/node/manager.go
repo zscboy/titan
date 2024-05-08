@@ -42,8 +42,8 @@ type Manager struct {
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
 
-	ipLimit           int
-	TotalNetworkEdges int // Number of edge nodes in the entire network (including those on other schedulers)
+	ipLimit int
+	// TotalNetworkEdges int // Number of edge nodes in the entire network (including those on other schedulers)
 
 	nodeIPs sync.Map
 
@@ -69,7 +69,7 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 
 	go nodeManager.startNodeKeepaliveTimer()
 	go nodeManager.startCheckNodeTimer()
-	go nodeManager.startSyncEdgeCountTimer()
+	// go nodeManager.startSyncEdgeCountTimer()
 	// go nodeManager.startCalculatePointsTimer()
 
 	go nodeManager.startMxTimer()
@@ -147,31 +147,31 @@ func (m *Manager) CheckIPExist(ip string) bool {
 	return exist
 }
 
-func (m *Manager) syncEdgeCountFromNetwork() {
-	err := m.etcdcli.PutEdgeCount(string(m.ServerID), m.Edges)
-	if err != nil {
-		log.Errorf("SyncEdgeCountFromNetwork PutEdgeCount err:%s", err.Error())
-	}
+// func (m *Manager) syncEdgeCountFromNetwork() {
+// 	err := m.etcdcli.PutEdgeCount(string(m.ServerID), m.Edges)
+// 	if err != nil {
+// 		log.Errorf("SyncEdgeCountFromNetwork PutEdgeCount err:%s", err.Error())
+// 	}
 
-	count, err := m.etcdcli.GetEdgeCounts(string(m.ServerID))
-	if err != nil {
-		log.Errorf("SyncEdgeCountFromNetwork GetEdgeCounts err:%s", err.Error())
-	}
+// 	count, err := m.etcdcli.GetEdgeCounts(string(m.ServerID))
+// 	if err != nil {
+// 		log.Errorf("SyncEdgeCountFromNetwork GetEdgeCounts err:%s", err.Error())
+// 	}
 
-	m.TotalNetworkEdges = count + m.Edges
-}
+// 	m.TotalNetworkEdges = count + m.Edges
+// }
 
-// startSyncEdgeCountTimer
-func (m *Manager) startSyncEdgeCountTimer() {
-	ticker := time.NewTicker(syncEdgeCountTime)
-	defer ticker.Stop()
+// // startSyncEdgeCountTimer
+// func (m *Manager) startSyncEdgeCountTimer() {
+// 	ticker := time.NewTicker(syncEdgeCountTime)
+// 	defer ticker.Stop()
 
-	for {
-		<-ticker.C
+// 	for {
+// 		<-ticker.C
 
-		m.syncEdgeCountFromNetwork()
-	}
-}
+// 		m.syncEdgeCountFromNetwork()
+// 	}
+// }
 
 // startNodeKeepaliveTimer periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
 func (m *Manager) startNodeKeepaliveTimer() {

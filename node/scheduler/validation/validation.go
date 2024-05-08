@@ -137,7 +137,7 @@ func (m *Manager) getValidationResultInfo(nodeID, vID string) (*types.Validation
 		Cid:         cid.String(),
 		StartTime:   time.Now(),
 		EndTime:     time.Now(),
-		NodeCount:   m.nodeMgr.TotalNetworkEdges,
+		// NodeCount:   m.nodeMgr.TotalNetworkEdges,
 	}
 
 	return dbInfo, nil
@@ -167,8 +167,6 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.Validate
 				if err != nil {
 					wURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
 				}
-
-				log.Infof("node %s , wsURL %s", vID, wURL)
 			}
 
 			req = &api.ValidateReq{
@@ -430,7 +428,7 @@ func (m *Manager) handleResult(vr *api.ValidationResult) {
 	cidCount := len(vr.Cids)
 	if cidCount < 1 {
 		status = types.ValidationStatusValidateFail
-		log.Errorf("handleResult round [%s] validator [%s] nodeID [%s];cidCount<1", m.curRoundID, vr.Validator, nodeID)
+		log.Errorf("handleResult round [%s] validator [%s] nodeID [%s] seed [%d] ;cidCount<1", m.curRoundID, vr.Validator, nodeID, m.seed)
 		return
 	}
 

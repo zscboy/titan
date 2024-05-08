@@ -14,6 +14,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
+	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/Filecoin-Titan/titan/node/sqldb"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/filecoin-project/pubsub"
@@ -47,10 +48,11 @@ func GenerateTokenWithWebPermission(ca *common.CommonAPI) (dtypes.PermissionWebT
 type StorageManagerParams struct {
 	fx.In
 
-	Lifecycle  fx.Lifecycle
-	MetricsCtx helpers.MetricsCtx
-	MetadataDS dtypes.MetadataDS
-	NodeManger *node.Manager
+	Lifecycle      fx.Lifecycle
+	MetricsCtx     helpers.MetricsCtx
+	MetadataDS     dtypes.MetadataDS
+	NodeManger     *node.Manager
+	WorkloadManger *workload.Manager
 	dtypes.GetSchedulerConfigFunc
 	*db.SQLDB
 }
@@ -64,10 +66,11 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 		ds      = params.MetadataDS
 		cfgFunc = params.GetSchedulerConfigFunc
 		sdb     = params.SQLDB
+		wMgr    = params.WorkloadManger
 	)
 
 	ctx := helpers.LifecycleCtx(mctx, lc)
-	m := assets.NewManager(nodeMgr, ds, cfgFunc, sdb)
+	m := assets.NewManager(nodeMgr, ds, cfgFunc, sdb, wMgr)
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {

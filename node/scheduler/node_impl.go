@@ -35,24 +35,23 @@ const (
 
 // GetOnlineNodeCount returns the count of online nodes for a given node type
 func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
-	if nodeType == types.NodeValidator {
-		list, err := s.NodeManager.LoadValidators(s.ServerID)
-		if err != nil {
-			return 0, err
-		}
-
-		i := 0
-		for _, nodeID := range list {
-			node := s.NodeManager.GetCandidateNode(nodeID)
-			if node != nil {
-				i++
-			}
-		}
-
-		return i, nil
+	if nodeType == types.NodeUnknown || nodeType == types.NodeEdge {
+		return s.NodeManager.GetOnlineNodeCount(nodeType), nil
 	}
 
-	return s.NodeManager.GetOnlineNodeCount(nodeType), nil
+	i := 0
+	_, nodes := s.NodeManager.GetAllCandidateNodes()
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+
+		if nodeType == node.Type {
+			i++
+		}
+	}
+
+	return i, nil
 }
 
 // RegisterNode register node
@@ -64,7 +63,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 	}
 
 	// check params
-	if nodeType != types.NodeEdge && nodeType != types.NodeCandidate {
+	if nodeType != types.NodeEdge && nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
 		return nil, xerrors.New("invalid node type")
 	}
 
@@ -72,7 +71,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 		return nil, xerrors.New("invalid edge node id")
 	}
 
-	if nodeType == types.NodeCandidate && !strings.HasPrefix(nodeID, "c_") {
+	if (nodeType == types.NodeCandidate || nodeType != types.NodeValidator) && !strings.HasPrefix(nodeID, "c_") {
 		return nil, xerrors.New("invalid candidate node id")
 	}
 
@@ -83,6 +82,12 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 	_, err = titanrsa.Pem2PublicKey([]byte(publicKey))
 	if err != nil {
 		return nil, xerrors.Errorf("pem to publicKey err : %s", err.Error())
+	}
+
+	isValidator := false
+	if nodeType == types.NodeValidator {
+		isValidator = true
+		nodeType = types.NodeCandidate
 	}
 
 	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
@@ -110,6 +115,13 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 
 	if err = s.db.SaveNodePublicKey(publicKey, nodeID); err != nil {
 		return nil, xerrors.Errorf("SaveNodePublicKey %w", err)
+	}
+
+	if isValidator {
+		err = s.db.UpdateValidators([]string{nodeID}, s.ServerID, false)
+		if err != nil {
+			log.Errorf("RegisterNode UpdateValidators %s err:%s", nodeID, err.Error())
+		}
 	}
 
 	return detail, nil
@@ -1022,7 +1034,7 @@ func (s *Scheduler) DownloadDataResult(ctx context.Context, bucket, cid string, 
 
 	log.Infof("awsTask DownloadDataResult %s : %s : %s : %d", nodeID, cid, bucket, size)
 
-	s.AssetManager.UpdateFillAssetResponseCount(bucket, cid, nodeID)
+	s.AssetManager.UpdateFillAssetResponseCount(bucket, cid, nodeID, size)
 
 	return nil
 

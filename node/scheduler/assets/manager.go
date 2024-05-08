@@ -25,6 +25,7 @@ import (
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 )
@@ -59,6 +60,7 @@ const (
 // Manager manages asset replicas
 type Manager struct {
 	nodeMgr            *node.Manager // node manager
+	workloadMgr        *workload.Manager
 	stateMachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
 	pullingAssets      sync.Map                      // map[string]int                // Assignments where assets are being pulled
@@ -85,7 +87,7 @@ type pullingAssetsInfo struct {
 }
 
 // NewManager returns a new AssetManager instance
-func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB) *Manager {
+func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB, wMgr *workload.Manager) *Manager {
 	m := &Manager{
 		nodeMgr: nodeManager,
 		// pullingAssets:        make(map[string]int),
@@ -93,6 +95,7 @@ func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dty
 		SQLDB:                sdb,
 		assetRemoveWaitGroup: make(map[string]*sync.WaitGroup),
 		fillSwitch:           true,
+		workloadMgr:          wMgr,
 	}
 
 	m.initCfg()

@@ -102,7 +102,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 	return ctx.Send(PullRequestSent{})
 }
 
-func (m *Manager) createSeedWorkload(info AssetPullingInfo, nodeID string) {
+func (m *Manager) createSeedWorkload(info AssetPullingInfo, nodeID string) string {
 	sID := types.DownloadSourceIPFS.String()
 	if info.Source == AssetSourceAWS {
 		sID = types.DownloadSourceAWS.String()
@@ -131,7 +131,11 @@ func (m *Manager) createSeedWorkload(info AssetPullingInfo, nodeID string) {
 		if err != nil {
 			log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
 		}
+
+		return record.WorkloadID
 	}
+
+	return ""
 }
 
 // handleSeedPulling handles the asset pulling process of seed nodes
