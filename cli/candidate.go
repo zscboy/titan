@@ -31,6 +31,10 @@ var registerCmds = &cli.Command{
 			Usage: "--locator=https://titan-locator-domain/rpc/v0",
 			Value: "",
 		},
+		&cli.IntFlag{
+			Name:  "node-type",
+			Usage: "--node-type=2, 2:candidate,3:validator",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		locatorURL := cctx.String("locator-url")
@@ -43,6 +47,10 @@ var registerCmds = &cli.Command{
 			return fmt.Errorf("--scheduler-url can not empty")
 		}
 
+		nodeType := cctx.Int("node-type")
+		if nodeType != int(types.NodeCandidate) && nodeType != int(types.NodeValidator) {
+			return fmt.Errorf("Must set --node-type=2 or --node-type=3")
+		}
 		_, lr, err := openRepoAndLock(cctx)
 		if err != nil {
 			return err
