@@ -219,9 +219,7 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 		return
 	}
 
-	if m.pullAssetFromAWSs(edgeCount, candidateCount) {
-		return
-	}
+	m.pullAssetFromAWSs(edgeCount, candidateCount)
 
 	if m.autoRestartAssetReplicas(false) {
 		return
