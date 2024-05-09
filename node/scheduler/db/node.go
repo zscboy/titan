@@ -850,6 +850,26 @@ func (n *SQLDB) LoadDeactivateNodeTime(nodeID string) (int64, error) {
 	return time, nil
 }
 
+// SaveFreeUpDiskTime save free up disk time
+func (n *SQLDB) SaveFreeUpDiskTime(nodeID string, time time.Time) error {
+	query := fmt.Sprintf(`UPDATE %s SET free_up_disk_time=? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, time, nodeID)
+	return err
+}
+
+// LoadFreeUpDiskTime Get free up disk time
+func (n *SQLDB) LoadFreeUpDiskTime(nodeID string) (time.Time, error) {
+	query := fmt.Sprintf(`SELECT free_up_disk_time FROM %s WHERE node_id=?`, nodeInfoTable)
+
+	var time time.Time
+	err := n.db.Get(&time, query, nodeID)
+	if err != nil {
+		return time, err
+	}
+
+	return time, nil
+}
+
 // LoadDeactivateNodes load all deactivate node.
 func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 	var out []string

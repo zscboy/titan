@@ -100,13 +100,12 @@ func New() *Node {
 // APIFromEdge creates a new API from an Edge API
 func APIFromEdge(api api.Edge) *API {
 	a := &API{
-		Common:     api,
-		Device:     api,
-		Validation: api,
-		DataSync:   api,
-		Asset:      api,
-		WaitQuiet:  api.WaitQuiet,
-		// ExternalServiceAddress: api.ExternalServiceAddress,
+		Common:       api,
+		Device:       api,
+		Validation:   api,
+		DataSync:     api,
+		Asset:        api,
+		WaitQuiet:    api.WaitQuiet,
 		UserNATPunch: api.UserNATPunch,
 	}
 	return a

@@ -1230,7 +1230,60 @@ func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int
 		nodeID = nID
 	}
 
+	if size <= 0 {
+		return xerrors.Errorf("size is %d", size)
+	}
+
 	// limit
+	t, err := s.db.LoadFreeUpDiskTime(nodeID)
+	if err != nil {
+		return err
+	}
+
+	day := 5
+	now := time.Now()
+	fiveDaysAgo := now.AddDate(0, 0, -day)
+	if !t.Before(fiveDaysAgo) {
+		return xerrors.Errorf("Less than %d days have passed since the last release", day)
+	}
+
+	// todo
+	hashes, err := s.db.LoadAllHashesOfNode(nodeID)
+	if err != nil {
+		return err
+	}
+
+	err = s.db.SaveFreeUpDiskTime(nodeID, now)
+	if err != nil {
+		return err
+	}
+
+	removeList := make([]string, 0)
+
+	for _, hash := range hashes {
+		asset, err := s.db.LoadAssetRecord(hash)
+		if err != nil {
+			continue
+		}
+
+		err = s.AssetManager.RemoveReplica(asset.CID, asset.Hash, nodeID)
+		if err != nil {
+			log.Errorf("FreeUpDiskSpace %s RemoveReplica %s err:%s", nodeID, asset.CID, err.Error())
+			continue
+		}
+
+		removeList = append(removeList, asset.Hash)
+
+		size -= asset.TotalSize
+		if size <= 0 {
+			break
+		}
+	}
+
+	err = s.db.SaveReplenishBackup(removeList)
+	if err != nil {
+		log.Errorf("FreeUpDiskSpace %s SaveReplenishBackup err:%s", nodeID, err.Error())
+	}
 
 	return nil
 }

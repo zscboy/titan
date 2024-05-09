@@ -339,7 +339,7 @@ func (m *Manager) removeNodesFromFillAsset(cid string, cleanCandidate bool) {
 
 func (m *Manager) updateFillAssetInfo(bucket string, count int64, replica int) {
 	info := &fillAssetInfo{
-		Expiration: time.Now().Add(2 * time.Hour),
+		Expiration: time.Now().Add(30 * time.Minute),
 		Bucket:     bucket,
 		Replicas:   replica,
 		CreateTime: time.Now(),

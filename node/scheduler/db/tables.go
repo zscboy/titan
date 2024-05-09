@@ -53,7 +53,8 @@ var cNodeInfoTable = `
     	download_traffic     BIGINT          DEFAULT 0,		
     	retrieve_count       INT             DEFAULT 0,	
     	asset_count          INT             DEFAULT 0,
-		deactivate_time      INT             DEFAULT 0,
+		deactivate_time      INT             DEFAULT 0,		
+		free_up_disk_time    DATETIME        DEFAULT '2024-04-20 12:10:15',
 	    PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node info';`
 

@@ -65,6 +65,7 @@ type NodeInfo struct {
 	DeactivateTime     int64           `db:"deactivate_time"`
 	CPUInfo            string          `json:"cpu_info" form:"cpuInfo" gorm:"column:cpu_info;comment:;" db:"cpu_info"`
 	GPUInfo            string          `json:"gpu_info" form:"gpuInfo" gorm:"column:gpu_info;comment:;" db:"gpu_info"`
+	FreeUpFiskTime     time.Time       `db:"free_up_disk_time"`
 
 	NodeDynamicInfo
 }
