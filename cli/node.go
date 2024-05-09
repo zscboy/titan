@@ -32,6 +32,33 @@ var nodeCmds = &cli.Command{
 		listValidationResultsCmd,
 		addProfitCmd,
 		listProfitDetailsCmd,
+		freeUpDiskSpaceCmd,
+	},
+}
+
+var freeUpDiskSpaceCmd = &cli.Command{
+	Name:  "fuds",
+	Usage: "free up disk space",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+		&cli.Int64Flag{
+			Name:  "size",
+			Usage: "free up size",
+			Value: 0,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		nodeID := cctx.String("node-id")
+		size := cctx.Int64("size")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.FreeUpDiskSpace(ctx, nodeID, size)
 	},
 }
 

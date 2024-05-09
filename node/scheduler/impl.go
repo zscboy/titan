@@ -86,10 +86,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 		cNode = node.New()
 		alreadyConnect = false
-	} else {
-		// if cNode.ClientCloser != nil {
-		// cNode.ClientCloser()
-		// }
 	}
 
 	if cNode.ExternalIP != "" {
@@ -108,9 +104,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	defer func() {
 		if err != nil {
 			s.NodeManager.RemoveNodeIP(nodeID, externalIP)
-			// if cNode.ClientCloser != nil {
-			// cNode.ClientCloser()
-			// }
 		}
 	}()
 
