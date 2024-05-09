@@ -561,6 +561,8 @@ var listProfitDetailsCmd = &cli.Command{
 			return err
 		}
 
+		fmt.Println("info : ", info.Total)
+
 		for w := 0; w < len(info.Infos); w++ {
 			info := info.Infos[w]
 

@@ -69,8 +69,8 @@ var cValidationResultsTable = `
 	    status            TINYINT        DEFAULT 0,
 	    duration          BIGINT         DEFAULT 0,
 	    bandwidth         FLOAT          DEFAULT 0,
-	    start_time        DATETIME       DEFAULT NULL,
-	    end_time          DATETIME       DEFAULT NULL,
+	    start_time        DATETIME       DEFAULT CURRENT_TIMESTAMP,
+	    end_time          DATETIME       DEFAULT CURRENT_TIMESTAMP,
 		profit            DECIMAL(14, 6) DEFAULT 0,
 		calculated_profit BOOLEAN,
 		token_id          VARCHAR(128)   DEFAULT '',
@@ -79,6 +79,8 @@ var cValidationResultsTable = `
 		PRIMARY KEY (id),
 	    KEY round_node (round_id, node_id),
 		KEY idx_profit (calculated_profit),
+		KEY idx_round_id  (round_id),
+		KEY idx_node_id  (node_id),
 		KEY idx_file  (file_saved),
 		KEY idx_start_time  (start_time)
     ) ENGINE=InnoDB COMMENT='Validation result records';`

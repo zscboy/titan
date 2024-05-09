@@ -192,7 +192,7 @@ func (m *Manager) startNodeKeepaliveTimer() {
 func (m *Manager) startCheckNodeTimer() {
 	now := time.Now()
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 4, 0, 0, 0, time.UTC)
+	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 4, 57, 0, 0, time.UTC)
 	if now.After(nextTime) {
 		nextTime = nextTime.Add(oneDay)
 	}

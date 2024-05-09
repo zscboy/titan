@@ -120,7 +120,7 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 	record.Status = types.WorkloadStatusSucceeded
 	err = m.UpdateWorkloadRecord(record)
 	if err != nil {
-		log.Errorf("HandleNodeWorkload UpdateWorkloadRecord error: %s", err.Error())
+		log.Errorf("handleUserWorkload UpdateWorkloadRecord error: %s", err.Error())
 		return err
 	}
 
@@ -171,13 +171,17 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 	}
 
 	// Retrieve Event
-	if err := m.SaveRetrieveEventInfo(eventList); err != nil {
-		log.Errorf("HandleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+	for _, data := range eventList {
+		if err := m.SaveRetrieveEventInfo(data); err != nil {
+			log.Errorf("handleUserWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+		}
 	}
 
-	err = m.nodeMgr.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("HandleNodeWorkload AddNodeProfits err:%s", err.Error())
+	for _, data := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(data)
+		if err != nil {
+			log.Errorf("handleUserWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+		}
 	}
 
 	return nil
@@ -307,13 +311,17 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	}
 
 	// Retrieve Event
-	if err := m.SaveRetrieveEventInfo(eventList); err != nil {
-		log.Errorf("handleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+	for _, data := range eventList {
+		if err := m.SaveRetrieveEventInfo(data); err != nil {
+			log.Errorf("handleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+		}
 	}
 
-	err = m.nodeMgr.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("handleNodeWorkload AddNodeProfits err:%s", err.Error())
+	for _, data := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(data)
+		if err != nil {
+			log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+		}
 	}
 
 	return nil

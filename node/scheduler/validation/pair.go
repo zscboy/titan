@@ -118,7 +118,7 @@ func (m *Manager) resetGroup() {
 
 	for _, node := range nodes {
 		switch node.Type {
-		case types.NodeEdge:
+		case types.NodeEdge, types.NodeCandidate:
 			m.unpairedGroup.addNode(node.NodeID, node.BandwidthUp)
 		case types.NodeValidator:
 			bwDn := float64(node.BandwidthDown)
@@ -346,4 +346,3 @@ func (m *Manager) PairValidatorsAndValidatableNodes() []*VWindow {
 
 	return m.vWindows
 }
-

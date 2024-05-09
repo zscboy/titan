@@ -59,27 +59,15 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 
 // UpdateValidationResultInfo updates the validation result information.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("UpdateValidators Rollback err:%s", err.Error())
-		}
-	}()
-
 	if info.Status == types.ValidationStatusSuccess {
 		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
-		_, err = tx.NamedExec(query, info)
+		_, err := n.db.NamedExec(query, info)
 		if err != nil {
 			return err
 		}
 	} else {
 		query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
-		_, err := tx.NamedExec(query, info)
+		_, err := n.db.NamedExec(query, info)
 		if err != nil {
 			return err
 		}
@@ -88,19 +76,19 @@ func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) err
 	bandwidth := int64(info.Bandwidth) * info.Duration
 	// update node bandwidth traffic info
 	iQuery := fmt.Sprintf(`UPDATE %s SET download_traffic=download_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(iQuery, bandwidth, info.ValidatorID)
+	_, err := n.db.Exec(iQuery, bandwidth, info.ValidatorID)
 	if err != nil {
 		return err
 	}
 
 	// iQuery = fmt.Sprintf(`UPDATE %s SET upload_traffic=upload_traffic+?,profit=profit+? WHERE node_id=?`, nodeInfoTable)
 	iQuery = fmt.Sprintf(`UPDATE %s SET upload_traffic=upload_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(iQuery, bandwidth, info.NodeID)
+	_, err = n.db.Exec(iQuery, bandwidth, info.NodeID)
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // UpdateValidationResultsTimeout sets the validation results' status as timeout.
@@ -679,7 +667,7 @@ func (n *SQLDB) UpdateFileSavedStatus(ids []int) error {
 }
 
 // SaveRetrieveEventInfo save retrieve event and update node info
-func (n *SQLDB) SaveRetrieveEventInfo(eventList []*types.RetrieveEvent) error {
+func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -692,21 +680,19 @@ func (n *SQLDB) SaveRetrieveEventInfo(eventList []*types.RetrieveEvent) error {
 		}
 	}()
 
-	for _, cInfo := range eventList {
-		query := fmt.Sprintf(
-			`INSERT INTO %s (token_id, node_id, client_id, cid, size, created_time, end_time, profit ) 
+	query := fmt.Sprintf(
+		`INSERT INTO %s (token_id, node_id, client_id, cid, size, created_time, end_time, profit ) 
 				VALUES (:token_id, :node_id, :client_id, :cid, :size, :created_time, :end_time, :profit )`, retrieveEventTable)
-		_, err = tx.NamedExec(query, cInfo)
-		if err != nil {
-			return err
-		}
+	_, err = tx.NamedExec(query, cInfo)
+	if err != nil {
+		return err
+	}
 
-		// update node info
-		query = fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+?,upload_traffic=upload_traffic+? WHERE node_id=?`, nodeInfoTable)
-		_, err = tx.Exec(query, 1, cInfo.Size, cInfo.NodeID)
-		if err != nil {
-			return err
-		}
+	// update node info
+	query = fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+?,upload_traffic=upload_traffic+? WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(query, 1, cInfo.Size, cInfo.NodeID)
+	if err != nil {
+		return err
 	}
 
 	return tx.Commit()
@@ -754,7 +740,7 @@ func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*typ
 	return res, nil
 }
 
-func (n *SQLDB) AddNodeProfits(profitList []*types.ProfitDetails) error {
+func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -767,26 +753,19 @@ func (n *SQLDB) AddNodeProfits(profitList []*types.ProfitDetails) error {
 		}
 	}()
 
-	if profitList != nil && len(profitList) > 0 {
-		for _, profitInfo := range profitList {
-			if profitInfo == nil || profitInfo.Profit == 0 {
-				continue
-			}
-
-			// add profit details
-			sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid)`, profitDetailsTable)
-			_, err = tx.NamedExec(sqlString, profitInfo)
-			if err != nil {
-				return err
-			}
-
-			iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
-			_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.NodeID)
-			if err != nil {
-				return err
-			}
-		}
+	// add profit details
+	sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid)`, profitDetailsTable)
+	_, err = tx.NamedExec(sqlString, profitInfo)
+	if err != nil {
+		return err
 	}
+
+	iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.NodeID)
+	if err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }
 
@@ -895,13 +874,13 @@ func (n *SQLDB) UpdateNodeProfit(sIDs []string, profit float64) error {
 
 // CleanData delete events
 func (n *SQLDB) CleanData() error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 1 MONTH) `, replicaEventTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
 		return err
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 1 MONTH) `, retrieveEventTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, retrieveEventTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		return err
@@ -913,13 +892,13 @@ func (n *SQLDB) CleanData() error {
 		return err
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 1 MONTH) `, validationResultTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 20 DAY) `, validationResultTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		return err
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 1 MONTH) `, profitDetailsTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 20 DAY) `, profitDetailsTable)
 	_, err = n.db.Exec(query)
 
 	return err

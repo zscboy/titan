@@ -19,7 +19,7 @@ var log = logging.Logger("scheduler/nat")
 const (
 	miniCandidateCount = 2
 	detectInterval     = 60
-	maxRetry           = 3
+	maxRetry           = 5
 )
 
 type Manager struct {

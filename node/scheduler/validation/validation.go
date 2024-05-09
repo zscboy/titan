@@ -303,9 +303,11 @@ func (m *Manager) updateTimeoutResultInfo() {
 		}
 	}
 
-	err = m.nodeMgr.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("updateTimeoutResultInfo AddNodeProfits err:%s", err.Error())
+	for _, data := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(data)
+		if err != nil {
+			log.Errorf("updateTimeoutResultInfo AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+		}
 	}
 }
 
@@ -316,7 +318,6 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	}
 
 	size := vr.Bandwidth * float64(vr.CostTime)
-	detailsList := make([]*types.ProfitDetails, 0)
 
 	if vr.Bandwidth > trafficProfitLimit {
 		vr.Bandwidth = trafficProfitLimit
@@ -336,7 +337,11 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
 			if dInfo != nil {
 				profit = dInfo.Profit
-				detailsList = append(detailsList, dInfo)
+
+				err := m.nodeMgr.AddNodeProfit(dInfo)
+				if err != nil {
+					log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
+				}
 			}
 		}
 	} else {
@@ -357,12 +362,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 
 	m.addValidationProfit(vr.Validator, size)
 
-	err := m.nodeMgr.UpdateValidationResultInfo(resultInfo)
-	if err != nil {
-		return err
-	}
-
-	return m.nodeMgr.AddNodeProfits(detailsList)
+	return m.nodeMgr.UpdateValidationResultInfo(resultInfo)
 }
 
 func (m *Manager) addValidationProfit(nodeID string, size float64) {
@@ -377,19 +377,22 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 	defer m.validationProfitsLock.Unlock()
 
 	if m.validationProfits != nil {
-		detailsList := make([]*types.ProfitDetails, 0)
-
 		for nodeID, size := range m.validationProfits {
 			vNode := m.nodeMgr.GetNode(nodeID)
-			if vNode != nil {
-				dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
-				if dInfo != nil {
-					detailsList = append(detailsList, dInfo)
-				}
+			if vNode == nil {
+				continue
+			}
+
+			dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
+			if dInfo == nil {
+				continue
+			}
+
+			err := m.nodeMgr.AddNodeProfit(dInfo)
+			if err != nil {
+				log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
 			}
 		}
-
-		m.nodeMgr.AddNodeProfits(detailsList)
 	}
 
 	m.validationProfits = make(map[string]float64)
@@ -467,7 +470,7 @@ func (m *Manager) handleResult(vr *api.ValidationResult) {
 	cids, cNodeID, err := m.getAssetBlocksFromCandidate(hash, vInfo.Cid, nodeID, cidCount)
 	if err != nil {
 		status = types.ValidationStatusGetValidatorBlockErr
-		log.Errorf("handleResult getAssetBlocksFromCandidate %s err , %s", nodeID, err.Error())
+		log.Errorf("handleResult %s getAssetBlocksFromCandidate %s , %s !err , %s", nodeID, cNodeID, vInfo.Cid, err.Error())
 		return
 	}
 
