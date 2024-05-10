@@ -471,6 +471,12 @@ func (m *Manager) handleResult(vr *api.ValidationResult) {
 	if err != nil {
 		status = types.ValidationStatusGetValidatorBlockErr
 		log.Errorf("handleResult %s getAssetBlocksFromCandidate %s , %s !err , %s", nodeID, cNodeID, vInfo.Cid, err.Error())
+
+		err = m.nodeMgr.SaveReplenishBackup([]string{hash})
+		if err != nil {
+			log.Errorf("handleResult %s SaveReplenishBackup err:%s", hash, err.Error())
+		}
+
 		return
 	}
 

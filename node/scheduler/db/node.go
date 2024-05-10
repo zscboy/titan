@@ -59,24 +59,24 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 
 // UpdateValidationResultInfo updates the validation result information.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
-	if info.Status == types.ValidationStatusSuccess {
-		query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
-		_, err := n.db.NamedExec(query, info)
-		if err != nil {
-			return err
-		}
-	} else {
-		query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
-		_, err := n.db.NamedExec(query, info)
-		if err != nil {
-			return err
-		}
+	// if info.Status == types.ValidationStatusSuccess {
+	query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
+	_, err := n.db.NamedExec(query, info)
+	if err != nil {
+		return err
 	}
+	// } else {
+	// 	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
+	// 	_, err := n.db.NamedExec(query, info)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	bandwidth := int64(info.Bandwidth) * info.Duration
 	// update node bandwidth traffic info
 	iQuery := fmt.Sprintf(`UPDATE %s SET download_traffic=download_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err := n.db.Exec(iQuery, bandwidth, info.ValidatorID)
+	_, err = n.db.Exec(iQuery, bandwidth, info.ValidatorID)
 	if err != nil {
 		return err
 	}

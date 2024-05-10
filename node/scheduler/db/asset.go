@@ -676,10 +676,7 @@ func (n *SQLDB) SaveReplenishBackup(hashes []string) error {
 			`INSERT INTO %s (hash) 
 		        VALUES (?) 
 				ON DUPLICATE KEY UPDATE hash=?`, replenishBackupTable)
-		_, err := tx.Exec(query, hash, hash)
-		if err != nil {
-			return err
-		}
+		tx.Exec(query, hash, hash)
 	}
 	return tx.Commit()
 }
