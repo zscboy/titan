@@ -238,11 +238,12 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info,
-			    disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, scheduler_sid) 
+			    disk_type, io_system, system_version, nat_type, disk_space, bandwidth_up, bandwidth_down, netflow_total, netflow_up, netflow_down, scheduler_sid) 
 				VALUES (:node_id, :mac_location, :cpu_cores, :memory, :node_name, :cpu_info, :available_disk_space, :titan_disk_usage, gpu_info,
-				:disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :scheduler_sid) 
+				:disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :netflow_total, :netflow_up, :netflow_down, :scheduler_sid) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, scheduler_sid=:scheduler_sid, system_version=:system_version, cpu_cores=:cpu_cores, titan_disk_usage=:titan_disk_usage, gpu_info=:gpu_info,
-				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space `, nodeInfoTable)
+				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space,
+				netflow_total:netflow_total, netflow_up:netflow_up, netflow_down:netflow_down `, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
@@ -872,7 +873,7 @@ func (n *SQLDB) UpdateNodeProfit(sIDs []string, profit float64) error {
 	return err
 }
 
-// func(n *SQLDB) 
+// func(n *SQLDB)
 
 // CleanData delete events
 func (n *SQLDB) CleanData() error {

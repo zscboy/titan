@@ -97,6 +97,10 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("mac: %s \n", info.MacLocation)
 		fmt.Printf("download bandwidth: %s \n", units.BytesSize(float64(info.BandwidthDown)))
 		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
+		fmt.Printf("netflow total: %s \n", units.BytesSize(float64(info.NetflowTotal)))
+		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetflowUp)))
+		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetflowDown)))
+		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		return nil
 	},

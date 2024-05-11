@@ -51,6 +51,8 @@ type Node struct {
 	PortMapping   string
 	BandwidthDown int64
 	BandwidthUp   int64
+	NetflowUp     int64
+	NetflowDown   int64
 
 	DeactivateTime int64
 
