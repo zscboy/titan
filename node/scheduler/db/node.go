@@ -243,7 +243,7 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 				:disk_type, :io_system, :system_version, :nat_type, :disk_space, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, scheduler_sid=:scheduler_sid, system_version=:system_version, cpu_cores=:cpu_cores, titan_disk_usage=:titan_disk_usage, gpu_info=:gpu_info,
 				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space,
-				netflow_up:netflow_up, netflow_down:netflow_down `, nodeInfoTable)
+				netflow_up=:netflow_up, netflow_down=:netflow_down `, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err

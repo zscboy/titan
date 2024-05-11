@@ -97,7 +97,7 @@ var nodeInfoCmd = &cli.Command{
 		fmt.Printf("mac: %s \n", info.MacLocation)
 		fmt.Printf("download bandwidth: %s \n", units.BytesSize(float64(info.BandwidthDown)))
 		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
-		fmt.Printf("netflow total: %s \n", units.BytesSize(float64(info.NetflowTotal)))
+		// fmt.Printf("netflow total: %s \n", units.BytesSize(float64(info.NetflowTotal)))
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetflowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetflowDown)))
 		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
@@ -494,8 +494,8 @@ func getRepoType(cctx *cli.Context) (repo.RepoType, error) {
 	}
 
 	return t, nil
-
 }
+
 func readPrivateKey(path string) (*rsa.PrivateKey, error) {
 	pem, err := os.ReadFile(path)
 	if err != nil {
@@ -739,7 +739,7 @@ func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL stri
 	}
 	defer closer()
 
-	var bits = 1024
+	bits := 1024
 
 	privateKey, err := titanrsa.GeneratePrivateKey(bits)
 	if err != nil {
@@ -1150,7 +1150,6 @@ func currentEdgeVersion() (api.Version, error) {
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, stdout) // titan-edge version 0.1.18
-
 	if err != nil {
 		return api.Version(0), fmt.Errorf("failed to read stdout: %s", err.Error())
 	}
@@ -1169,7 +1168,6 @@ func pickVersionInString(from string) string {
 }
 
 func releaseUrlFromGithub(version api.Version, assests []*github.ReleaseAsset) string {
-
 	for _, v := range assests {
 		if strings.Contains(v.GetName(), runtime.GOARCH) &&
 			strings.Contains(v.GetName(), runtime.GOOS) &&
@@ -1211,7 +1209,6 @@ func unpackAndReplaceBinary(f []byte) error {
 	buf := bytes.NewBuffer(f)
 
 	gzipReader, err := gzip.NewReader(buf)
-
 	if err != nil {
 		return err
 	}
@@ -1264,7 +1261,7 @@ func unpackAndReplaceBinary(f []byte) error {
 			}
 
 			// set permission
-			if err := os.Chmod(header.Name, 0755); err != nil {
+			if err := os.Chmod(header.Name, 0o755); err != nil {
 				return err
 			}
 
