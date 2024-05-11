@@ -165,7 +165,7 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 		// update node bandwidths
 		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
 		if speed > 0 {
-			m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
+			// m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
 			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
 		}
 	}
@@ -305,7 +305,7 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 		// update node bandwidths
 		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
 		if speed > 0 {
-			m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
+			// m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
 			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
 		}
 	}

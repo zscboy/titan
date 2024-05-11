@@ -127,7 +127,6 @@ func (m *Manager) startTick() {
 		case <-m.ctx.Done():
 			return
 		}
-
 	}
 }
 
@@ -158,7 +157,6 @@ func (m *Manager) start() {
 		case <-m.ctx.Done():
 			return
 		}
-
 	}
 }
 
@@ -280,7 +278,6 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller, isSyncData bool) {
 			if err := m.StoreBlocksToCar(context.Background(), puller.root); err != nil {
 				log.Errorf("store asset error: %s", err.Error())
 			}
-
 		}
 
 		if isSyncData {
@@ -304,11 +301,11 @@ func (m *Manager) onPullAssetFinish(puller *assetPuller, isSyncData bool) {
 		log.Errorf("submitPullerWorkloadReport error %s", err.Error())
 	}
 
-	speed := float64(puller.totalSize) / float64(time.Since(puller.startTime)) * float64(time.Second)
-	if speed > 0 {
-		log.Debugf("UpdateBandwidths, bandwidthDown %d", int64(speed))
-		m.Scheduler.UpdateBandwidths(context.Background(), int64(speed), 0)
-	}
+	// speed := float64(puller.totalSize) / float64(time.Since(puller.startTime)) * float64(time.Second)
+	// if speed > 0 {
+	// 	log.Debugf("UpdateBandwidths, bandwidthDown %d", int64(speed))
+	// 	m.Scheduler.UpdateBandwidths(context.Background(), int64(speed), 0)
+	// }
 
 	if len(puller.errMsgs) > 0 {
 		// TODO: if pull asset msg is out max, delete

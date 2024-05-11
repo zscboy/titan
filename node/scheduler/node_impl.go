@@ -1022,8 +1022,8 @@ func (s *Scheduler) VerifyTokenWithLimitCount(ctx context.Context, token string)
 
 // UpdateBandwidths update bandwidths
 func (s *Scheduler) UpdateBandwidths(ctx context.Context, bandwidthDown, bandwidthUp int64) error {
-	nodeID := handler.GetNodeID(ctx)
-	s.NodeManager.UpdateNodeBandwidths(nodeID, bandwidthDown, bandwidthUp)
+	// nodeID := handler.GetNodeID(ctx)
+	// s.NodeManager.UpdateNodeBandwidths(nodeID, bandwidthDown, bandwidthUp)
 
 	return nil
 }

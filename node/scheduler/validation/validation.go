@@ -45,6 +45,8 @@ func (m *Manager) startValidationTicker() {
 
 			// save validator profits
 			m.addValidatorProfitsAndInitMap()
+			// update bandwidthUps
+			m.updateValidatorBandwidthUps()
 			// Set the timeout status of the previous verification
 			m.updateTimeoutResultInfo()
 
@@ -372,16 +374,36 @@ func (m *Manager) addValidationProfit(nodeID string, size float64) {
 	m.validationProfits[nodeID] += size
 }
 
+func (m *Manager) updateValidatorBandwidthUps() {
+	m.validationProfitsLock.Lock()
+	defer m.validationProfitsLock.Unlock()
+
+	for nID, size := range m.nodeBandwidthUps {
+		vNode := m.nodeMgr.GetNode(nID)
+		if vNode == nil {
+			continue
+		}
+
+		vNode.BandwidthUp = int64(size) / (int64(handValidatorProfitsInterval) / int64(time.Second))
+	}
+
+	m.nodeBandwidthUps = make(map[string]float64)
+}
+
 func (m *Manager) addValidatorProfitsAndInitMap() {
 	m.validationProfitsLock.Lock()
 	defer m.validationProfitsLock.Unlock()
 
 	if m.validationProfits != nil {
+		nUps := make(map[string]float64)
+
 		for nodeID, size := range m.validationProfits {
 			vNode := m.nodeMgr.GetNode(nodeID)
 			if vNode == nil {
 				continue
 			}
+
+			nUps[nodeID] += size
 
 			dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
 			if dInfo == nil {
@@ -391,6 +413,13 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 			err := m.nodeMgr.AddNodeProfit(dInfo)
 			if err != nil {
 				log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
+			}
+		}
+
+		// Update node BandwidthUps
+		for nID, size := range nUps {
+			if m.nodeBandwidthUps[nID] < size {
+				m.nodeBandwidthUps[nID] = size
 			}
 		}
 	}

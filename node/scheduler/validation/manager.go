@@ -98,6 +98,8 @@ type Manager struct {
 
 	l2ValidatorCount int
 	electionCycle    time.Duration
+
+	nodeBandwidthUps map[string]float64
 }
 
 // NewManager return new node manager instance
@@ -113,6 +115,7 @@ func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtyp
 		resultQueue:       make(chan *api.ValidationResult),
 		leadershipMgr:     lmgr,
 		validationProfits: make(map[string]float64),
+		nodeBandwidthUps:  make(map[string]float64),
 	}
 
 	manager.initCfg()
