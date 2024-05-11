@@ -103,7 +103,7 @@ func (device *Device) GetNodeInfo(ctx context.Context) (types.NodeInfo, error) {
 	}
 
 	if device.resources.Netflow != nil {
-		info.NetflowTotal = device.resources.Netflow.Total
+		// info.NetflowTotal = device.resources.Netflow.Total
 		info.NetflowUp = device.resources.Netflow.NetflowUp
 		info.NetflowDown = device.resources.Netflow.NetflowDown
 	}

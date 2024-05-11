@@ -61,7 +61,7 @@ func DefaultEdgeCfg() *EdgeCfg {
 		},
 		Netflow: Netflow{
 			// 100GB
-			Total: 100 << 30,
+			// Total: 100 << 30,
 			// 50GB
 			NetflowUp: 50 << 30,
 			// 50GB

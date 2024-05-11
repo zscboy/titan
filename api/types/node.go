@@ -50,7 +50,6 @@ type NodeInfo struct {
 	FirstTime          time.Time       `db:"first_login_time"`
 	BandwidthUp        int64           `json:"bandwidth_up" db:"bandwidth_up"`
 	BandwidthDown      int64           `json:"bandwidth_down" db:"bandwidth_down"`
-	NetflowTotal       int64           `json:"netflow_total" db:"netflow_total" gorm:"column:netflow_total;"`
 	NetflowUp          int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
 	NetflowDown        int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
 	DiskSpace          float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
