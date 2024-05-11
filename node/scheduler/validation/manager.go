@@ -99,23 +99,23 @@ type Manager struct {
 	l2ValidatorCount int
 	electionCycle    time.Duration
 
-	nodeBandwidthUps map[string]float64
+	nodeBandwidthDowns map[string]float64
 }
 
 // NewManager return new node manager instance
 func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
 	manager := &Manager{
-		nodeMgr:           nodeMgr,
-		assetMgr:          assetMgr,
-		config:            configFunc,
-		close:             make(chan struct{}),
-		unpairedGroup:     newValidatableGroup(),
-		updateCh:          make(chan struct{}, 1),
-		notify:            p,
-		resultQueue:       make(chan *api.ValidationResult),
-		leadershipMgr:     lmgr,
-		validationProfits: make(map[string]float64),
-		nodeBandwidthUps:  make(map[string]float64),
+		nodeMgr:            nodeMgr,
+		assetMgr:           assetMgr,
+		config:             configFunc,
+		close:              make(chan struct{}),
+		unpairedGroup:      newValidatableGroup(),
+		updateCh:           make(chan struct{}, 1),
+		notify:             p,
+		resultQueue:        make(chan *api.ValidationResult),
+		leadershipMgr:      lmgr,
+		validationProfits:  make(map[string]float64),
+		nodeBandwidthDowns: make(map[string]float64),
 	}
 
 	manager.initCfg()

@@ -46,7 +46,7 @@ func (m *Manager) startValidationTicker() {
 			// save validator profits
 			m.addValidatorProfitsAndInitMap()
 			// update bandwidthUps
-			m.updateValidatorBandwidthUps()
+			m.updateValidatorBandwidthDowns()
 			// Set the timeout status of the previous verification
 			m.updateTimeoutResultInfo()
 
@@ -374,20 +374,20 @@ func (m *Manager) addValidationProfit(nodeID string, size float64) {
 	m.validationProfits[nodeID] += size
 }
 
-func (m *Manager) updateValidatorBandwidthUps() {
+func (m *Manager) updateValidatorBandwidthDowns() {
 	m.validationProfitsLock.Lock()
 	defer m.validationProfitsLock.Unlock()
 
-	for nID, size := range m.nodeBandwidthUps {
+	for nID, size := range m.nodeBandwidthDowns {
 		vNode := m.nodeMgr.GetNode(nID)
 		if vNode == nil {
 			continue
 		}
 
-		vNode.BandwidthUp = int64(size) / (int64(handValidatorProfitsInterval) / int64(time.Second))
+		vNode.BandwidthDown = int64(size) / (int64(handValidatorProfitsInterval) / int64(time.Second))
 	}
 
-	m.nodeBandwidthUps = make(map[string]float64)
+	m.nodeBandwidthDowns = make(map[string]float64)
 }
 
 func (m *Manager) addValidatorProfitsAndInitMap() {
@@ -395,7 +395,7 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 	defer m.validationProfitsLock.Unlock()
 
 	if m.validationProfits != nil {
-		nUps := make(map[string]float64)
+		nDowns := make(map[string]float64)
 
 		for nodeID, size := range m.validationProfits {
 			vNode := m.nodeMgr.GetNode(nodeID)
@@ -403,7 +403,7 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 				continue
 			}
 
-			nUps[nodeID] += size
+			nDowns[nodeID] += size
 
 			dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
 			if dInfo == nil {
@@ -417,9 +417,9 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 		}
 
 		// Update node BandwidthUps
-		for nID, size := range nUps {
-			if m.nodeBandwidthUps[nID] < size {
-				m.nodeBandwidthUps[nID] = size
+		for nID, size := range nDowns {
+			if m.nodeBandwidthDowns[nID] < size {
+				m.nodeBandwidthDowns[nID] = size
 			}
 		}
 	}
