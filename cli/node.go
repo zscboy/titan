@@ -430,6 +430,8 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("NatType: %s \n", info.NATType)
 		fmt.Printf("OnlineDuration: %d \n", info.OnlineDuration)
 		fmt.Printf("Profit: %.4f \n", info.Profit)
+		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetflowUp)))
+		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetflowDown)))
 
 		return nil
 	},

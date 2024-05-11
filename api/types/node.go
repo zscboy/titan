@@ -12,33 +12,27 @@ import (
 // NodeSnapshot contains the real-time status information of a node,
 // such as the last online time, online duration, CPU usage rate, and score changes.
 type NodeSnapshot struct {
-	NodeID             string    `db:"node_id"`
+	NodeID             string    `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
 	OnlineDuration     int       `db:"online_duration"` // unit:Minute
-	DiskUsage          float64   `db:"disk_usage"`
+	DiskUsage          float64   `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	LastSeen           time.Time `db:"last_seen"`
-	BandwidthUp        int64     `db:"bandwidth_up"`
-	BandwidthDown      int64     `db:"bandwidth_down"`
 	Profit             float64   `db:"profit"`
-	AvailableDiskSpace float64   `db:"available_disk_space"`
 	TitanDiskUsage     float64   `db:"titan_disk_usage"`
+	AvailableDiskSpace float64   `json:"available_disk_space" form:"availableDiskSpace" gorm:"column:available_disk_space;comment:;" db:"available_disk_space"`
+	BandwidthUp        int64     `json:"bandwidth_up" db:"bandwidth_up"`
+	BandwidthDown      int64     `json:"bandwidth_down" db:"bandwidth_down"`
 }
 
 // NodeDynamicInfo Dynamic information about the node
 type NodeDynamicInfo struct {
-	NodeID          string  `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
-	DiskUsage       float64 `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	CPUUsage        float64
 	MemoryUsage     float64
 	Status          NodeStatus
-	TitanDiskUsage  float64   `db:"titan_disk_usage"`
-	IncomeIncr      float64   // Base points increase every half hour (30 minute)
-	OnlineDuration  int       `db:"online_duration"` // unit:Minute
-	Profit          float64   `db:"profit"`
-	LastSeen        time.Time `db:"last_seen"`
-	DownloadTraffic int64     `db:"download_traffic"`
-	UploadTraffic   int64     `db:"upload_traffic"`
-	AssetCount      int64     `db:"asset_count"`
-	RetrieveCount   int64     `db:"retrieve_count"`
+	IncomeIncr      float64 // Base points increase every half hour (30 minute)
+	DownloadTraffic int64   `db:"download_traffic"`
+	UploadTraffic   int64   `db:"upload_traffic"`
+	AssetCount      int64   `db:"asset_count"`
+	RetrieveCount   int64   `db:"retrieve_count"`
 }
 
 // NodeInfo contains information about a node.
@@ -47,29 +41,27 @@ type NodeInfo struct {
 	ExternalIP string
 	InternalIP string
 
-	FirstTime          time.Time       `db:"first_login_time"`
-	BandwidthUp        int64           `json:"bandwidth_up" db:"bandwidth_up"`
-	BandwidthDown      int64           `json:"bandwidth_down" db:"bandwidth_down"`
-	NetflowUp          int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
-	NetflowDown        int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
-	DiskSpace          float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
-	AvailableDiskSpace float64         `json:"available_disk_space" form:"availableDiskSpace" gorm:"column:available_disk_space;comment:;" db:"available_disk_space"`
-	SystemVersion      string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
-	DiskType           string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
-	IoSystem           string          `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;" db:"io_system"`
-	NodeName           string          `json:"node_name" form:"nodeName" gorm:"column:node_name;comment:;" db:"node_name"`
-	Memory             float64         `json:"memory" form:"memory" gorm:"column:memory;comment:;" db:"memory"`
-	CPUCores           int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
-	MacLocation        string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
-	NATType            string          `db:"nat_type"`
-	PortMapping        string          `db:"port_mapping"`
-	SchedulerID        dtypes.ServerID `db:"scheduler_sid"`
-	DeactivateTime     int64           `db:"deactivate_time"`
-	CPUInfo            string          `json:"cpu_info" form:"cpuInfo" gorm:"column:cpu_info;comment:;" db:"cpu_info"`
-	GPUInfo            string          `json:"gpu_info" form:"gpuInfo" gorm:"column:gpu_info;comment:;" db:"gpu_info"`
-	FreeUpFiskTime     time.Time       `db:"free_up_disk_time"`
+	FirstTime      time.Time       `db:"first_login_time"`
+	NetflowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
+	NetflowDown    int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
+	DiskSpace      float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
+	SystemVersion  string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
+	DiskType       string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
+	IoSystem       string          `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;" db:"io_system"`
+	NodeName       string          `json:"node_name" form:"nodeName" gorm:"column:node_name;comment:;" db:"node_name"`
+	Memory         float64         `json:"memory" form:"memory" gorm:"column:memory;comment:;" db:"memory"`
+	CPUCores       int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
+	MacLocation    string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
+	NATType        string          `db:"nat_type"`
+	PortMapping    string          `db:"port_mapping"`
+	SchedulerID    dtypes.ServerID `db:"scheduler_sid"`
+	DeactivateTime int64           `db:"deactivate_time"`
+	CPUInfo        string          `json:"cpu_info" form:"cpuInfo" gorm:"column:cpu_info;comment:;" db:"cpu_info"`
+	GPUInfo        string          `json:"gpu_info" form:"gpuInfo" gorm:"column:gpu_info;comment:;" db:"gpu_info"`
+	FreeUpFiskTime time.Time       `db:"free_up_disk_time"`
 
 	NodeDynamicInfo
+	NodeSnapshot
 }
 
 // NodeStatus node status
