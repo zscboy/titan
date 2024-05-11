@@ -196,6 +196,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.BandwidthDown = oldInfo.BandwidthDown
 		nodeInfo.BandwidthUp = oldInfo.BandwidthUp
 		nodeInfo.DeactivateTime = oldInfo.DeactivateTime
+		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
+		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
 
 		if oldInfo.DeactivateTime > 0 && oldInfo.DeactivateTime < time.Now().Unix() {
 			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)
@@ -216,11 +218,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.TitanDiskUsage = nodeInfo.TitanDiskUsage
 	cNode.DiskUsage = nodeInfo.DiskUsage
 	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
-
-	// pCount, err := s.db.GetNodePullingCount(nodeID)
-	// if err == nil {
-	// 	cNode.PullAssetCount = int(pCount)
-	// }
+	cNode.NetFlowUp = nodeInfo.NetFlowUp
+	cNode.NetFlowDown = nodeInfo.NetFlowDown
 
 	if !alreadyConnect {
 		version, err := cNode.API.Version(ctx)

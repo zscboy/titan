@@ -160,6 +160,8 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 
 				detailsList = append(detailsList, dInfo)
 			}
+
+			node.UploadTraffic += dw.DownloadSize
 		}
 
 		// update node bandwidths
@@ -300,6 +302,8 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 
 				detailsList = append(detailsList, dInfo)
 			}
+
+			node.UploadTraffic += dw.DownloadSize
 		}
 
 		// update node bandwidths

@@ -353,6 +353,8 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.ExternalIP = node.ExternalIP
 		nodeInfo.IncomeIncr = node.IncomeIncr
 		nodeInfo.TitanDiskUsage = node.TitanDiskUsage
+		nodeInfo.NetFlowUp = node.NetFlowUp
+		nodeInfo.NetFlowDown = node.NetFlowDown
 
 		log.Debugf("%s node select codes:%v", nodeID, node.SelectWeights())
 	}
@@ -392,6 +394,8 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.ExternalIP = node.ExternalIP
 			nodeInfo.IncomeIncr = node.IncomeIncr
 			nodeInfo.TitanDiskUsage = node.TitanDiskUsage
+			nodeInfo.NetFlowUp = node.NetFlowUp
+			nodeInfo.NetFlowDown = node.NetFlowDown
 		}
 
 		// _, exist := validator[nodeInfo.NodeID]
@@ -468,6 +472,10 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 		}
 
 		if eNode.NATType == types.NatTypeSymmetric {
+			continue
+		}
+
+		if !eNode.NetFlowUpExcess(float64(rInfo.DoneSize)) {
 			continue
 		}
 
@@ -654,6 +662,10 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			continue
 		}
 
+		if !cNode.NetFlowUpExcess(float64(rInfo.DoneSize)) {
+			continue
+		}
+
 		if rInfo.IsCandidate {
 			if aInfo.Source == int64(types.AssetSourceStorage) {
 				if !cNode.IsStorageOnly {
@@ -771,6 +783,10 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		nodeID := rInfo.NodeID
 		cNode := s.NodeManager.GetNode(nodeID)
 		if cNode == nil {
+			continue
+		}
+
+		if !cNode.NetFlowUpExcess(float64(rInfo.DoneSize)) {
 			continue
 		}
 

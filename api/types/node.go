@@ -9,9 +9,9 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// NodeSnapshot contains the real-time status information of a node,
+// NodeDynamicInfo contains the real-time status information of a node,
 // such as the last online time, online duration, CPU usage rate, and score changes.
-type NodeSnapshot struct {
+type NodeDynamicInfo struct {
 	NodeID             string    `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
 	OnlineDuration     int       `db:"online_duration"` // unit:Minute
 	DiskUsage          float64   `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
@@ -21,29 +21,25 @@ type NodeSnapshot struct {
 	AvailableDiskSpace float64   `json:"available_disk_space" form:"availableDiskSpace" gorm:"column:available_disk_space;comment:;" db:"available_disk_space"`
 	BandwidthUp        int64     `json:"bandwidth_up" db:"bandwidth_up"`
 	BandwidthDown      int64     `json:"bandwidth_down" db:"bandwidth_down"`
-}
-
-// NodeDynamicInfo Dynamic information about the node
-type NodeDynamicInfo struct {
-	CPUUsage        float64
-	MemoryUsage     float64
-	Status          NodeStatus
-	IncomeIncr      float64 // Base points increase every half hour (30 minute)
-	DownloadTraffic int64   `db:"download_traffic"`
-	UploadTraffic   int64   `db:"upload_traffic"`
-	AssetCount      int64   `db:"asset_count"`
-	RetrieveCount   int64   `db:"retrieve_count"`
+	DownloadTraffic    int64     `db:"download_traffic"`
+	UploadTraffic      int64     `db:"upload_traffic"`
 }
 
 // NodeInfo contains information about a node.
 type NodeInfo struct {
-	Type       NodeType
-	ExternalIP string
-	InternalIP string
+	Type          NodeType
+	ExternalIP    string
+	InternalIP    string
+	CPUUsage      float64
+	MemoryUsage   float64
+	Status        NodeStatus
+	IncomeIncr    float64 // Base points increase every half hour (30 minute)
+	AssetCount    int64   `db:"asset_count"`
+	RetrieveCount int64   `db:"retrieve_count"`
 
 	FirstTime      time.Time       `db:"first_login_time"`
-	NetflowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
-	NetflowDown    int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
+	NetFlowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
+	NetFlowDown    int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
 	DiskSpace      float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
 	SystemVersion  string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
 	DiskType       string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
@@ -61,7 +57,6 @@ type NodeInfo struct {
 	FreeUpFiskTime time.Time       `db:"free_up_disk_time"`
 
 	NodeDynamicInfo
-	NodeSnapshot
 }
 
 // NodeStatus node status

@@ -59,31 +59,8 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 
 // UpdateValidationResultInfo updates the validation result information.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
-	// if info.Status == types.ValidationStatusSuccess {
 	query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
 	_, err := n.db.NamedExec(query, info)
-	if err != nil {
-		return err
-	}
-	// } else {
-	// 	query := fmt.Sprintf(`UPDATE %s SET status=:status, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
-	// 	_, err := n.db.NamedExec(query, info)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	bandwidth := int64(info.Bandwidth) * info.Duration
-	// update node bandwidth traffic info
-	iQuery := fmt.Sprintf(`UPDATE %s SET download_traffic=download_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = n.db.Exec(iQuery, bandwidth, info.ValidatorID)
-	if err != nil {
-		return err
-	}
-
-	// iQuery = fmt.Sprintf(`UPDATE %s SET upload_traffic=upload_traffic+?,profit=profit+? WHERE node_id=?`, nodeInfoTable)
-	iQuery = fmt.Sprintf(`UPDATE %s SET upload_traffic=upload_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = n.db.Exec(iQuery, bandwidth, info.NodeID)
 	if err != nil {
 		return err
 	}
@@ -249,8 +226,8 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
-// UpdateOnlineDuration update node online time , last time , disk usage
-func (n *SQLDB) UpdateOnlineDuration(infos []*types.NodeSnapshot) ([]string, error) {
+// UpdateNodeDynamicInfo update node online time , last time , disk usage ...
+func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) ([]string, error) {
 	errorList := make([]string, 0)
 
 	tx, err := n.db.Beginx()
@@ -266,8 +243,10 @@ func (n *SQLDB) UpdateOnlineDuration(infos []*types.NodeSnapshot) ([]string, err
 	}()
 
 	for _, info := range infos {
-		query := fmt.Sprintf(`UPDATE %s SET last_seen=?,online_duration=online_duration+?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,profit=profit+?,titan_disk_usage=?,available_disk_space=? WHERE node_id=?`, nodeInfoTable)
-		_, err = tx.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.Profit, info.TitanDiskUsage, info.AvailableDiskSpace, info.NodeID)
+		query := fmt.Sprintf(`UPDATE %s SET last_seen=?,online_duration=online_duration+?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,profit=profit+?,
+		    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`, nodeInfoTable)
+		_, err = tx.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.Profit, info.TitanDiskUsage,
+			info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID)
 		if err != nil {
 			errorList = append(errorList, fmt.Sprintf("UpdateOnlineDuration %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error()))
 		}
@@ -690,8 +669,8 @@ func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
 	}
 
 	// update node info
-	query = fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+?,upload_traffic=upload_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(query, 1, cInfo.Size, cInfo.NodeID)
+	query = fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+? WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(query, 1, cInfo.NodeID)
 	if err != nil {
 		return err
 	}

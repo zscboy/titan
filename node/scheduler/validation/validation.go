@@ -44,7 +44,7 @@ func (m *Manager) startValidationTicker() {
 			timer.Reset(validationInterval)
 
 			// save validator profits
-			m.addValidatorProfitsAndInitMap()
+			// m.addValidatorProfitsAndInitMap()
 			// update bandwidthUps
 			m.updateValidatorBandwidthDowns()
 			// Set the timeout status of the previous verification
@@ -282,6 +282,7 @@ func (m *Manager) updateTimeoutResultInfo() {
 	detailsList := make([]*types.ProfitDetails, 0)
 
 	for _, resultInfo := range list {
+		bandwidth := int64(resultInfo.Bandwidth) * resultInfo.Duration
 		resultInfo.Status = types.ValidationStatusValidatorTimeOut
 
 		node := m.nodeMgr.GetNode(resultInfo.NodeID)
@@ -295,6 +296,8 @@ func (m *Manager) updateTimeoutResultInfo() {
 					detailsList = append(detailsList, dInfo)
 				}
 			}
+
+			node.UploadTraffic += bandwidth
 		} else {
 			resultInfo.Status = types.ValidationStatusNodeOffline
 		}
@@ -345,6 +348,8 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 					log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
 				}
 			}
+
+			node.UploadTraffic += int64(size)
 		}
 	} else {
 		status = types.ValidationStatusNodeOffline
@@ -363,6 +368,11 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	}
 
 	m.addValidationProfit(vr.Validator, size)
+
+	vNode := m.nodeMgr.GetNode(vr.Validator)
+	if vNode != nil {
+		vNode.DownloadTraffic += int64(size)
+	}
 
 	return m.nodeMgr.UpdateValidationResultInfo(resultInfo)
 }

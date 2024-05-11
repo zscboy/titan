@@ -709,6 +709,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 	cids := make([]string, 0)
 	haveChange := false
 	doneCount := 0
+	downloadTraffic := int64(0)
 
 	for _, progress := range result.Progresses {
 		log.Infof("updateAssetPullResults node_id: %s, status: %d, block:%d/%d, size: %d/%d, cid: %s , msg:%s", nodeID, progress.Status, progress.DoneBlocksCount, progress.BlocksCount, progress.DoneSize, progress.Size, progress.CID, progress.Msg)
@@ -779,11 +780,13 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				continue
 			}
 
-			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, cInfo.NodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventAdd, record.Source)
+			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventAdd, record.Source)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 				continue
 			}
+
+			downloadTraffic += cInfo.DoneSize
 		}
 
 		if progress.Status == types.ReplicaStatusFailed {
@@ -803,6 +806,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 	node := m.nodeMgr.GetNode(nodeID)
 	if node != nil {
 		node.DiskUsage = result.DiskUsage
+		node.DownloadTraffic += downloadTraffic
 	}
 
 	if haveChange {
@@ -1036,6 +1040,10 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
+		if !cNode.NetFlowUpExcess(float64(replica.DoneSize)) {
+			continue
+		}
+
 		if cNode.Type == types.NodeCandidate {
 			if assetSource == AssetSourceStorage && !cNode.IsStorageOnly {
 				continue
@@ -1175,6 +1183,11 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 		// Calculate node residual capacity
 		if !node.DiskEnough(size) {
 			log.Debugf("chooseEdgeNodes node %s disk residual n.DiskUsage:%.2f, n.DiskSpace:%.2f, AvailableDiskSpace:%.2f, TitanDiskUsage:%.2f", node.NodeID, node.DiskUsage, node.DiskSpace, node.AvailableDiskSpace, node.TitanDiskUsage)
+			return false
+		}
+
+		if !node.NetFlowDownExcess(size) {
+			log.Debugf("chooseEdgeNodes node %s net flow excess n.NetFlowDown:%d, n.DownloadTraffic:%d", node.NodeID, node.NetFlowDown, node.DownloadTraffic)
 			return false
 		}
 

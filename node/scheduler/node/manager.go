@@ -341,7 +341,7 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time) bool {
 func (m *Manager) nodesKeepalive(isSave bool) {
 	t := time.Now().Add(-keepaliveTime)
 
-	nodes := make([]*types.NodeSnapshot, 0)
+	nodes := make([]*types.NodeDynamicInfo, 0)
 	// detailsList := make([]*types.ProfitDetails, 0)
 	mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
 
@@ -373,7 +373,7 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 			node.IncomeIncr = incomeIncr
 
 			if isSave {
-				nodes = append(nodes, &types.NodeSnapshot{
+				nodes = append(nodes, &types.NodeDynamicInfo{
 					NodeID:             node.NodeID,
 					OnlineDuration:     onlineDuration,
 					DiskUsage:          node.DiskUsage,
@@ -383,6 +383,8 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 					Profit:             profit,
 					TitanDiskUsage:     node.TitanDiskUsage,
 					AvailableDiskSpace: node.AvailableDiskSpace,
+					DownloadTraffic:    node.DownloadTraffic,
+					UploadTraffic:      node.UploadTraffic,
 				})
 			}
 		}
@@ -408,7 +410,7 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 			node.IncomeIncr = incomeIncr
 
 			if isSave {
-				nodes = append(nodes, &types.NodeSnapshot{
+				nodes = append(nodes, &types.NodeDynamicInfo{
 					NodeID:             node.NodeID,
 					OnlineDuration:     onlineDuration,
 					DiskUsage:          node.DiskUsage,
@@ -418,6 +420,8 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 					TitanDiskUsage:     node.TitanDiskUsage,
 					AvailableDiskSpace: node.AvailableDiskSpace,
 					Profit:             profit,
+					DownloadTraffic:    node.DownloadTraffic,
+					UploadTraffic:      node.UploadTraffic,
 				})
 			}
 		}
@@ -426,7 +430,7 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 	})
 
 	if len(nodes) > 0 {
-		eList, err := m.UpdateOnlineDuration(nodes)
+		eList, err := m.UpdateNodeDynamicInfo(nodes)
 		if err != nil {
 			log.Errorf("UpdateNodeInfos err:%s", err.Error())
 		}

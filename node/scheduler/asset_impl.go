@@ -335,6 +335,11 @@ func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.Minio
 
 	nodeID := handler.GetNodeID(ctx)
 
+	node := s.NodeManager.GetNode(nodeID)
+	if node != nil {
+		node.DownloadTraffic += event.Size
+	}
+
 	log.Debugf("MinioUploadFileEvent nodeID:%s, assetCID:", nodeID, event.AssetCID)
 
 	return s.db.SaveReplicaEvent(hash, event.AssetCID, nodeID, event.Size, event.Expiration, types.MinioEventAdd, int64(types.AssetSourceMinio))

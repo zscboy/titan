@@ -47,12 +47,14 @@ type Node struct {
 	DiskUsage      float64
 	TitanDiskUsage float64
 
-	Type          types.NodeType
-	PortMapping   string
-	BandwidthDown int64
-	BandwidthUp   int64
-	NetflowUp     int64
-	NetflowDown   int64
+	Type            types.NodeType
+	PortMapping     string
+	BandwidthDown   int64
+	BandwidthUp     int64
+	NetFlowUp       int64
+	NetFlowDown     int64
+	DownloadTraffic int64
+	UploadTraffic   int64
 
 	DeactivateTime int64
 
@@ -309,6 +311,30 @@ func (n *Node) DiskEnough(size float64) bool {
 	residual = n.AvailableDiskSpace - n.TitanDiskUsage
 	if residual <= size {
 		return false
+	}
+
+	return true
+}
+
+func (n *Node) NetFlowUpExcess(size float64) bool {
+	if n.NetFlowUp <= 0 {
+		return false
+	}
+
+	if n.NetFlowUp >= n.UploadTraffic+int64(size) {
+		return true
+	}
+
+	return true
+}
+
+func (n *Node) NetFlowDownExcess(size float64) bool {
+	if n.NetFlowDown <= 0 {
+		return false
+	}
+
+	if n.NetFlowDown >= n.DownloadTraffic+int64(size) {
+		return true
 	}
 
 	return true

@@ -57,8 +57,8 @@ func (n *SQLDB) SaveReplicaEvent(hash, cid, nodeID string, size int64, expiratio
 	}
 
 	// update node asset count
-	query = fmt.Sprintf(`UPDATE %s SET asset_count=asset_count+?,download_traffic=download_traffic+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(query, 1, size, nodeID)
+	query = fmt.Sprintf(`UPDATE %s SET asset_count=asset_count+? WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(query, 1, nodeID)
 	if err != nil {
 		return err
 	}
