@@ -24,6 +24,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/handler"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/docker/go-units"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/google/uuid"
 	"golang.org/x/xerrors"
@@ -54,24 +55,31 @@ func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeT
 	return i, nil
 }
 
-// RegisterNode register node
-func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) (*types.ActivationDetail, error) {
+// RegisterCandidateNode register node
+func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey, code string) (*types.ActivationDetail, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	ip, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		return nil, err
 	}
 
+	info, err := s.db.GetCandidateCodeInfo(code)
+	if err != nil {
+		return nil, err
+	}
+
+	if info.NodeID != "" {
+		return nil, xerrors.New("invalid code")
+	}
+
+	nodeType := info.NodeType
+
 	// check params
-	if nodeType != types.NodeEdge && nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
+	if nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
 		return nil, xerrors.New("invalid node type")
 	}
 
-	if nodeType == types.NodeEdge && !strings.HasPrefix(nodeID, "e_") {
-		return nil, xerrors.New("invalid edge node id")
-	}
-
-	if (nodeType == types.NodeCandidate || nodeType == types.NodeValidator) && !strings.HasPrefix(nodeID, "c_") {
+	if !strings.HasPrefix(nodeID, "c_") {
 		return nil, xerrors.New("invalid candidate node id")
 	}
 
@@ -92,6 +100,11 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 
 	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
 		return nil, xerrors.Errorf("Node %s aready exist", nodeID)
+	}
+
+	err = s.db.UpdateCandidateCodeInfo(code, nodeID)
+	if err != nil {
+		return nil, xerrors.Errorf("UpdateCandidateCodeInfo %s err : %s", nodeID, err.Error())
 	}
 
 	if count, err := s.db.RegisterCount(ip); err != nil {
@@ -122,6 +135,62 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 		if err != nil {
 			log.Errorf("RegisterNode UpdateValidators %s err:%s", nodeID, err.Error())
 		}
+	}
+
+	return detail, nil
+}
+
+// RegisterNode register node
+func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) (*types.ActivationDetail, error) {
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	// check params
+	if nodeType != types.NodeEdge {
+		return nil, xerrors.New("invalid node type")
+	}
+
+	if !strings.HasPrefix(nodeID, "e_") {
+		return nil, xerrors.New("invalid edge node id")
+	}
+
+	if publicKey == "" {
+		return nil, xerrors.New("public key is nil")
+	}
+
+	_, err = titanrsa.Pem2PublicKey([]byte(publicKey))
+	if err != nil {
+		return nil, xerrors.Errorf("pem to publicKey err : %s", err.Error())
+	}
+
+	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
+		return nil, xerrors.Errorf("Node %s aready exist", nodeID)
+	}
+
+	if count, err := s.db.RegisterCount(ip); err != nil {
+		return nil, xerrors.Errorf("RegisterCount %w", err)
+	} else if count >= s.SchedulerCfg.MaxNumberOfRegistrations &&
+		!isInIPWhitelist(ip, s.SchedulerCfg.IPWhitelist) {
+		return nil, xerrors.New("Registrations exceeded the number")
+	}
+
+	detail := &types.ActivationDetail{
+		NodeID:        nodeID,
+		AreaID:        s.SchedulerCfg.AreaID,
+		ActivationKey: newNodeKey(),
+		NodeType:      nodeType,
+		IP:            ip,
+	}
+
+	if err = s.db.SaveNodeRegisterInfos([]*types.ActivationDetail{detail}); err != nil {
+		return nil, xerrors.Errorf("SaveNodeRegisterInfos %w", err)
+	}
+
+	if err = s.db.SaveNodePublicKey(publicKey, nodeID); err != nil {
+		return nil, xerrors.Errorf("SaveNodePublicKey %w", err)
 	}
 
 	return detail, nil
@@ -1237,39 +1306,37 @@ func (s *Scheduler) GetProfitDetailsForNode(ctx context.Context, nodeID string, 
 	return info, nil
 }
 
-// FreeUpDiskSpace Request to free up disk space
-func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) error {
+// Interval for initiating free space release
+var FreeUpDayInterval = 5
+
+// FreeUpDiskSpace Request to free up disk space, returns file hashes and next time
+func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) (*types.FreeUpDiskResp, error) {
 	nID := handler.GetNodeID(ctx)
 	if nID != "" {
 		nodeID = nID
 	}
 
 	if size <= 0 {
-		return xerrors.Errorf("size is %d", size)
+		return nil, xerrors.Errorf("size is %d", size)
 	}
 
 	// limit
 	t, err := s.db.LoadFreeUpDiskTime(nodeID)
 	if err != nil {
-		return err
+		return &types.FreeUpDiskResp{}, err
 	}
 
-	day := 5
 	now := time.Now()
-	fiveDaysAgo := now.AddDate(0, 0, -day)
+	fiveDaysAgo := now.AddDate(0, 0, -FreeUpDayInterval)
+	nextReleaseTime := t.AddDate(0, 0, +FreeUpDayInterval)
 	if !t.Before(fiveDaysAgo) {
-		return xerrors.Errorf("Less than %d days have passed since the last release", day)
+		return &types.FreeUpDiskResp{NextTime: nextReleaseTime.Unix()}, xerrors.Errorf("Less than %d days have passed since the last release", FreeUpDayInterval)
 	}
 
 	// todo
 	hashes, err := s.db.LoadAllHashesOfNode(nodeID)
 	if err != nil {
-		return err
-	}
-
-	err = s.db.SaveFreeUpDiskTime(nodeID, now)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
 	removeList := make([]string, 0)
@@ -1294,10 +1361,206 @@ func (s *Scheduler) FreeUpDiskSpace(ctx context.Context, nodeID string, size int
 		}
 	}
 
+	if len(removeList) > 0 {
+		err = s.db.SaveFreeUpDiskTime(nodeID, now)
+		if err != nil {
+			return &types.FreeUpDiskResp{NextTime: now.AddDate(0, 0, +FreeUpDayInterval).Unix()}, err
+		}
+	}
+
 	err = s.db.SaveReplenishBackup(removeList)
 	if err != nil {
 		log.Errorf("FreeUpDiskSpace %s SaveReplenishBackup err:%s", nodeID, err.Error())
 	}
 
+	return &types.FreeUpDiskResp{Hashes: removeList, NextTime: now.AddDate(0, 0, +FreeUpDayInterval).Unix()}, nil
+}
+
+func (s *Scheduler) GetNextFreeTime(ctx context.Context, nodeID string) (int64, error) {
+	nID := handler.GetNodeID(ctx)
+	if nID != "" {
+		nodeID = nID
+	}
+
+	t, err := s.db.LoadFreeUpDiskTime(nodeID)
+	if err != nil {
+		return 0, err
+	}
+
+	return t.AddDate(0, 0, +FreeUpDayInterval).Unix(), nil
+}
+
+func (s *Scheduler) UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error {
+	node := s.NodeManager.GetNode(info.NodeID)
+	if node == nil {
+		return s.db.UpdateNodeDynamicInfo2(info.NodeID, info.DownloadTraffic, info.UploadTraffic)
+	}
+
+	if node.DownloadTraffic < info.DownloadTraffic {
+		node.DownloadTraffic += info.DownloadTraffic
+	}
+
+	if node.UploadTraffic < info.UploadTraffic {
+		node.UploadTraffic += info.UploadTraffic
+	}
+
 	return nil
+}
+
+func (s *Scheduler) GenerateCandidateCode(ctx context.Context, count int, nodeType types.NodeType) ([]string, error) {
+	infos := make([]*types.CandidateCodeInfo, 0)
+	out := make([]string, 0)
+	for i := 0; i < count; i++ {
+		code := uuid.NewString()
+		code = strings.Replace(code, "-", "", -1)
+
+		infos = append(infos, &types.CandidateCodeInfo{Code: code, NodeType: nodeType, Expiration: time.Now().Add(time.Hour * 24)})
+		out = append(out, code)
+	}
+
+	return out, s.db.SaveCandidateCodeInfo(infos)
+}
+
+func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID string) ([]*types.CandidateCodeInfo, error) {
+	if nodeID != "" {
+		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
+		if err != nil {
+			return nil, err
+		}
+
+		return []*types.CandidateCodeInfo{info}, nil
+	}
+
+	return s.db.GetCandidateCodeInfos()
+}
+
+func (s *Scheduler) CandidateCodeExist(ctx context.Context, code string) (bool, error) {
+	info, err := s.db.GetCandidateCodeInfo(code)
+	if err != nil {
+		return false, err
+	}
+
+	return info.Code == code, nil
+}
+
+func generateRandomString(n int) string {
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	b := make([]rune, n) //
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))] //
+	}
+
+	return string(b)
+}
+
+// dpGetRemoveAssetsClosetSize returns a certain MiB size that is closest to the demand MiB size based on Dynamic Programming
+func dpGetRemoveAssetsClosetSize(assets []*types.AssetRecord, target int64) int64 {
+	n := int64(len(assets))
+
+	maxPossibleSum := int64(0)
+	for _, asset := range assets {
+		maxPossibleSum += asset.TotalSize / units.MiB
+	}
+
+	if target > maxPossibleSum {
+		return maxPossibleSum
+	}
+
+	subset := make([][]bool, n+1)
+	for i := range subset {
+		subset[i] = make([]bool, maxPossibleSum+1)
+	}
+
+	for i := int64(0); i <= n; i++ {
+		subset[i][0] = true
+	}
+
+	for i := int64(1); i <= int64(maxPossibleSum); i++ {
+		subset[0][i] = false
+	}
+
+	for i := int64(1); i <= n; i++ {
+		for j := int64(1); j <= int64(maxPossibleSum); j++ {
+			if j < assets[i-1].TotalSize/units.MiB {
+				subset[i][j] = subset[i-1][j]
+			}
+			if j >= assets[i-1].TotalSize/units.MiB {
+				subset[i][j] = subset[i-1][j] || subset[i-1][j-assets[i-1].TotalSize/units.MiB]
+			}
+		}
+	}
+
+	if subset[n][target] {
+		return target
+	}
+
+	closestSum := int64(0)
+	if subset[n][target] {
+		closestSum = target
+	} else {
+		for i := 1; target-int64(i) >= 0 || target+int64(i) <= maxPossibleSum; i++ {
+			lf := target-int64(i) >= 0 && subset[n][target-int64(i)]
+			rf := target+int64(i) <= maxPossibleSum && subset[n][target+int64(i)]
+			if lf || rf {
+				if lf && !rf {
+					closestSum = target - int64(i)
+				}
+				if !lf && rf {
+					closestSum = target + int64(i)
+				}
+				if lf && rf {
+					closestSum = target - int64(i)
+				}
+				break
+			}
+		}
+	}
+
+	return closestSum
+}
+
+// dpGetRemoveAssets returns the combination of to-remove list with a specified size
+func dpGetRemoveAssets(assets []*types.AssetRecord, sum int64) []*types.AssetRecord {
+	n := int64(len(assets))
+
+	subset := make([][]bool, n+1)
+	for i := range subset {
+		subset[i] = make([]bool, sum+1)
+	}
+
+	for i := int64(0); i <= n; i++ {
+		subset[i][0] = true
+	}
+
+	for i := int64(1); i <= sum; i++ {
+		subset[0][i] = false
+	}
+
+	for i := int64(1); i <= n; i++ {
+		for j := int64(1); j <= sum; j++ {
+			if j < assets[i-1].TotalSize/units.MiB {
+				subset[i][j] = subset[i-1][j]
+			}
+			if j >= assets[i-1].TotalSize/units.MiB {
+				subset[i][j] = subset[i-1][j] || subset[i-1][j-assets[i-1].TotalSize/units.MiB]
+			}
+		}
+	}
+
+	if !subset[n][sum] {
+		return nil
+	}
+
+	sub := make([]*types.AssetRecord, 0)
+	i, j := n, sum
+	for i > 0 && j > 0 {
+		if subset[i][j] != subset[i-1][j] {
+			sub = append(sub, assets[i-1])
+			j -= assets[i-1].TotalSize / units.MiB
+		}
+		i--
+	}
+
+	return sub
 }

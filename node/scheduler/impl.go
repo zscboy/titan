@@ -204,7 +204,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	cNode.IsPhone = strings.Contains(nodeInfo.SystemVersion, s.SchedulerCfg.AndroidSymbol) || strings.Contains(nodeInfo.SystemVersion, s.SchedulerCfg.IOSSymbol)
+	cNode.IsPhone = isPhone(nodeInfo.SystemVersion, nodeInfo.CPUInfo, s.SchedulerCfg.AndroidSymbol, s.SchedulerCfg.IOSSymbol)
 
 	cNode.BandwidthDown = nodeInfo.BandwidthDown
 	cNode.BandwidthUp = nodeInfo.BandwidthUp
@@ -220,6 +220,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
 	cNode.NetFlowUp = nodeInfo.NetFlowUp
 	cNode.NetFlowDown = nodeInfo.NetFlowDown
+	cNode.DownloadTraffic = nodeInfo.DownloadTraffic
+	cNode.UploadTraffic = nodeInfo.UploadTraffic
 
 	if !alreadyConnect {
 		version, err := cNode.API.Version(ctx)
@@ -256,6 +258,19 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	s.DataSync.AddNodeToList(nodeID)
 	return nil
+}
+
+func isPhone(systemVersion, cpuInfo, androidSymbol, iosSymbol string) bool {
+	if strings.Contains(systemVersion, androidSymbol) || strings.Contains(systemVersion, iosSymbol) {
+		return true
+	}
+
+	notAllowedCPU := strings.Contains(cpuInfo, "Intel") || strings.Contains(cpuInfo, "AMD") || strings.Contains(cpuInfo, "Apple")
+	if systemVersion == "0.1.16+api1.0.0" && !notAllowedCPU {
+		return true
+	}
+
+	return false
 }
 
 func roundUpToNextGB(bytes int) int {
@@ -464,6 +479,11 @@ func (s *Scheduler) GetWorkloadRecords(ctx context.Context, nodeID string, limit
 	return s.NodeManager.LoadWorkloadRecords(nodeID, limit, offset)
 }
 
+// GetWorkloadRecord retrieves a list of workload results.
+func (s *Scheduler) GetWorkloadRecord(ctx context.Context, id string) (*types.WorkloadRecord, error) {
+	return s.NodeManager.LoadWorkloadRecordOfID(id)
+}
+
 // GetRetrieveEventRecords retrieves a list of retrieve events
 func (s *Scheduler) GetRetrieveEventRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) {
 	return s.NodeManager.LoadRetrieveEventRecords(nodeID, limit, offset)
@@ -489,5 +509,21 @@ func (s *Scheduler) AddProfits(ctx context.Context, nodes []string, profit float
 
 // UpdateNetFlows update node net flow total,up,down usage
 func (s *Scheduler) UpdateNetFlows(ctx context.Context, total, up, down int64) error {
+	return nil
+}
+
+func (s *Scheduler) ReDetermineNodeNATType(ctx context.Context, nodeID string) error {
+	node := s.NodeManager.GetCandidateNode(nodeID)
+	if node != nil {
+		go s.NatManager.DetermineCandidateNATType(ctx, nodeID)
+		return nil
+	}
+
+	node = s.NodeManager.GetEdgeNode(nodeID)
+	if node != nil {
+		go s.NatManager.DetermineCandidateNATType(ctx, nodeID)
+		return nil
+	}
+
 	return nil
 }

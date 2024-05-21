@@ -46,7 +46,7 @@ type AssetAPI interface {
 	// GetReplicaEvents retrieves a replica event list of node
 	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 	// CreateAsset creates an asset with car CID, car name, and car size.
-	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) //perm:web,admin,user
+	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) //perm:web,admin,user
 	// ListAssets lists the assets of the user.
 	ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
 	// DeleteAsset deletes the asset of the user.
@@ -78,6 +78,8 @@ type NodeAPI interface {
 	RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) (*types.ActivationDetail, error) //perm:default
 	// RegisterEdgeNode adds new edge node to the scheduler
 	RegisterEdgeNode(ctx context.Context, nodeID, publicKey string) (*types.ActivationDetail, error) //perm:default
+	// RegisterCandidateNode adds new node to the scheduler
+	RegisterCandidateNode(ctx context.Context, nodeID, publicKey, code string) (*types.ActivationDetail, error) //perm:default
 	// DeactivateNode is used to deactivate a node in the titan server.
 	// It stops the node from serving any requests and marks it as inactive.
 	// - nodeID: The ID of the node to deactivate.
@@ -154,8 +156,20 @@ type NodeAPI interface {
 	AddProfits(ctx context.Context, nodes []string, profit float64) error //perm:admin
 	// GetProfitDetailsForNode retrieves a profit list of node
 	GetProfitDetailsForNode(ctx context.Context, nodeID string, limit, offset int, ts []int) (*types.ListNodeProfitDetailsRsp, error) //perm:web,admin
-	// FreeUpDiskSpace  Request to free up disk space
-	FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) error //perm:edge,candidate,web,locator
+	// FreeUpDiskSpace  Request to free up disk space, returns free hashes and next time
+	FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) (*types.FreeUpDiskResp, error) //perm:edge,candidate,admin
+	// GetNextFreeTime returns the next free up time
+	GetNextFreeTime(ctx context.Context, nodeID string) (int64, error) //perm:edge,candidate,admin
+	// UpdateNodeDynamicInfo
+	UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error //perm:admin
+	// GenerateCandidateCode
+	GenerateCandidateCode(ctx context.Context, count int, nodeType types.NodeType) ([]string, error) //perm:admin
+	// CandidateCodeExist
+	CandidateCodeExist(ctx context.Context, code string) (bool, error) //perm:admin,web,locator
+	// GetCandidateCodeInfos
+	GetCandidateCodeInfos(ctx context.Context, nodeID string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
+	// ReDetermineNodeNATType
+	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
 }
 
 // UserAPI is an interface for user
@@ -203,6 +217,8 @@ type UserAPI interface {
 	MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID int) error //perm:user,web,admin
 	// GetAPPKeyPermissions get the permissions of user app key
 	GetAPPKeyPermissions(ctx context.Context, userID, keyName string) ([]string, error) //perm:user,web,admin
+	// GetNodeUploadInfo
+	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
 }
 
 // Scheduler is an interface for scheduler
@@ -228,6 +244,8 @@ type Scheduler interface {
 	// SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error //perm:edge,candidate
 	// GetWorkloadRecords retrieves a list of workload results with pagination using the specified limit, offset, and node
 	GetWorkloadRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListWorkloadRecordRsp, error) //perm:web,admin
+	// GetWorkloadRecord retrieves a list of workload results with pagination using the specified limit, offset, and node
+	GetWorkloadRecord(ctx context.Context, id string) (*types.WorkloadRecord, error) //perm:web,admin
 	// GetWorkloadRecord retrieves result with tokenID
 	// GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) //perm:web,admin
 	// GetRetrieveEventRecords retrieves a list of retrieve event with pagination using the specified limit, offset, and node

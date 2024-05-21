@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/config"
 	"github.com/urfave/cli/v2"
 )
@@ -20,6 +23,9 @@ var SchedulerCMDs = []*cli.Command{
 	// other
 	edgeUpdaterCmd,
 	electValidatorsCmd,
+	loadWorkloadCmd,
+	loadCandidateCodeCmd,
+	reNatCmd,
 }
 
 var (
@@ -88,6 +94,78 @@ var (
 	}
 )
 
+var loadWorkloadCmd = &cli.Command{
+	Name:  "workload",
+	Usage: "load work load",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "id",
+			Usage: "specify the cid of a asset",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		id := cctx.String("id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		info, err := schedulerAPI.GetWorkloadRecord(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("find---------- ", info.AssetCID)
+
+		ws := make([]*types.Workload, 0)
+		dec := gob.NewDecoder(bytes.NewBuffer(info.Workloads))
+		err = dec.Decode(&ws)
+		if err != nil {
+			log.Errorf("decode data to []*types.Workload error: %s", err.Error())
+			return err
+		}
+
+		for _, w := range ws {
+			fmt.Println(w.SourceID)
+		}
+
+		return nil
+	},
+}
+
+var loadCandidateCodeCmd = &cli.Command{
+	Name:  "codes",
+	Usage: "load candidate code info",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		nodeID := cctx.String("node-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		infos, err := schedulerAPI.GetCandidateCodeInfos(ctx, nodeID)
+		if err != nil {
+			return err
+		}
+
+		for _, info := range infos {
+			fmt.Printf("code:%s node:%s type:%s\n", info.Code, info.NodeID, info.NodeType.String())
+		}
+
+		return nil
+	},
+}
+
 var setNodePortCmd = &cli.Command{
 	Name:  "set-node-port",
 	Usage: "set the node port",
@@ -112,6 +190,31 @@ var setNodePortCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.UpdateNodePort(ctx, nodeID, port)
+	},
+}
+
+var reNatCmd = &cli.Command{
+	Name:  "rn",
+	Usage: "re determine node nat type",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		nodeID := cctx.String("node-id")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.ReDetermineNodeNATType(ctx, nodeID)
 	},
 }
 

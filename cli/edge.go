@@ -58,6 +58,7 @@ var EdgeCmds = []*cli.Command{
 	deleteLocalAssetCmd,
 	upgradeCmd,
 	udpTestCmd,
+	freeUpDiskCmd,
 }
 
 var showCmds = &cli.Command{
@@ -100,7 +101,7 @@ var nodeInfoCmd = &cli.Command{
 		// fmt.Printf("netflow total: %s \n", units.BytesSize(float64(info.NetflowTotal)))
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetFlowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetFlowDown)))
-		fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
+		// fmt.Printf("upload bandwidth: %s \n", units.BytesSize(float64(info.BandwidthUp)))
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		return nil
 	},
@@ -700,9 +701,9 @@ var mergeConfigCmd = &cli.Command{
 		edgeConfig.Storage = newEdgeConfig.Storage
 		edgeConfig.Memory = newEdgeConfig.Memory
 		edgeConfig.CPU = newEdgeConfig.CPU
-		edgeConfig.Bandwidth.BandwidthMB = newEdgeConfig.Bandwidth.BandwidthMB
-		edgeConfig.Bandwidth.BandwidthUp = newEdgeConfig.Bandwidth.BandwidthMB
-		edgeConfig.Bandwidth.BandwidthDown = newEdgeConfig.Bandwidth.BandwidthMB
+		edgeConfig.Bandwidth.BandwidthKB = newEdgeConfig.Bandwidth.BandwidthKB
+		edgeConfig.Bandwidth.BandwidthUp = newEdgeConfig.Bandwidth.BandwidthUp
+		edgeConfig.Bandwidth.BandwidthDown = newEdgeConfig.Bandwidth.BandwidthDown
 
 		configBytes, err := config.GenerateConfigUpdate(edgeConfig, config.DefaultEdgeCfg(), true)
 		if err != nil {
@@ -732,44 +733,7 @@ func checkPath(path string) error {
 	return nil
 }
 
-func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL string, nodeType types.NodeType) error {
-	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
-	if err != nil {
-		return err
-	}
-	defer closer()
-
-	bits := 1024
-
-	privateKey, err := titanrsa.GeneratePrivateKey(bits)
-	if err != nil {
-		return err
-	}
-
-	pem := titanrsa.PublicKey2Pem(&privateKey.PublicKey)
-	var nodeID string
-	if nodeType == types.NodeEdge {
-		nodeID = fmt.Sprintf("e_%s", uuid.NewString())
-	} else if nodeType == types.NodeCandidate || nodeType == types.NodeValidator {
-		nodeID = fmt.Sprintf("c_%s", uuid.NewString())
-	} else {
-		return fmt.Errorf("RegisterNodeWithScheduler, invalid node type %s", nodeType.String())
-	}
-
-	info, err := schedulerAPI.RegisterNode(context.Background(), nodeID, string(pem), nodeType)
-	if err != nil {
-		return err
-	}
-
-	privatePem := titanrsa.PrivateKey2Pem(privateKey)
-	if err := lr.SetPrivateKey(privatePem); err != nil {
-		return err
-	}
-
-	if err := lr.SetNodeID([]byte(nodeID)); err != nil {
-		return err
-	}
-
+func saveConfigAfterRegister(lr repo.LockedRepo, info *types.ActivationDetail, locatorURL string) error {
 	tokenBytes, err := json.Marshal(info)
 	if err != nil {
 		return err
@@ -791,34 +755,43 @@ func RegisterNodeWithScheduler(lr repo.LockedRepo, schedulerURL, locatorURL stri
 	})
 }
 
-func RegitsterNode(lr repo.LockedRepo, locatorURL string, nodeType types.NodeType) error {
-	if nodeType != types.NodeEdge && nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
-		return fmt.Errorf("RegitsterNode, invalid node type %s %d", nodeType.String(), nodeType)
-	}
-
-	var err error
-	var schedulerURL string
-	if nodeType == types.NodeEdge {
-		schedulerURL, err = getUserAccessPoint(locatorURL)
-	} else {
-		schedulerURL, err = allocateSchedulerForNode(locatorURL, nodeType)
-	}
-
+func RegisterEdgeNode(lr repo.LockedRepo, locatorURL string) error {
+	schedulerURL, err := getUserAccessPoint(locatorURL)
 	if err != nil {
 		return err
 	}
 
-	return RegisterNodeWithScheduler(lr, schedulerURL, locatorURL, nodeType)
-}
-
-func allocateSchedulerForNode(locatorURL string, nodeType types.NodeType) (string, error) {
-	locator, close, err := client.NewLocator(context.Background(), locatorURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
+	schedulerAPI, closer, err := client.NewScheduler(context.Background(), schedulerURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
 	if err != nil {
-		return "", err
+		return err
 	}
-	defer close()
+	defer closer()
 
-	return locator.AllocateSchedulerForNode(context.Background(), nodeType)
+	bits := 1024
+
+	privateKey, err := titanrsa.GeneratePrivateKey(bits)
+	if err != nil {
+		return err
+	}
+
+	pem := titanrsa.PublicKey2Pem(&privateKey.PublicKey)
+	nodeID := fmt.Sprintf("e_%s", uuid.NewString())
+
+	info, err := schedulerAPI.RegisterNode(context.Background(), nodeID, string(pem), types.NodeEdge)
+	if err != nil {
+		return err
+	}
+
+	privatePem := titanrsa.PrivateKey2Pem(privateKey)
+	if err := lr.SetPrivateKey(privatePem); err != nil {
+		return err
+	}
+
+	if err := lr.SetNodeID([]byte(nodeID)); err != nil {
+		return err
+	}
+
+	return saveConfigAfterRegister(lr, info, locatorURL)
 }
 
 var stateCmd = &cli.Command{
@@ -1315,5 +1288,92 @@ var udpTestCmd = &cli.Command{
 
 		log.Info("network test success")
 		return nil
+	},
+}
+
+var freeUpDiskCmd = &cli.Command{
+	Name:  "fuds",
+	Usage: "Free up disk space",
+	Subcommands: []*cli.Command{
+		{
+			Name:  "state",
+			Usage: "Check the last request to free up disk space is done. Example: --state",
+			Action: func(cctx *cli.Context) error {
+				api, edgeClose, err := getEdgeAPI(cctx)
+				if err != nil {
+					log.Errorf("get egde api failed: %s", err.Error())
+					return err
+				}
+				defer edgeClose()
+
+				ret, err := api.StateFreeUpDisk(cctx.Context)
+
+				if err != nil {
+					log.Errorf("fetch state of fuds task error: %s, next release time is %s", err.Error(), time.Unix(ret.NextTime, 0).Format("2006-01-02 15:04:05"))
+					return err
+				}
+
+				if len(ret.Hashes) == 0 {
+					log.Info("task is done!")
+					return nil
+				}
+				log.Info("task in in-progress!")
+				return nil
+			},
+		},
+		{
+			Name:  "clear",
+			Usage: "Clear the previous failed free-up-disk task",
+			Action: func(cctx *cli.Context) error {
+				api, edgeClose, err := getEdgeAPI(cctx)
+				if err != nil {
+					log.Errorf("get egde api failed: %s", err.Error())
+					return err
+				}
+				defer edgeClose()
+
+				err = api.ClearFreeUpDisk(cctx.Context)
+
+				if err != nil {
+					log.Errorf("clear fuds task error: %s", err.Error())
+					return err
+				}
+				return nil
+			},
+		},
+	},
+	Flags: []cli.Flag{
+		&cli.Float64Flag{
+			Name:  "size",
+			Value: 0,
+			Usage: "Size of request free up disk space, units is GB, example: --size 1.1",
+			Action: func(cctx *cli.Context, f float64) error {
+				if f <= 0 {
+					return nil
+				}
+
+				api, edgeClose, err := getEdgeAPI(cctx)
+				if err != nil {
+					log.Errorf("get egde api failed: %s", err.Error())
+					return err
+				}
+				defer edgeClose()
+
+				if err := api.RequestFreeUpDisk(cctx.Context, f); err != nil {
+					log.Warnf("request to free up disk failed: %s, if previous task exists, please call --clear to remove", err.Error())
+					return err
+				}
+
+				return nil
+			},
+		},
+
+		// &cli.ActionFunc{
+		// 	Name:  "state",
+		// 	Usage: "Check the last request to free up disk space is done. Example: --state",
+		// 	Action: func(ctx *cli.Context, i int) error {
+		// 		return nil
+		// 	},
+		// },
 	},
 }

@@ -3,6 +3,7 @@ package workload
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -80,7 +81,7 @@ func (m *Manager) handleResults() {
 
 // handleUserWorkload handle node workload
 func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
-	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID, types.WorkloadStatusCreate)
+	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID)
 	if err != nil {
 		log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
 		return err
@@ -88,6 +89,10 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 
 	if record == nil {
 		log.Errorf("handleUserWorkload not found Workload: %s", data.WorkloadID)
+		return nil
+	}
+
+	if record.Status != types.WorkloadStatusCreate {
 		return nil
 	}
 
@@ -118,7 +123,7 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 
 	// update status
 	record.Status = types.WorkloadStatusSucceeded
-	err = m.UpdateWorkloadRecord(record)
+	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
 	if err != nil {
 		log.Errorf("handleUserWorkload UpdateWorkloadRecord error: %s", err.Error())
 		return err
@@ -157,6 +162,7 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
 			if dInfo != nil {
 				dInfo.CID = retrieveEvent.CID
+				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
 				detailsList = append(detailsList, dInfo)
 			}
@@ -196,10 +202,14 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	downloadTotalSize := int64(0)
 
 	if data.WorkloadID != "" {
-		record, err = m.LoadWorkloadRecordOfID(data.WorkloadID, types.WorkloadStatusCreate)
+		record, err = m.LoadWorkloadRecordOfID(data.WorkloadID)
 		if err != nil {
 			log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
 			return err
+		}
+
+		if record.Status != types.WorkloadStatusCreate {
+			return nil
 		}
 
 		for _, dw := range data.Workloads {
@@ -253,7 +263,7 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 
 	// update status
 	record.Status = types.WorkloadStatusSucceeded
-	err = m.UpdateWorkloadRecord(record)
+	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
 	if err != nil {
 		log.Errorf("handleNodeWorkload UpdateWorkloadRecord error: %s", err.Error())
 		return err
@@ -299,6 +309,7 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
 			if dInfo != nil {
 				dInfo.CID = retrieveEvent.CID
+				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
 				detailsList = append(detailsList, dInfo)
 			}

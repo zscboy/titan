@@ -244,6 +244,10 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64)
 			continue
 		}
 
+		if node.IsStorageOnly {
+			continue
+		}
+
 		if exist, err := m.checkAssetIfExist(node, cid); err != nil {
 			// log.Warnf("requestNodePullAsset checkAssetIfExist error %s", err)
 			continue
@@ -377,7 +381,7 @@ func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string, size 
 		}
 
 		// workload
-		wID := m.createSeedWorkload(AssetPullingInfo{CID: cid, Size: size}, nodeID)
+		wID := m.createSeedWorkload(AssetPullingInfo{CID: cid, Size: size, Source: AssetSourceAWS}, nodeID)
 		costTime := int64(time.Since(info.CreateTime) / time.Millisecond)
 
 		m.workloadMgr.PushResult(&types.WorkloadRecordReq{AssetCID: cid, WorkloadID: wID, Workloads: []types.Workload{{SourceID: types.DownloadSourceAWS.String(), DownloadSize: size, CostTime: costTime}}}, nodeID)

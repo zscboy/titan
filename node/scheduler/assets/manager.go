@@ -55,6 +55,8 @@ const (
 	assetTimeoutLimit = 3
 
 	checkAssetReplicaLimit = 10
+
+	nodeProfitsLimitOfDay = 50000.0
 )
 
 // Manager manages asset replicas
@@ -336,7 +338,7 @@ func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (resul
 }
 
 // CreateAssetUploadTask create a new asset upload task
-func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) (*types.CreateAssetRsp, error) {
+func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) (*types.UploadInfo, error) {
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add asset ", req.AssetCID)
@@ -369,7 +371,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
-		info := &types.CreateAssetRsp{AlreadyExists: true}
+		info := &types.UploadInfo{AlreadyExists: true}
 
 		m.UpdateAssetRecordExpiration(hash, expiration)
 
@@ -377,21 +379,19 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	var cNode *node.Node
-	if req.NodeID != "" {
-		cNode = m.nodeMgr.GetCandidateNode(req.NodeID)
-		if cNode == nil {
-			return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("node %s offline", req.NodeID)}
-		}
-	} else {
-		cNodes, str := m.chooseCandidateNodes(1, nil)
-		if len(cNodes) == 0 {
-			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int(), Message: fmt.Sprintf("not found node :%s", str)}
-		}
-
-		for _, n := range cNodes {
-			cNode = n
+	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+	})
+	for _, node := range nodes {
+		if node.IsStorageOnly {
+			cNode = node
 			break
 		}
+	}
+
+	if cNode == nil {
+		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
 	}
 
 	payload := &types.AuthUserUploadDownloadAsset{
@@ -447,20 +447,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
 	}
 
-	return &types.CreateAssetRsp{UploadURL: uploadURL, Token: token}, nil
-}
-
-func (m *Manager) CreateBaseAsset(cid, nodeID string, size, replicas int64) error {
-	log.Infof("CreateBaseAsset cid:%s , nodeID:%s", cid, nodeID)
-	return xerrors.Errorf("interface not implemented")
-	// hash, err := cidutil.CIDToHash(cid)
-	// if err != nil {
-	// 	return xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
-	// }
-
-	// expiration := time.Now().Add(360 * 24 * time.Hour)
-
-	// return m.CreateAssetPullTask(&types.PullAssetReq{CID: cid, Replicas: replicas, Expiration: expiration, Hash: hash,  SeedNodeID: nodeID})
+	return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
 }
 
 // CreateAssetPullTask create a new asset pull task
@@ -1019,8 +1006,19 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 		return nil
 	}
 
+	now := time.Now()
+
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, now.Location())
+
 	sources := make([]*types.CandidateDownloadInfo, 0)
 	cSources := make([]*types.CandidateDownloadInfo, 0)
+
+	if assetSource == AssetSourceAWS {
+		sources = append(sources, &types.CandidateDownloadInfo{AWSBucket: bucket, NodeID: types.DownloadSourceAWS.String()})
+	} else if assetSource == AssetSourceIPFS {
+		sources = append(sources, &types.CandidateDownloadInfo{NodeID: types.DownloadSourceIPFS.String()})
+	}
 
 	for _, replica := range replicaInfos {
 		nodeID := replica.NodeID
@@ -1056,6 +1054,17 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
+		p, err := m.LoadTodayProfitsForNode(nodeID, startOfDay, endOfDay)
+		if err != nil {
+			log.Errorf("LoadTodayProfitsForNode2 %s err:%s", nodeID, err.Error())
+			continue
+		}
+
+		if p > nodeProfitsLimitOfDay {
+			log.Errorf("LoadTodayProfitsForNode2 %s limit profits:%.2f > %.2f", nodeID, p, nodeProfitsLimitOfDay)
+			continue
+		}
+
 		source := &types.CandidateDownloadInfo{
 			NodeID:    nodeID,
 			Address:   cNode.DownloadAddr(),
@@ -1063,12 +1072,6 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 		}
 
 		sources = append(sources, source)
-	}
-
-	if assetSource == AssetSourceAWS {
-		sources = append(sources, &types.CandidateDownloadInfo{AWSBucket: bucket, NodeID: types.DownloadSourceAWS.String()})
-	} else if assetSource == AssetSourceIPFS {
-		sources = append(sources, &types.CandidateDownloadInfo{NodeID: types.DownloadSourceIPFS.String()})
 	}
 
 	if len(sources) < 1 {
@@ -1112,6 +1115,11 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string) (map[str
 		if node.Type == types.NodeValidator {
 			continue
 		}
+
+		if node.IsStorageOnly {
+			continue
+		}
+
 		nodeID := node.NodeID
 
 		if _, exist := filterMap[nodeID]; exist {

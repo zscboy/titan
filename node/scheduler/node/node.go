@@ -194,10 +194,6 @@ func (n *Node) IsAbnormal() bool {
 		return true
 	}
 
-	if n.IsStorageOnly {
-		return true
-	}
-
 	return false
 }
 
@@ -294,6 +290,10 @@ func bToMB(b float64) float64 {
 	return b / 1024 / 1024
 }
 
+func bToKB(b float64) float64 {
+	return b / 1024
+}
+
 func min(a, b float64) float64 {
 	if a < b {
 		return a
@@ -322,7 +322,7 @@ func (n *Node) NetFlowUpExcess(size float64) bool {
 	}
 
 	if n.NetFlowUp >= n.UploadTraffic+int64(size) {
-		return true
+		return false
 	}
 
 	return true
@@ -334,7 +334,7 @@ func (n *Node) NetFlowDownExcess(size float64) bool {
 	}
 
 	if n.NetFlowDown >= n.DownloadTraffic+int64(size) {
-		return true
+		return false
 	}
 
 	return true
