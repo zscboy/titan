@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -31,10 +32,13 @@ const (
 
 const defaultConfigFilename = "config.capnp"
 
+const syncerInterval = time.Second * 30
+
 var log = logging.Logger("workerd")
 
 type Workerd struct {
 	api      api.Scheduler
+	nodeId   string
 	basePath string
 	ts       *tunnel.Services
 	startCh  chan string
@@ -43,7 +47,7 @@ type Workerd struct {
 	mu       sync.Mutex
 }
 
-func NewWorkerd(api api.Scheduler, ts *tunnel.Services, path string) (*Workerd, error) {
+func NewWorkerd(api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*Workerd, error) {
 	err := os.MkdirAll(path, 0o755)
 	if err != nil {
 		return nil, err
@@ -51,6 +55,7 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, path string) (*Workerd, 
 
 	w := &Workerd{
 		api:      api,
+		nodeId:   nodeId,
 		basePath: path,
 		ts:       ts,
 		projects: make(map[string]*types.Project),
@@ -63,6 +68,8 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, path string) (*Workerd, 
 }
 
 func (w *Workerd) run(ctx context.Context) {
+	syncerTicker := time.NewTicker(syncerInterval)
+
 	for {
 		select {
 		case projectId := <-w.startCh:
@@ -71,13 +78,16 @@ func (w *Workerd) run(ctx context.Context) {
 				log.Errorf("starting project %s: %v", projectId, err)
 			}
 
+		case <-syncerTicker.C:
+			go w.sync()
+			syncerTicker.Reset(syncerInterval)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (w *Workerd) updateProject(ctx context.Context, project *types.Project) {
+func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Project) {
 	err := w.api.UpdateProjectStatus(ctx, []*types.Project{{
 		ID:     project.ID,
 		Status: project.Status,
@@ -195,25 +205,26 @@ func (w *Workerd) Delete(ctx context.Context, projectId string) error {
 		log.Errorf("destroying project %s: %v", projectId, err)
 	}
 
-	err = w.cleanProject(ctx, projectId)
-	if err != nil {
-		log.Errorf("destroying project %s: %v", projectId, err)
-	}
-
 	return nil
 }
 
 func (w *Workerd) startProject(ctx context.Context, projectId string) error {
-	if !Exists(w.getProjectPath(projectId)) {
-
-		w.mu.Lock()
-		project, ok := w.projects[projectId]
+	w.mu.Lock()
+	project, exists := w.projects[projectId]
+	if !exists {
 		w.mu.Unlock()
+		return xerrors.Errorf("project %s not exists", projectId)
+	}
 
-		if !ok {
-			return xerrors.Errorf("unknown error")
-		}
+	if project.Status == types.ProjectReplicaStatusStarting {
+		w.mu.Unlock()
+		return xerrors.Errorf("project %s in processing", projectId)
+	}
 
+	project.Status = types.ProjectReplicaStatusStarting
+	w.mu.Unlock()
+
+	if !Exists(w.getProjectPath(projectId)) {
 		if err := w.createProject(ctx, project); err != nil {
 			log.Errorf("creating project %s: %v", project.ID, err)
 			return err
@@ -226,14 +237,14 @@ func (w *Workerd) startProject(ctx context.Context, projectId string) error {
 		return err
 	}
 
-	project := &types.Project{ID: projectId, Status: types.ProjectReplicaStatusStarted}
-	service := &tunnel.Service{ID: projectId, Address: "localhost", Port: port}
+	project.Status = types.ProjectReplicaStatusStarted
+	service := &tunnel.Service{ID: projectId, Address: "127.0.0.1", Port: port}
 
-	defer w.updateProject(ctx, project)
+	defer w.reportProjectStatus(ctx, project)
 	defer w.ts.Regiseter(service)
 
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	err = cgo.CreateWorkerd(projectId, w.getProjectPath(projectId), defaultConfigFilename, addr)
+	socketAddr := fmt.Sprintf("%s:%d", service.Address, service.Port)
+	err = cgo.CreateWorkerd(projectId, w.getProjectPath(projectId), defaultConfigFilename, socketAddr)
 	if err != nil {
 		project.Status = types.ProjectReplicaStatusError
 		log.Errorf("cgo creating project %s: %v", projectId, err)
@@ -245,15 +256,20 @@ func (w *Workerd) startProject(ctx context.Context, projectId string) error {
 
 func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 	defer w.ts.Remove(&tunnel.Service{ID: projectId})
-	return cgo.DestroyWorkerd(projectId)
+
+	if err := cgo.DestroyWorkerd(projectId); err != nil {
+		return err
+	}
+
+	if err := os.RemoveAll(w.getProjectPath(projectId)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (w *Workerd) queryProject(ctx context.Context, projectId string) error {
 	return cgo.QueryWorkerd(projectId)
-}
-
-func (w *Workerd) cleanProject(ctx context.Context, projectId string) error {
-	return os.RemoveAll(w.getProjectPath(projectId))
 }
 
 func (w *Workerd) initializing() error {
@@ -357,7 +373,7 @@ func (w *Workerd) localProjectIds() ([]string, error) {
 	return out, nil
 }
 
-func (w *Workerd) RestartProjects(ctx context.Context, nodeId string) {
+func (w *Workerd) RestartProjects(ctx context.Context) {
 	if err := w.initializing(); err != nil {
 		log.Errorf("restarting project initializing failed: %v", err)
 		return
@@ -371,7 +387,7 @@ func (w *Workerd) RestartProjects(ctx context.Context, nodeId string) {
 
 	activeProjects := make(map[string]struct{})
 
-	projects, err := w.api.GetProjectsForNode(ctx, nodeId)
+	projects, err := w.api.GetProjectsForNode(ctx, w.nodeId)
 	if err != nil {
 		log.Errorf("GetProjectsForNode: %v", err)
 		return
@@ -399,11 +415,6 @@ func (w *Workerd) RestartProjects(ctx context.Context, nodeId string) {
 		if err != nil {
 			log.Errorf("destroying project %s: %v", projectId, err)
 		}
-
-		err = w.cleanProject(ctx, projectId)
-		if err != nil {
-			log.Errorf("destroying project %s: %v", projectId, err)
-		}
 	}
 
 	return
@@ -420,4 +431,8 @@ func GetFreePort() (port int, err error) {
 		}
 	}
 	return
+}
+
+func (w *Workerd) sync() {
+	fmt.Println("sync")
 }
