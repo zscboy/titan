@@ -11,10 +11,6 @@ type Workerd interface {
 	Deploy(ctx context.Context, project *types.Project) error //perm:admin
 	// Update update the project on workerd
 	Update(ctx context.Context, project *types.Project) error //perm:admin
-	// Start run the project
-	Start(ctx context.Context, project *types.Project) error //perm:admin
-	// Stop stop the project
-	Stop(ctx context.Context, projectID string) error //perm:admin
 	// Delete remove the project on workerd
 	Delete(ctx context.Context, projectID string) error //perm:admin
 	// Query projects
