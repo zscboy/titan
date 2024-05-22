@@ -37,7 +37,7 @@ func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectR
 }
 
 func (s *Scheduler) StartProject(ctx context.Context, req *types.ProjectReq) error {
-	return s.ProjectManager.Start(req)
+	return nil
 }
 
 func (s *Scheduler) DeleteProject(ctx context.Context, req *types.ProjectReq) error {
@@ -80,12 +80,7 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 				continue
 			}
 
-			wsURL, err := transformURL(vNode.ExternalURL)
-			if err != nil {
-				wsURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
-			}
-
-			dInfo.WsURL = wsURL
+			dInfo.WsURL = vNode.WsURL()
 		}
 
 		pInfo.DetailsList = list

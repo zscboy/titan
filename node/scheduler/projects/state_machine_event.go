@@ -42,24 +42,6 @@ func (evt ProjectForceState) applyGlobal(state *ProjectInfo) bool {
 	return true
 }
 
-// InfoUpdate update project info
-type InfoUpdate struct {
-	Size   int64
-	Blocks int64
-}
-
-func (evt InfoUpdate) applyGlobal(state *ProjectInfo) bool {
-	// if state.Status == SeedPulling || state.Status == SeedUploading {
-	// 	state.Size = evt.Size
-	// 	state.Blocks = evt.Blocks
-	// }
-
-	return true
-}
-
-func (evt InfoUpdate) Ignore() {
-}
-
 // DeployResult represents the result of node starting
 type DeployResult struct {
 	BlocksCount int64
@@ -67,10 +49,6 @@ type DeployResult struct {
 }
 
 func (evt DeployResult) apply(state *ProjectInfo) {
-	// if state.Status == SeedPulling || state.Status == SeedUploading {
-	// 	state.Size = evt.Size
-	// 	state.Blocks = evt.BlocksCount
-	// }
 }
 
 func (evt DeployResult) Ignore() {
@@ -80,6 +58,12 @@ func (evt DeployResult) Ignore() {
 type DeployRequestSent struct{}
 
 func (evt DeployRequestSent) apply(state *ProjectInfo) {
+}
+
+// UpdateRequestSent indicates that a pull request has been sent
+type UpdateRequestSent struct{}
+
+func (evt UpdateRequestSent) apply(state *ProjectInfo) {
 }
 
 // ProjectRedeploy re-pull the project
@@ -97,12 +81,6 @@ type DeploySucceed struct{}
 
 func (evt DeploySucceed) apply(state *ProjectInfo) {
 	state.RetryCount = 0
-
-	// Check to node offline while replenishing the temporary replicas
-	// After these temporary replicas are pulled, the count should be deleted
-	// if state.Status == EdgesPulling {
-	// 	state.ReplenishReplicas = 0
-	// }
 }
 
 func (evt DeploySucceed) Ignore() {
@@ -133,4 +111,13 @@ type CreateFailed struct{ error }
 func (evt CreateFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
 
 func (evt CreateFailed) apply(state *ProjectInfo) {
+}
+
+// UpdateFailed  indicates that node selection has failed
+type UpdateFailed struct{ error }
+
+// FormatError Format error
+func (evt UpdateFailed) FormatError(xerrors.Printer) (next error) { return evt.error }
+
+func (evt UpdateFailed) apply(state *ProjectInfo) {
 }

@@ -13,7 +13,6 @@ import (
 	"math"
 	"math/rand"
 	"net"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -1394,7 +1393,7 @@ func (s *Scheduler) GetNextFreeTime(ctx context.Context, nodeID string) (int64, 
 func (s *Scheduler) UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error {
 	node := s.NodeManager.GetNode(info.NodeID)
 	if node == nil {
-		return s.db.UpdateNodeDynamicInfo2(info.NodeID, info.DownloadTraffic, info.UploadTraffic)
+		return xerrors.Errorf("node %s not found", info.NodeID)
 	}
 
 	if node.DownloadTraffic < info.DownloadTraffic {
@@ -1575,22 +1574,16 @@ func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp
 
 	wsURL := ""
 	vID := ""
-	var err error
 
 	// select candidate
 	list := s.NodeManager.GetRandomCandidates(1)
 	for vID = range list {
 		vNode := s.NodeManager.GetCandidateNode(vID)
 		if vNode == nil {
-			err = xerrors.Errorf("GetCandidateNode %s not find", vID)
 			continue
 		}
 
-		wsURL, err = transformURL(vNode.ExternalURL)
-		if err != nil {
-			wsURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
-		}
-
+		wsURL = vNode.WsURL()
 		break
 	}
 
@@ -1609,29 +1602,6 @@ func (s *Scheduler) UpdateTunserverURL(ctx context.Context, nodeID string) error
 	}
 
 	return s.db.SaveWSServerID(nID, nodeID)
-}
-
-func transformURL(inputURL string) (string, error) {
-	// Parse the URL from the string
-	parsedURL, err := url.Parse(inputURL)
-	if err != nil {
-		return "", err
-	}
-
-	switch parsedURL.Scheme {
-	case "https":
-		parsedURL.Scheme = "wss"
-	case "http":
-		parsedURL.Scheme = "ws"
-	default:
-		return "", xerrors.New("Scheme not http or https")
-	}
-
-	// Remove the path to clear '/rpc/v0'
-	parsedURL.Path = ""
-
-	// Return the modified URL as a string
-	return parsedURL.String(), nil
 }
 
 // GetProjectsForNode

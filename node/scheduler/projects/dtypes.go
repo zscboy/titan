@@ -16,6 +16,7 @@ type ProjectState string
 
 const (
 	Create    ProjectState = "Create"
+	Update    ProjectState = "Update"
 	Deploying ProjectState = "Deploying"
 	Servicing ProjectState = "Servicing"
 	Failed    ProjectState = "Failed"

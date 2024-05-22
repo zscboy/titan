@@ -21,6 +21,7 @@ var projectCmds = &cli.Command{
 		showProjectInfoCmd,
 		listProjectCmd,
 		restartProjectCmd,
+		updateProjectCmd,
 	},
 }
 
@@ -232,6 +233,45 @@ var deleteProjectCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.DeleteProject(ctx, &types.ProjectReq{UUID: pid, UserID: uid, NodeID: nid})
+	},
+}
+
+var updateProjectCmd = &cli.Command{
+	Name:  "update",
+	Usage: "update the project",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "name",
+			Usage: "project name",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "url",
+			Usage: "project bundle url",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "uid",
+			Usage: "user id",
+			Value: "",
+		},
+		replicaCountFlag,
+	},
+	Action: func(cctx *cli.Context) error {
+		name := cctx.String("name")
+		url := cctx.String("url")
+		uid := cctx.String("uid")
+		count := cctx.Int("replica-count")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.UpdateProject(ctx, &types.ProjectReq{Name: name, BundleURL: url, UserID: uid, Replicas: int64(count)})
 	},
 }
 

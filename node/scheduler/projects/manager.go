@@ -3,7 +3,6 @@ package projects
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
@@ -124,84 +123,37 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 	return uid, nil
 }
 
-func (m *Manager) Start(req *types.ProjectReq) error {
-	//if req.UUID == "" {
-	//	return xerrors.New("UUID is nil")
-	//}
-	//
-	//pInfo, err := m.GetProjectInfo(req.UUID)
-	//if err != nil {
-	//	return xerrors.Errorf("GetProjectInfo err:%s", err.Error())
-	//}
-	//
-	//if req.NodeID != "" {
-	//	node := m.nodeMgr.GetNode(req.NodeID)
-	//	if node == nil {
-	//		return xerrors.Errorf("node %s ont found", req.NodeID)
-	//	}
-	//
-	//	return node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
-	//}
-	//
-	//for _, info := range pInfo.DetailsList {
-	//	// request nodes
-	//	node := m.nodeMgr.GetNode(info.NodeID)
-	//	if node == nil {
-	//		continue
-	//	}
-	//
-	//	err := node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
-	//	if err != nil {
-	//		log.Errorf("StartProject %s err:%s", info.NodeID, err.Error())
-	//	}
-	//}
-	return nil
-}
-
 func (m *Manager) Update(req *types.ProjectReq) error {
 	if req.UUID == "" {
 		return xerrors.New("UUID is nil")
 	}
 
-	list, err := m.LoadProjectReplicasInfos(req.UUID)
+	err := m.UpdateProjectInfo(&types.ProjectInfo{
+		UUID:      req.UUID,
+		Name:      req.Name,
+		BundleURL: req.BundleURL,
+		ServerID:  m.nodeMgr.ServerID,
+		Replicas:  req.Replicas,
+	})
 	if err != nil {
 		return err
 	}
 
-	for _, info := range list {
-		// request nodes
-		node := m.nodeMgr.GetNode(info.NodeID)
-		if node == nil {
-			continue
-		}
-
-		err := node.Update(context.Background(), &types.Project{ID: req.UUID, BundleURL: req.BundleURL, Name: req.Name})
-		if err != nil {
-			log.Errorf("Update %s err:%s", info.NodeID, err.Error())
-		}
+	rInfo := ProjectForceState{
+		State: Update,
 	}
+
+	// create project task
+	err = m.projectStateMachines.Send(ProjectID(req.UUID), rInfo)
+	if err != nil {
+		return &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	}
+
 	return nil
 }
 
 func (m *Manager) Delete(req *types.ProjectReq) error {
 	if req.UUID == "" {
-		// TODO test codes
-		pList, err := m.LoadProjectInfos(m.nodeMgr.ServerID, "", 500, 0)
-		if err != nil {
-			return err
-		}
-
-		for _, pInfo := range pList {
-			if exist, _ := m.projectStateMachines.Has(ProjectID(pInfo.UUID)); !exist {
-				continue
-			}
-
-			err = m.projectStateMachines.Send(ProjectID(pInfo.UUID), ProjectForceState{State: Remove})
-			if err != nil {
-				log.Errorf("projectStateMachines send remove %s err:%s", pInfo.UUID, err.Error())
-			}
-		}
-
 		return xerrors.New("UUID is nil")
 	}
 
@@ -240,40 +192,12 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 			continue
 		}
 
-		wsURL, err := transformURL(vNode.ExternalURL)
-		if err != nil {
-			wsURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
-		}
-
-		dInfo.WsURL = wsURL
+		dInfo.WsURL = vNode.WsURL()
 	}
 
 	info.DetailsList = list
 
 	return info, nil
-}
-
-func transformURL(inputURL string) (string, error) {
-	// Parse the URL from the string
-	parsedURL, err := url.Parse(inputURL)
-	if err != nil {
-		return "", err
-	}
-
-	switch parsedURL.Scheme {
-	case "https":
-		parsedURL.Scheme = "wss"
-	case "http":
-		parsedURL.Scheme = "ws"
-	default:
-		return "", xerrors.New("Scheme not http or https")
-	}
-
-	// Remove the path to clear '/rpc/v0'
-	parsedURL.Path = ""
-
-	// Return the modified URL as a string
-	return parsedURL.String(), nil
 }
 
 type deployingProjectsInfo struct {
@@ -289,7 +213,7 @@ func (m *Manager) startProjectTimeoutCounting(hash string, count int) {
 	if infoI != nil {
 		info = infoI.(*deployingProjectsInfo)
 	} else {
-		needTime := int64(60 * 60)
+		needTime := int64(60 * 5)
 		info.expiration = time.Now().Add(time.Second * time.Duration(needTime))
 	}
 	info.count = count
