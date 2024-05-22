@@ -6,11 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -37,7 +38,6 @@ type Workerd struct {
 	basePath string
 	ts       *tunnel.Services
 	startCh  chan string
-	stopCh   chan string
 
 	projects map[string]*types.Project
 	mu       sync.Mutex
@@ -55,7 +55,6 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, path string) (*Workerd, 
 		ts:       ts,
 		projects: make(map[string]*types.Project),
 		startCh:  make(chan string, 1),
-		stopCh:   make(chan string, 1),
 	}
 
 	go w.run(context.Background())
@@ -70,17 +69,6 @@ func (w *Workerd) run(ctx context.Context) {
 			err := w.startProject(ctx, projectId)
 			if err != nil {
 				log.Errorf("starting project %s: %v", projectId, err)
-			}
-
-		case projectId := <-w.stopCh:
-			err := w.destroyProject(ctx, projectId)
-			if err != nil {
-				log.Errorf("destroying project %s: %v", projectId, err)
-			}
-
-			err = w.cleanProject(ctx, projectId)
-			if err != nil {
-				log.Errorf("destroying project %s: %v", projectId, err)
 			}
 
 		case <-ctx.Done():
@@ -202,7 +190,15 @@ func (w *Workerd) Delete(ctx context.Context, projectId string) error {
 		return xerrors.Errorf("project %s not exists", projectId)
 	}
 
-	w.stopCh <- projectId
+	err := w.destroyProject(ctx, projectId)
+	if err != nil {
+		log.Errorf("destroying project %s: %v", projectId, err)
+	}
+
+	err = w.cleanProject(ctx, projectId)
+	if err != nil {
+		log.Errorf("destroying project %s: %v", projectId, err)
+	}
 
 	return nil
 }
@@ -230,19 +226,14 @@ func (w *Workerd) startProject(ctx context.Context, projectId string) error {
 		return err
 	}
 
-	configFilePath := filepath.Join(w.getProjectPath(projectId), defaultConfigFilename)
-	if err = ModifiedPort(configFilePath, port); err != nil {
-		log.Errorf("modified %s: %v", projectId, err)
-		return err
-	}
-
 	project := &types.Project{ID: projectId, Status: types.ProjectReplicaStatusStarted}
 	service := &tunnel.Service{ID: projectId, Address: "localhost", Port: port}
 
 	defer w.updateProject(ctx, project)
 	defer w.ts.Regiseter(service)
 
-	err = cgo.CreateWorkerd(projectId, w.getProjectPath(projectId), defaultConfigFilename)
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	err = cgo.CreateWorkerd(projectId, w.getProjectPath(projectId), defaultConfigFilename, addr)
 	if err != nil {
 		project.Status = types.ProjectReplicaStatusError
 		log.Errorf("cgo creating project %s: %v", projectId, err)
@@ -349,11 +340,36 @@ func computeBundleHash(filename string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func (w *Workerd) localProjectIds() ([]string, error) {
+	var out []string
+	err := filepath.WalkDir(w.basePath, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			_, pErr := uuid.Parse(d.Name())
+			if pErr == nil {
+				out = append(out, d.Name())
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (w *Workerd) RestartProjects(ctx context.Context, nodeId string) {
 	if err := w.initializing(); err != nil {
 		log.Errorf("restarting project initializing failed: %v", err)
 		return
 	}
+
+	localProjects, err := w.localProjectIds()
+	if err != nil {
+		log.Errorf("get local projects: %v", err)
+		return
+	}
+
+	activeProjects := make(map[string]struct{})
 
 	projects, err := w.api.GetProjectsForNode(ctx, nodeId)
 	if err != nil {
@@ -362,11 +378,31 @@ func (w *Workerd) RestartProjects(ctx context.Context, nodeId string) {
 	}
 
 	for _, project := range projects {
+		w.mu.Lock()
+		w.projects[project.Id] = &types.Project{ID: project.Id}
+		w.mu.Unlock()
+
+		activeProjects[project.Id] = struct{}{}
+
 		switch project.Status {
-		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusUpdating:
+		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
 			w.startCh <- project.Id
-		case types.ProjectReplicaStatusStopped:
-			w.stopCh <- project.Id
+		}
+	}
+
+	for _, projectId := range localProjects {
+		if _, ok := activeProjects[projectId]; ok {
+			continue
+		}
+
+		err := w.destroyProject(ctx, projectId)
+		if err != nil {
+			log.Errorf("destroying project %s: %v", projectId, err)
+		}
+
+		err = w.cleanProject(ctx, projectId)
+		if err != nil {
+			log.Errorf("destroying project %s: %v", projectId, err)
 		}
 	}
 
@@ -384,9 +420,4 @@ func GetFreePort() (port int, err error) {
 		}
 	}
 	return
-}
-
-func ModifiedPort(filePath string, port int) error {
-	cmd := exec.Command("sed", "-i", fmt.Sprintf(`s/\(address = "\*\):\([0-9]*\)/\1:%d/`, port), filePath)
-	return cmd.Run()
 }

@@ -79,7 +79,7 @@ func projectInfoFrom(info *types.ProjectInfo) *ProjectInfo {
 			if len(cInfo.EdgeReplicaSucceeds) < cbg.MaxLength {
 				cInfo.EdgeReplicaSucceeds = append(cInfo.EdgeReplicaSucceeds, r.NodeID)
 			}
-		case types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusUpdating:
+		case types.ProjectReplicaStatusStarting:
 			cInfo.EdgeWaitings++
 		}
 	}

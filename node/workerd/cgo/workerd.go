@@ -59,11 +59,12 @@ func InitWorkerdRuntime() error {
 	return nil
 }
 
-func CreateWorkerd(projectId string, directory, configFilePath string) error {
+func CreateWorkerd(projectId string, directory, configFilePath, addr string) error {
 	param := map[string]string{
 		"id":         projectId,
 		"directory":  directory,
 		"configFile": configFilePath,
+		"socketAddr": addr,
 	}
 
 	marshalledParam, err := json.Marshal(param)
