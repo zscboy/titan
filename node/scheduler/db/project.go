@@ -237,8 +237,8 @@ func (n *SQLDB) LoadProjectStateInfo(id string, serverID dtypes.ServerID) (*type
 // LoadNodesOfStartingReplica
 func (n *SQLDB) LoadNodesOfStartingReplica(id string) ([]string, error) {
 	var nodes []string
-	query := fmt.Sprintf("SELECT node_id FROM %s WHERE id=? AND (status=? or status=?)", projectReplicasTable)
-	err := n.db.Select(&nodes, query, id, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusUpdating)
+	query := fmt.Sprintf("SELECT node_id FROM %s WHERE id=? AND status=?", projectReplicasTable)
+	err := n.db.Select(&nodes, query, id, types.ProjectReplicaStatusStarting)
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +248,8 @@ func (n *SQLDB) LoadNodesOfStartingReplica(id string) ([]string, error) {
 
 // UpdateProjectReplicasStatusToFailed updates the status of unfinished project replicas
 func (n *SQLDB) UpdateProjectReplicasStatusToFailed(id string) error {
-	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE id=? AND (status=? or status=?)`, projectReplicasTable)
-	_, err := n.db.Exec(query, types.ProjectReplicaStatusError, id, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusUpdating)
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=? WHERE id=? AND status=?`, projectReplicasTable)
+	_, err := n.db.Exec(query, types.ProjectReplicaStatusError, id, types.ProjectReplicaStatusStarting)
 
 	return err
 }

@@ -17,10 +17,7 @@ type ProjectReplicaStatus int
 
 const (
 	ProjectReplicaStatusStarting ProjectReplicaStatus = iota
-	ProjectReplicaStatusStopping
 	ProjectReplicaStatusStarted
-	ProjectReplicaStatusStopped
-	ProjectReplicaStatusUpdating
 	ProjectReplicaStatusError
 )
 
@@ -29,14 +26,8 @@ func (ps ProjectReplicaStatus) String() string {
 	switch ps {
 	case ProjectReplicaStatusStarting:
 		return "starting"
-	case ProjectReplicaStatusStopping:
-		return "stopping"
 	case ProjectReplicaStatusStarted:
 		return "started"
-	case ProjectReplicaStatusStopped:
-		return "stopped"
-	case ProjectReplicaStatusUpdating:
-		return "updating"
 	case ProjectReplicaStatusError:
 		return "error"
 	default:
