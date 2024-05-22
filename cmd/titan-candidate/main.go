@@ -24,6 +24,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/httpserver"
 	"github.com/Filecoin-Titan/titan/node/modules"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/node/tunnel"
 	"github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/quic-go/quic-go"
@@ -364,6 +365,7 @@ var daemonStartCmd = &cli.Command{
 		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
 		handler = httpServer.NewHandler(handler)
 		handler = validation.AppendHandler(handler, schedulerAPI, privateKey, time.Duration(candidateCfg.ValidateDuration)*time.Second)
+		handler = tunnel.NewTunserver(handler)
 
 		httpSrv := &http.Server{
 			ReadHeaderTimeout: 30 * time.Second,

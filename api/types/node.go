@@ -55,6 +55,7 @@ type NodeInfo struct {
 	CPUInfo        string          `json:"cpu_info" form:"cpuInfo" gorm:"column:cpu_info;comment:;" db:"cpu_info"`
 	GPUInfo        string          `json:"gpu_info" form:"gpuInfo" gorm:"column:gpu_info;comment:;" db:"gpu_info"`
 	FreeUpFiskTime time.Time       `db:"free_up_disk_time"`
+	WSServerID     string          `db:"ws_server_id"`
 
 	NodeDynamicInfo
 }
@@ -549,4 +550,9 @@ type CandidateCodeInfo struct {
 	NodeType   NodeType  `db:"node_type"`
 	Expiration time.Time `db:"expiration"`
 	NodeID     string    `db:"node_id"`
+}
+
+type TunserverRsp struct {
+	URL    string
+	NodeID string
 }

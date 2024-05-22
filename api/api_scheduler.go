@@ -144,7 +144,7 @@ type NodeAPI interface {
 	GetNodeToken(ctx context.Context, nodeID string) (string, error) //perm:admin
 	// CheckIpUsage
 	CheckIpUsage(ctx context.Context, ip string) (bool, error) //perm:admin,web,locator
-	// GetAssetViwe get the asset view of node
+	// GetAssetView get the asset view of node
 	GetAssetView(ctx context.Context, nodeID string, isFromNode bool) (*types.AssetView, error) //perm:admin
 	// GetAssetInBucket get the assets of the bucket
 	GetAssetsInBucket(ctx context.Context, nodeID string, bucketID int, isFromNode bool) ([]string, error) //perm:admin
@@ -170,6 +170,10 @@ type NodeAPI interface {
 	GetCandidateCodeInfos(ctx context.Context, nodeID string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
 	// ReDetermineNodeNATType
 	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
+	// AssignTunserverURL
+	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
+	// UpdateTunserverURL
+	UpdateTunserverURL(ctx context.Context, nodeID string) error //perm:edge
 }
 
 // UserAPI is an interface for user
@@ -221,12 +225,30 @@ type UserAPI interface {
 	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
 }
 
+// ProjectAPI is an interface for project
+type ProjectAPI interface {
+	// RedeployFailedProjects retries the pull process for a list of failed assets
+	RedeployFailedProjects(ctx context.Context, ids []string) error //perm:admin
+	// UpdateProjectStatus
+	UpdateProjectStatus(ctx context.Context, list []*types.Project) error //perm:edge
+	// GetProjectsForNode
+	GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) //perm:edge,candidate,web,locator
+
+	DeployProject(ctx context.Context, req *types.DeployProjectReq) (string, error)                    //perm:user,web,admin
+	StartProject(ctx context.Context, req *types.ProjectReq) error                                     //perm:user,web,admin
+	DeleteProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
+	GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error)                       //perm:user,web,admin
+	GetProjectInfos(ctx context.Context, user string, limit, offset int) ([]*types.ProjectInfo, error) //perm:user,web,admin
+	UpdateProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
+}
+
 // Scheduler is an interface for scheduler
 type Scheduler interface {
 	Common
 	AssetAPI
 	NodeAPI
 	UserAPI
+	ProjectAPI
 
 	// NodeValidationResult processes the validation result for a node
 	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error //perm:edge,candidate

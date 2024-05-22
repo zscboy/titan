@@ -55,6 +55,7 @@ type Node struct {
 	NetFlowDown     int64
 	DownloadTraffic int64
 	UploadTraffic   int64
+	WSServerID      string
 
 	DeactivateTime int64
 
@@ -71,7 +72,8 @@ type Node struct {
 
 	IsNewVersion bool
 
-	IsPhone bool
+	IsPhone       bool
+	IsProjectNode bool
 }
 
 // API represents the node API
@@ -82,6 +84,7 @@ type API struct {
 	api.Validation
 	api.DataSync
 	api.Asset
+	api.Workerd
 	WaitQuiet func(ctx context.Context) error
 	// edge api
 	// ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
@@ -111,6 +114,7 @@ func APIFromEdge(api api.Edge) *API {
 		Asset:        api,
 		WaitQuiet:    api.WaitQuiet,
 		UserNATPunch: api.UserNATPunch,
+		Workerd:      api,
 	}
 	return a
 }

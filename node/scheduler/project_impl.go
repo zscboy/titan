@@ -1,0 +1,95 @@
+package scheduler
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Filecoin-Titan/titan/node/handler"
+	"golang.org/x/xerrors"
+)
+
+// RedeployFailedProjects retries the deploy process for a list of failed projects
+func (s *Scheduler) RedeployFailedProjects(ctx context.Context, ids []string) error {
+	return s.ProjectManager.RestartDeployProjects(ids)
+}
+
+func (s *Scheduler) UpdateProjectStatus(ctx context.Context, list []*types.Project) error {
+	nodeID := handler.GetNodeID(ctx)
+	if len(nodeID) == 0 {
+		return fmt.Errorf("invalid request")
+	}
+
+	return s.ProjectManager.UpdateStatus(nodeID, list)
+}
+
+func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectReq) (string, error) {
+	if req.BundleURL == "" {
+		return "", xerrors.New("BundleURL is nil")
+	}
+
+	uID := handler.GetUserID(ctx)
+	if len(uID) > 0 {
+		req.UserID = uID
+	}
+
+	return s.ProjectManager.Deploy(req)
+}
+
+func (s *Scheduler) StartProject(ctx context.Context, req *types.ProjectReq) error {
+	return s.ProjectManager.Start(req)
+}
+
+func (s *Scheduler) DeleteProject(ctx context.Context, req *types.ProjectReq) error {
+	return s.ProjectManager.Delete(req)
+}
+
+func (s *Scheduler) UpdateProject(ctx context.Context, req *types.ProjectReq) error {
+	return s.ProjectManager.Update(req)
+}
+
+func (s *Scheduler) GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error) {
+	return s.ProjectManager.GetProjectInfo(uuid)
+}
+
+func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, offset int) ([]*types.ProjectInfo, error) {
+	uID := handler.GetUserID(ctx)
+	if len(uID) > 0 {
+		userID = uID
+	}
+
+	infos, err := s.db.LoadProjectInfos(s.ServerID, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pInfo := range infos {
+		list, err := s.db.LoadProjectReplicasInfos(pInfo.UUID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dInfo := range list {
+			node := s.NodeManager.GetNode(dInfo.NodeID)
+			if node == nil {
+				continue
+			}
+
+			vNode := s.NodeManager.GetNode(node.WSServerID)
+			if vNode == nil {
+				continue
+			}
+
+			wsURL, err := transformURL(vNode.ExternalURL)
+			if err != nil {
+				wsURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
+			}
+
+			dInfo.WsURL = wsURL
+		}
+
+		pInfo.DetailsList = list
+	}
+
+	return infos, nil
+}

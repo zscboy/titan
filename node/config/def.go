@@ -175,6 +175,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		FillAssetEdgeCount:      500,
 		L2ValidatorCount:        0,
 		StorageCandidates:       []string{},
+		WorkerdNodes:            []string{},
 		NodeScoreLevel: map[string][]int{
 			"A": {90, 100},
 			"B": {50, 89},
@@ -204,7 +205,7 @@ var (
 	_ encoding.TextUnmarshaler = (*Duration)(nil)
 )
 
-// Duration is a wrapper type for time.Duration
+// Duration is a cgo type for time.Duration
 // for decoding and encoding from/to TOML
 type Duration time.Duration
 

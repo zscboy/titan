@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	crand "crypto/rand"
+	cRand "crypto/rand"
 	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -99,7 +100,7 @@ func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey
 	}
 
 	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
-		return nil, xerrors.Errorf("Node %s aready exist", nodeID)
+		return nil, xerrors.Errorf("Node %s are exist", nodeID)
 	}
 
 	err = s.db.UpdateCandidateCodeInfo(code, nodeID)
@@ -1032,7 +1033,7 @@ func newNodeID(nType types.NodeType) (string, error) {
 // create a node key
 func newNodeKey() string {
 	randomString := make([]byte, 16)
-	_, err := crand.Read(randomString)
+	_, err := cRand.Read(randomString)
 	if err != nil {
 		uid := uuid.NewString()
 		return strings.Replace(uid, "-", "", -1)
@@ -1206,7 +1207,7 @@ func (s *Scheduler) GetNodeOnlineState(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// GetAssetViwe get the asset view of node
+// GetAssetView get the asset view of node
 func (s *Scheduler) GetAssetView(ctx context.Context, nodeID string, isFromNode bool) (*types.AssetView, error) {
 	if isFromNode {
 		fmt.Println("from node")
@@ -1563,4 +1564,82 @@ func dpGetRemoveAssets(assets []*types.AssetRecord, sum int64) []*types.AssetRec
 	}
 
 	return sub
+}
+
+// AssignTunserverURL
+func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) {
+	nodeID := handler.GetNodeID(ctx)
+	if len(nodeID) == 0 {
+		return nil, fmt.Errorf("invalid request")
+	}
+
+	wsURL := ""
+	vID := ""
+	var err error
+
+	// select candidate
+	list := s.NodeManager.GetRandomCandidates(1)
+	for vID = range list {
+		vNode := s.NodeManager.GetCandidateNode(vID)
+		if vNode == nil {
+			err = xerrors.Errorf("GetCandidateNode %s not find", vID)
+			continue
+		}
+
+		wsURL, err = transformURL(vNode.ExternalURL)
+		if err != nil {
+			wsURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
+		}
+
+		break
+	}
+
+	return &types.TunserverRsp{URL: wsURL, NodeID: vID}, nil
+}
+
+func (s *Scheduler) UpdateTunserverURL(ctx context.Context, nodeID string) error {
+	nID := handler.GetNodeID(ctx)
+	if len(nID) == 0 {
+		return fmt.Errorf("invalid request")
+	}
+
+	node := s.NodeManager.GetEdgeNode(nID)
+	if node != nil {
+		node.WSServerID = nodeID
+	}
+
+	return s.db.SaveWSServerID(nID, nodeID)
+}
+
+func transformURL(inputURL string) (string, error) {
+	// Parse the URL from the string
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return "", err
+	}
+
+	switch parsedURL.Scheme {
+	case "https":
+		parsedURL.Scheme = "wss"
+	case "http":
+		parsedURL.Scheme = "ws"
+	default:
+		return "", xerrors.New("Scheme not http or https")
+	}
+
+	// Remove the path to clear '/rpc/v0'
+	parsedURL.Path = ""
+
+	// Return the modified URL as a string
+	return parsedURL.String(), nil
+}
+
+// GetProjectsForNode
+func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) {
+	nID := handler.GetNodeID(ctx)
+	if nID != "" {
+		nodeID = nID
+	}
+
+	return s.db.LoadProjectReplicasForNode(nodeID)
 }

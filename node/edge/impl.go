@@ -12,7 +12,9 @@ import (
 	"github.com/Filecoin-Titan/titan/node/device"
 	datasync "github.com/Filecoin-Titan/titan/node/sync"
 	validate "github.com/Filecoin-Titan/titan/node/validation"
+	"github.com/Filecoin-Titan/titan/node/workerd"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/quic-go/quic-go"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -28,7 +30,8 @@ type Edge struct {
 	*asset.Asset
 	*validate.Validation
 	*datasync.DataSync
-
+	*workerd.Workerd
+	Transport    *quic.Transport
 	SchedulerAPI api.Scheduler
 }
 

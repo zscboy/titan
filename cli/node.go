@@ -130,8 +130,6 @@ var updateNodeDynamicInfoCmd = &cli.Command{
 	},
 }
 
-
-
 var freeUpDiskSpaceCmd = &cli.Command{
 	Name:  "fuds",
 	Usage: "free up disk space",

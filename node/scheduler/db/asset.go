@@ -42,7 +42,7 @@ func (n *SQLDB) SaveReplicaEvent(hash, cid, nodeID string, size int64, expiratio
 	defer func() {
 		err = tx.Rollback()
 		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("Rollback err:%s", err.Error())
+			log.Errorf("SaveReplicaEvent Rollback err:%s", err.Error())
 		}
 	}()
 
@@ -135,7 +135,7 @@ func (n *SQLDB) UpdateAssetInfo(hash, state string, totalBlock, totalSize, retry
 	defer func() {
 		err = tx.Rollback()
 		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveAssetRecord Rollback err:%s", err.Error())
+			log.Errorf("UpdateAssetInfo Rollback err:%s", err.Error())
 		}
 	}()
 
@@ -680,7 +680,7 @@ func (n *SQLDB) SaveReplenishBackup(hashes []string) error {
 	defer func() {
 		err = tx.Rollback()
 		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveAssetRecord Rollback err:%s", err.Error())
+			log.Errorf("SaveReplenishBackup Rollback err:%s", err.Error())
 		}
 	}()
 
@@ -723,7 +723,7 @@ func (n *SQLDB) DeleteAssetRecordsOfNode(nodeID string) error {
 	defer func() {
 		err = tx.Rollback()
 		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveAssetRecord Rollback err:%s", err.Error())
+			log.Errorf("DeleteAssetRecordsOfNode Rollback err:%s", err.Error())
 		}
 	}()
 
