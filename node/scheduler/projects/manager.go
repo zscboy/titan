@@ -125,36 +125,36 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 }
 
 func (m *Manager) Start(req *types.ProjectReq) error {
-	if req.UUID == "" {
-		return xerrors.New("UUID is nil")
-	}
-
-	pInfo, err := m.GetProjectInfo(req.UUID)
-	if err != nil {
-		return xerrors.Errorf("GetProjectInfo err:%s", err.Error())
-	}
-
-	if req.NodeID != "" {
-		node := m.nodeMgr.GetNode(req.NodeID)
-		if node == nil {
-			return xerrors.Errorf("node %s ont found", req.NodeID)
-		}
-
-		return node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
-	}
-
-	for _, info := range pInfo.DetailsList {
-		// request nodes
-		node := m.nodeMgr.GetNode(info.NodeID)
-		if node == nil {
-			continue
-		}
-
-		err := node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
-		if err != nil {
-			log.Errorf("StartProject %s err:%s", info.NodeID, err.Error())
-		}
-	}
+	//if req.UUID == "" {
+	//	return xerrors.New("UUID is nil")
+	//}
+	//
+	//pInfo, err := m.GetProjectInfo(req.UUID)
+	//if err != nil {
+	//	return xerrors.Errorf("GetProjectInfo err:%s", err.Error())
+	//}
+	//
+	//if req.NodeID != "" {
+	//	node := m.nodeMgr.GetNode(req.NodeID)
+	//	if node == nil {
+	//		return xerrors.Errorf("node %s ont found", req.NodeID)
+	//	}
+	//
+	//	return node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
+	//}
+	//
+	//for _, info := range pInfo.DetailsList {
+	//	// request nodes
+	//	node := m.nodeMgr.GetNode(info.NodeID)
+	//	if node == nil {
+	//		continue
+	//	}
+	//
+	//	err := node.Start(context.Background(), &types.Project{ID: req.UUID, BundleURL: pInfo.BundleURL, Name: pInfo.Name})
+	//	if err != nil {
+	//		log.Errorf("StartProject %s err:%s", info.NodeID, err.Error())
+	//	}
+	//}
 	return nil
 }
 

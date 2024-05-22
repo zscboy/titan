@@ -170,18 +170,6 @@ func (w *Workerd) Update(ctx context.Context, project *types.Project) error {
 	return nil
 }
 
-func (w *Workerd) Start(ctx context.Context, project *types.Project) error {
-	log.Infof("starting start project, id: %s", project.ID)
-
-	path := w.getProjectPath(project.ID)
-
-	if err := os.RemoveAll(path); err != nil {
-		return err
-	}
-
-	return w.Deploy(ctx, project)
-}
-
 func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, error) {
 	var out []*types.Project
 
@@ -203,12 +191,6 @@ func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, er
 
 func (w *Workerd) getProjectPath(projectId string) string {
 	return filepath.Join(w.basePath, projectId)
-}
-
-func (w *Workerd) Stop(ctx context.Context, projectId string) error {
-	log.Infof("starting stop project, id: %s", projectId)
-
-	return w.Delete(ctx, projectId)
 }
 
 func (w *Workerd) Delete(ctx context.Context, projectId string) error {
