@@ -16,6 +16,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
+	"github.com/Filecoin-Titan/titan/node/scheduler/projects"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/docker/go-units"
@@ -68,6 +69,7 @@ type Scheduler struct {
 	SetSchedulerConfigFunc dtypes.SetSchedulerConfigFunc
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 	WorkloadManager        *workload.Manager
+	ProjectManager         *projects.Manager
 
 	PrivateKey *rsa.PrivateKey
 	Transport  *quic.Transport
@@ -125,6 +127,14 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
+	if len(s.SchedulerCfg.WorkerdNodes) > 0 {
+		for _, nID := range s.SchedulerCfg.WorkerdNodes {
+			if nID == nodeID {
+				cNode.IsProjectNode = true
+			}
+		}
+	}
+
 	log.Infof("node connected %s, address:%s , %v", nodeID, remoteAddr, alreadyConnect)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
@@ -173,6 +183,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
 		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
 		nodeInfo.WSServerID = oldInfo.WSServerID
+
+		cNode.WSServerID = nodeInfo.WSServerID
 
 		if oldInfo.DeactivateTime > 0 && oldInfo.DeactivateTime < time.Now().Unix() {
 			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)

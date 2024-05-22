@@ -600,7 +600,7 @@ var assetViewCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
 			Name:  "sync",
-			Usage: "sync assetViwe",
+			Usage: "sync assetView",
 		},
 		&cli.BoolFlag{
 			Name:  "from-node",
@@ -844,7 +844,7 @@ func hashesToCids(hashes []string) []string {
 	for _, hash := range hashes {
 		c, err := cidutil.HashToCID(hash)
 		if err != nil {
-			fmt.Println("can not convert hash %s to cid", hash)
+			fmt.Printf("can not convert hash %s to cid \n", hash)
 			continue
 		}
 

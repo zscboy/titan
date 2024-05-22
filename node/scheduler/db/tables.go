@@ -4,7 +4,7 @@ package db
 var cAssetStateTable = `
     CREATE TABLE if not exists %s (
 		hash                VARCHAR(128) NOT NULL UNIQUE,
-		state               VARCHAR(128) DEFAULT '',
+		state               VARCHAR(16)  DEFAULT '',
 		retry_count         INT          DEFAULT 0,
 		replenish_replicas  INT          DEFAULT 0,
 		PRIMARY KEY (hash)
@@ -56,6 +56,7 @@ var cNodeInfoTable = `
     	asset_count          INT             DEFAULT 0,
 		deactivate_time      INT             DEFAULT 0,		
 		free_up_disk_time    DATETIME        DEFAULT '2024-04-20 12:10:15',
+		ws_server_id         VARCHAR(128)    DEFAULT '',
 	    PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node info';`
 
@@ -285,3 +286,40 @@ var cCandidateCodeTable = `
 		node_id       VARCHAR(128)   DEFAULT '',
 		PRIMARY KEY (code)
     ) ENGINE=InnoDB COMMENT='candidate code';`
+
+// Table creation SQL statements.
+var cProjectStateTable = `
+    CREATE TABLE if not exists %s (
+		id                  VARCHAR(128) NOT NULL UNIQUE,	
+		state               VARCHAR(16)  DEFAULT 0,		
+		retry_count         INT          DEFAULT 0,
+		replenish_replicas  INT          DEFAULT 0,
+		PRIMARY KEY (id)
+	) ENGINE=InnoDB COMMENT='project state info';`
+
+var cProjectInfosTable = `
+    CREATE TABLE if not exists %s (
+		id            VARCHAR(128)   NOT NULL UNIQUE,
+		user_id       VARCHAR(128)   DEFAULT '',
+		bundle_url    VARCHAR(128)   DEFAULT '',
+		name          VARCHAR(128)   DEFAULT '',	
+		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,		
+		replicas      INT            DEFAULT 0,
+		scheduler_sid VARCHAR(128)   NOT NULL,    
+		PRIMARY KEY (id),
+	    KEY idx_user_id (user_id),
+	    KEY idx_time (created_time)
+    ) ENGINE=InnoDB COMMENT='project info';`
+
+var cProjectReplicasTable = `
+    CREATE TABLE if not exists %s (
+		id            VARCHAR(128)  NOT NULL,
+		node_id       VARCHAR(128)  NOT NULL,	
+		status        TINYINT       DEFAULT 0,		
+		created_time  DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		end_time      DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (id,node_id),
+	    KEY idx_time (created_time),
+		KEY idx_node_id (node_id),
+		KEY idx_id (id)
+    ) ENGINE=InnoDB COMMENT='project replicas';`

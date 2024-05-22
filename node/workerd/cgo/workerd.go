@@ -1,0 +1,160 @@
+package cgo
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/pkg/errors"
+)
+
+type JsonCallRequest struct {
+	Method string      `json:"method"`
+	Args   interface{} `json:"args"`
+}
+
+type JsonCallResponse struct {
+	Code int32  `json:"code"`
+	Msg  string `json:"msg"`
+}
+
+func jsonCall(jsonString string) (*JsonCallResponse, error) {
+	result := callC(jsonString)
+
+	var resp JsonCallResponse
+	if err := json.Unmarshal([]byte(result), &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+func InitWorkerdRuntime() error {
+	param := map[string]string{
+		"reportURL": "",
+	}
+
+	marshalledParam, err := json.Marshal(param)
+	if err != nil {
+		return err
+	}
+
+	request := JsonCallRequest{
+		Method: "initRuntime",
+		Args:   string(marshalledParam),
+	}
+
+	marshalledJsonCallParam, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	resp, err := jsonCall(string(marshalledJsonCallParam))
+	if err != nil {
+		return nil
+	}
+
+	if resp.Code != 0 {
+		return errors.Errorf("jsonCall: %s", resp.Msg)
+	}
+
+	return nil
+}
+
+func CreateWorkerd(projectId string, directory, configFilePath string) error {
+	param := map[string]string{
+		"id":         projectId,
+		"directory":  directory,
+		"configFile": configFilePath,
+	}
+
+	marshalledParam, err := json.Marshal(param)
+	if err != nil {
+		return err
+	}
+
+	request := JsonCallRequest{
+		Method: "createWorkerd",
+		Args:   string(marshalledParam),
+	}
+
+	marshalledJsonCallParam, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	resp, err := jsonCall(string(marshalledJsonCallParam))
+	if err != nil {
+		return nil
+	}
+
+	if resp.Code != 0 {
+		return errors.Errorf("jsonCall: %s", resp.Msg)
+	}
+
+	return nil
+}
+
+func DestroyWorkerd(projectId string) error {
+	param := map[string]string{
+		"id": projectId,
+	}
+
+	marshalledParam, err := json.Marshal(param)
+	if err != nil {
+		return err
+	}
+
+	jsonCallParam := JsonCallRequest{
+		Method: "destroyWorkerd",
+		Args:   string(marshalledParam),
+	}
+
+	marshalledJsonCallParam, err := json.Marshal(jsonCallParam)
+	if err != nil {
+		return err
+	}
+
+	resp, err := jsonCall(string(marshalledJsonCallParam))
+	if err != nil {
+		return nil
+	}
+
+	if resp.Code != 0 {
+		return errors.Errorf("jsonCall: %s", resp.Msg)
+	}
+
+	return nil
+}
+
+func QueryWorkerd(projectId string) error {
+	param := map[string]string{
+		"id": projectId,
+	}
+
+	marshalledParam, err := json.Marshal(param)
+	if err != nil {
+		return err
+	}
+
+	jsonCallParam := JsonCallRequest{
+		Method: "queryWorkerd",
+		Args:   string(marshalledParam),
+	}
+
+	marshalledJsonCallParam, err := json.Marshal(jsonCallParam)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("==>", string(marshalledJsonCallParam))
+
+	resp, err := jsonCall(string(marshalledJsonCallParam))
+	if err != nil {
+		return nil
+	}
+
+	if resp.Code != 0 {
+		return errors.Errorf("jsonCall: %s", resp.Msg)
+	}
+
+	return nil
+}

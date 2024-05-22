@@ -553,3 +553,8 @@ type CandidateCodeInfo struct {
 	Expiration time.Time `db:"expiration"`
 	NodeID     string    `db:"node_id"`
 }
+
+type TunserverRsp struct {
+	URL    string
+	NodeID string
+}

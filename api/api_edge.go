@@ -13,6 +13,7 @@ type Edge interface {
 	Validation
 	DataSync
 	Asset
+	Workerd
 	WaitQuiet(ctx context.Context) error //perm:admin
 	// UserNATTravel build connection for user
 	UserNATPunch(ctx context.Context, userServiceAddress string, req *types.NatPunchReq) error //perm:admin

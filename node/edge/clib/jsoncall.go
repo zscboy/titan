@@ -16,7 +16,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
-
 	"github.com/Filecoin-Titan/titan/node/config"
 	"github.com/Filecoin-Titan/titan/node/repo"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
@@ -102,8 +101,7 @@ type FreeUpDiskReq struct {
 	Size float64 `json:"size"`
 }
 
-type FreeUpDiskResp struct {
-}
+type FreeUpDiskResp struct{}
 
 type JSONCallArgs struct {
 	Method     string `json:"method"`
@@ -551,7 +549,6 @@ func (clib *CLib) stateFreeUpDisk() *JSONCallResult {
 	defer closer()
 
 	ret, err := edgeApi.StateFreeUpDisk(context.Background())
-
 	if err != nil {
 		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("state free up disk error %s", err.Error())}
 	}

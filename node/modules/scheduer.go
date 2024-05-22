@@ -13,6 +13,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
+	"github.com/Filecoin-Titan/titan/node/scheduler/projects"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/Filecoin-Titan/titan/node/sqldb"
@@ -44,21 +45,21 @@ func GenerateTokenWithWebPermission(ca *common.CommonAPI) (dtypes.PermissionWebT
 	return dtypes.PermissionWebToken(token), nil
 }
 
-// StorageManagerParams Manager Params
-type StorageManagerParams struct {
+// AssetManagerParams Manager Params
+type AssetManagerParams struct {
 	fx.In
 
 	Lifecycle      fx.Lifecycle
 	MetricsCtx     helpers.MetricsCtx
-	MetadataDS     dtypes.MetadataDS
+	MetadataDS     dtypes.AssetMetadataDS
 	NodeManger     *node.Manager
 	WorkloadManger *workload.Manager
 	dtypes.GetSchedulerConfigFunc
 	*db.SQLDB
 }
 
-// NewStorageManager creates a new storage manager instance
-func NewStorageManager(params StorageManagerParams) *assets.Manager {
+// NewAssetManager creates a new storage manager instance
+func NewAssetManager(params AssetManagerParams) *assets.Manager {
 	var (
 		mctx    = params.MetricsCtx
 		lc      = params.Lifecycle
@@ -75,6 +76,43 @@ func NewStorageManager(params StorageManagerParams) *assets.Manager {
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			go m.Start(ctx)
+			return nil
+		},
+		OnStop: m.Terminate,
+	})
+
+	return m
+}
+
+// ProjectManagerParams Manager Params
+type ProjectManagerParams struct {
+	fx.In
+
+	Lifecycle      fx.Lifecycle
+	MetricsCtx     helpers.MetricsCtx
+	MetadataDS     dtypes.ProjectMetadataDS
+	NodeManger     *node.Manager
+	WorkloadManger *workload.Manager
+	dtypes.GetSchedulerConfigFunc
+	*db.SQLDB
+}
+
+// NewProjectManager creates a new project manager instance
+func NewProjectManager(params ProjectManagerParams) *projects.Manager {
+	var (
+		mctx    = params.MetricsCtx
+		lc      = params.Lifecycle
+		nodeMgr = params.NodeManger
+		ds      = params.MetadataDS
+		sdb     = params.SQLDB
+	)
+
+	ctx := helpers.LifecycleCtx(mctx, lc)
+	m := projects.NewManager(nodeMgr, sdb, ds)
+
+	lc.Append(fx.Hook{
+		OnStart: func(context.Context) error {
+			go m.StartTimer(ctx)
 			return nil
 		},
 		OnStop: m.Terminate,

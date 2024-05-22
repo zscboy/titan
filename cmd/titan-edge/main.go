@@ -24,6 +24,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/httpserver"
 	"github.com/Filecoin-Titan/titan/node/modules"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/node/tunnel"
 	"github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/gbrlsnchs/jwt/v3"
 
@@ -58,6 +59,7 @@ const (
 	FlagEdgeRepo            = "edge-repo"
 	FlagEdgeRepoDeprecation = "edgerepo"
 	DefaultStorageDir       = "storage"
+	WorkerdDir              = "workerd"
 	HeartbeatInterval       = 10 * time.Second
 )
 
@@ -609,6 +611,11 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 			lockRepo = lr
 			return setEndpointAPI(lr, edgeCfg.Network.ListenAddress)
 		}),
+		node.Override(new(api.Scheduler), func() api.Scheduler { return schedulerAPI }),
+
+		node.Override(new(*tunnel.Services), func(scheduler api.Scheduler, nid dtypes.NodeID) *tunnel.Services {
+			return tunnel.NewServices(scheduler, string(nid))
+		}),
 	)
 	if err != nil {
 		return xerrors.Errorf("creating node: %w", err)
@@ -617,6 +624,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 	handler := EdgeHandler(edgeAPI.AuthVerify, edgeAPI, true)
 	handler = httpServer.NewHandler(handler)
 	handler = validation.AppendHandler(handler, schedulerAPI, privateKey, time.Duration(edgeCfg.ValidateDuration)*time.Second)
+	handler = tunnel.NewTunserver(handler)
 
 	httpSrv := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,

@@ -205,7 +205,7 @@ var (
 	_ encoding.TextUnmarshaler = (*Duration)(nil)
 )
 
-// Duration is a wrapper type for time.Duration
+// Duration is a cgo type for time.Duration
 // for decoding and encoding from/to TOML
 type Duration time.Duration
 

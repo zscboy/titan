@@ -74,6 +74,7 @@ type API struct {
 	api.Validation
 	api.DataSync
 	api.Asset
+	api.Workerd
 	WaitQuiet func(ctx context.Context) error
 	// edge api
 	// ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
@@ -103,6 +104,7 @@ func APIFromEdge(api api.Edge) *API {
 		Asset:        api,
 		WaitQuiet:    api.WaitQuiet,
 		UserNATPunch: api.UserNATPunch,
+		Workerd:      api,
 	}
 	return a
 }

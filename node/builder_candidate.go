@@ -15,6 +15,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/repo"
 	datasync "github.com/Filecoin-Titan/titan/node/sync"
 	"github.com/Filecoin-Titan/titan/node/validation"
+	"github.com/Filecoin-Titan/titan/node/workerd"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 )
@@ -57,5 +58,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*asset.Asset), asset.NewAsset),
 		Override(new(*datasync.DataSync), modules.NewDataSync),
 		Override(new(*candidate.TCPServer), modules.NewTCPServer),
+		Override(new(dtypes.WorkerdPath), modules.WorkerdPath),
+		Override(new(*workerd.Workerd), modules.NewWorkerd),
 	)
 }

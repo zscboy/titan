@@ -47,6 +47,8 @@ const (
 	awsDataTable          = "aws_data"
 	profitDetailsTable    = "profit_details"
 	candidateCodeTable    = "candidate_code"
+	projectInfoTable      = "project_info"
+	projectReplicasTable  = "project_replicas"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
@@ -64,6 +66,12 @@ const (
 func assetStateTable(serverID dtypes.ServerID) string {
 	str := strings.ReplaceAll(string(serverID), "-", "")
 	return fmt.Sprintf("asset_state_%s", str)
+}
+
+// projectStateTable returns the project state table name for the given serverID.
+func projectStateTable(serverID dtypes.ServerID) string {
+	str := strings.ReplaceAll(string(serverID), "-", "")
+	return fmt.Sprintf("project_state_%s", str)
 }
 
 // InitTables initializes data tables.
@@ -105,6 +113,9 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cAWSDataTable, awsDataTable))
 	tx.MustExec(fmt.Sprintf(cProfitDetailsTable, profitDetailsTable))
 	tx.MustExec(fmt.Sprintf(cCandidateCodeTable, candidateCodeTable))
+	tx.MustExec(fmt.Sprintf(cProjectStateTable, projectStateTable(serverID)))
+	tx.MustExec(fmt.Sprintf(cProjectInfosTable, projectInfoTable))
+	tx.MustExec(fmt.Sprintf(cProjectReplicasTable, projectReplicasTable))
 
 	return tx.Commit()
 }
@@ -115,6 +126,10 @@ func doExec(d *SQLDB) {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
 	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD ws_server_id  VARCHAR(128)    DEFAULT '';", nodeInfoTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
