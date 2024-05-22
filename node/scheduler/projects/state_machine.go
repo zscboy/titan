@@ -34,6 +34,11 @@ var planners = map[ProjectState]func(events []statemachine.Event, state *Project
 		on(CreateFailed{}, Failed),
 		on(SkipStep{}, Servicing),
 	),
+	Update: planOne(
+		on(UpdateRequestSent{}, Deploying),
+		on(UpdateFailed{}, Failed),
+		on(SkipStep{}, Servicing),
+	),
 	Deploying: planOne(
 		on(DeploySucceed{}, Servicing),
 		on(DeployFailed{}, Failed),
@@ -73,6 +78,8 @@ func (m *Manager) plan(events []statemachine.Event, state *ProjectInfo) (func(st
 	// Happy path
 	case Create:
 		return m.handleCreate, processed, nil
+	case Update:
+		return m.handleUpdate, processed, nil
 	case Deploying:
 		return m.handleDeploying, processed, nil
 	case Servicing:

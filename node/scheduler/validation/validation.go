@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/url"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -182,12 +181,7 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.Validate
 			vNode := m.nodeMgr.GetNode(vID)
 			if vNode != nil {
 				vTCPAddr = vNode.TCPAddr()
-
-				var err error
-				wURL, err = transformURL(vNode.ExternalURL)
-				if err != nil {
-					wURL = fmt.Sprintf("ws://%s", vNode.RemoteAddr)
-				}
+				wURL = vNode.WsURL()
 			}
 
 			req = &api.ValidateReq{
@@ -238,29 +232,6 @@ func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.Validate
 	}
 
 	return bReqs, vrInfos
-}
-
-func transformURL(inputURL string) (string, error) {
-	// Parse the URL from the string
-	parsedURL, err := url.Parse(inputURL)
-	if err != nil {
-		return "", err
-	}
-
-	switch parsedURL.Scheme {
-	case "https":
-		parsedURL.Scheme = "wss"
-	case "http":
-		parsedURL.Scheme = "ws"
-	default:
-		return "", xerrors.New("Scheme not http or https")
-	}
-
-	// Remove the path to clear '/rpc/v0'
-	parsedURL.Path = ""
-
-	// Return the modified URL as a string
-	return parsedURL.String(), nil
 }
 
 // getRandNum generates a random number up to a given maximum value.

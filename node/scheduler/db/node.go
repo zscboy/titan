@@ -227,14 +227,6 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 }
 
 // UpdateNodeDynamicInfo update node online time , last time , disk usage ...
-func (n *SQLDB) UpdateNodeDynamicInfo2(nodeID string, down, up int64) error {
-	query := fmt.Sprintf(`UPDATE %s SET download_traffic=download_traffic+?,upload_traffic=upload_traffic+? WHERE node_id=? `, nodeInfoTable)
-	_, err := n.db.Exec(query, down, up, nodeID)
-
-	return err
-}
-
-// UpdateNodeDynamicInfo update node online time , last time , disk usage ...
 func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) ([]string, error) {
 	errorList := make([]string, 0)
 

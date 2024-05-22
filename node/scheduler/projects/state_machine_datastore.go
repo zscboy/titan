@@ -130,7 +130,7 @@ func (d *Datastore) Put(ctx context.Context, key datastore.Key, value []byte) er
 
 	aInfo.UUID = ProjectID(trimPrefix(key))
 
-	return d.projectDB.UpdateProjectInfo(aInfo.UUID.String(), aInfo.State.String(), aInfo.RetryCount, aInfo.ReplenishReplicas, d.ServerID)
+	return d.projectDB.UpdateProjectStateInfo(aInfo.UUID.String(), aInfo.State.String(), aInfo.RetryCount, aInfo.ReplenishReplicas, d.ServerID)
 }
 
 // Delete delete project record info (This func has no place to call it)

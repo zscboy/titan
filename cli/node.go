@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -54,16 +53,11 @@ var updateNodeDynamicInfoCmd = &cli.Command{
 			Usage: "Upload Traffic",
 			Value: 0,
 		},
-		&cli.StringFlag{
-			Name:  "path",
-			Usage: "aws data path",
-		},
 	},
 	Action: func(cctx *cli.Context) error {
-		// dt := cctx.Int64("dt")
-		// ut := cctx.Int64("ut")
-		// nodeID := cctx.String("node-id")
-		path := cctx.String("path")
+		dt := cctx.Int64("dt")
+		ut := cctx.Int64("ut")
+		nodeID := cctx.String("node-id")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -72,61 +66,7 @@ var updateNodeDynamicInfoCmd = &cli.Command{
 		}
 		defer closer()
 
-		replacer := strings.NewReplacer("\n", "", "\r\n", "", "\r", "", " ", "")
-
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		contentStr := string(content)
-		stringsList := strings.Split(contentStr, "09:55:00")
-
-		successCount := 0
-
-		for _, str := range stringsList {
-			if str == "" {
-				continue
-			}
-
-			s := strings.Split(str, "	")
-			if len(s) < 4 {
-				fmt.Println("list len is ", len(s))
-				continue
-			}
-
-			nodeID := s[0]
-			nodeID = replacer.Replace(nodeID)
-
-			up := s[1]
-			up = replacer.Replace(up)
-			nUp, err := strconv.Atoi(up)
-			if err != nil {
-				fmt.Println("Atoi err: ", err.Error())
-				continue
-			}
-
-			down := s[2]
-			down = replacer.Replace(down)
-			nDown, err := strconv.Atoi(down)
-			if err != nil {
-				fmt.Println("Atoi err: ", err.Error())
-				continue
-			}
-
-			err = schedulerAPI.UpdateNodeDynamicInfo(ctx, &types.NodeDynamicInfo{NodeID: nodeID, DownloadTraffic: int64(nDown), UploadTraffic: int64(nUp)})
-			if err != nil {
-				fmt.Println(str)
-			} else {
-				successCount++
-			}
-
-		}
-
-		fmt.Println("successCount :", successCount)
-
-		return nil
-		// return schedulerAPI.UpdateNodeDynamicInfo(ctx, &types.NodeDynamicInfo{NodeID: nodeID, DownloadTraffic: dt, UploadTraffic: ut})
+		return schedulerAPI.UpdateNodeDynamicInfo(ctx, &types.NodeDynamicInfo{NodeID: nodeID, DownloadTraffic: dt, UploadTraffic: ut})
 	},
 }
 

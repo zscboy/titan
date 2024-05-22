@@ -21,6 +21,16 @@ func (n *SQLDB) ProjectExists(id string, serverID dtypes.ServerID) (bool, error)
 	return total > 0, nil
 }
 
+func (n *SQLDB) UpdateProjectInfo(info *types.ProjectInfo) error {
+	query := fmt.Sprintf(`UPDATE %s SET name=:name,bundle_url=:bundle_url, replicas=:replicas, scheduler_sid=:scheduler_sid WHERE id=:id `, projectInfoTable)
+	_, err := n.db.NamedExec(query, info)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // SaveProjectInfo inserts
 func (n *SQLDB) SaveProjectInfo(info *types.ProjectInfo) error {
 	tx, err := n.db.Beginx()
@@ -191,8 +201,8 @@ func (n *SQLDB) DeleteProjectReplica(id, nodeID string) error {
 	return err
 }
 
-// UpdateProjectInfo update project information
-func (n *SQLDB) UpdateProjectInfo(id, state string, retryCount, replenishReplicas int64, serverID dtypes.ServerID) error {
+// UpdateProjectStateInfo update project information
+func (n *SQLDB) UpdateProjectStateInfo(id, state string, retryCount, replenishReplicas int64, serverID dtypes.ServerID) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err

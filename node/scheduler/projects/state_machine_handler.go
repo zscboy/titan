@@ -83,6 +83,50 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 	return ctx.Send(DeployRequestSent{})
 }
 
+// handleUpdate handles the selection nodes for project
+func (m *Manager) handleUpdate(ctx statemachine.Context, info ProjectInfo) error {
+	log.Debugf("handle Update : %s", info.UUID)
+
+	curCount := int64(0)
+
+	// select nodes
+	for _, nodeID := range info.EdgeReplicaSucceeds {
+		node := m.nodeMgr.GetNode(nodeID)
+		if node == nil {
+			continue
+		}
+
+		status := types.ProjectReplicaStatusStarting
+		err := node.Update(context.Background(), &types.Project{ID: info.UUID.String(), BundleURL: info.BundleURL, Name: info.Name})
+		if err != nil {
+			log.Errorf("Update %s err:%s", nodeID, err.Error())
+			status = types.ProjectReplicaStatusError
+		}
+
+		err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
+			Id:     info.UUID.String(),
+			NodeID: node.NodeID,
+			Status: status,
+		})
+		if err != nil {
+			log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
+			continue
+		}
+
+		if status == types.ProjectReplicaStatusStarting {
+			curCount++
+		}
+	}
+
+	if curCount == 0 {
+		return ctx.Send(UpdateFailed{error: xerrors.New("node not found; ")})
+	}
+
+	m.startProjectTimeoutCounting(info.UUID.String(), 0)
+
+	return ctx.Send(UpdateRequestSent{})
+}
+
 // handleDeploying handles the project deploying process of seed nodes
 func (m *Manager) handleDeploying(ctx statemachine.Context, info ProjectInfo) error {
 	log.Debugf("handle deploying, %s", info.UUID)
@@ -142,7 +186,10 @@ func (m *Manager) handleRemove(ctx statemachine.Context, info ProjectInfo) error
 
 	for _, info := range list {
 		// request nodes
-		m.removeReplica(info.Id, info.NodeID)
+		err = m.removeReplica(info.Id, info.NodeID)
+		if err != nil {
+			log.Errorf("handleRemove %s , %s removeReplica err:%s", info.Id, info.NodeID, err.Error())
+		}
 	}
 
 	return m.DeleteProjectInfo(m.nodeMgr.ServerID, info.UUID.String())

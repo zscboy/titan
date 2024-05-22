@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -226,6 +227,38 @@ func (n *Node) TCPAddr() string {
 // RPCURL returns the rpc url of the node
 func (n *Node) RPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.RemoteAddr)
+}
+
+func (n *Node) WsURL() string {
+	wsURL, err := transformURL(n.ExternalURL)
+	if err != nil {
+		wsURL = fmt.Sprintf("ws://%s", n.RemoteAddr)
+	}
+
+	return wsURL
+}
+
+func transformURL(inputURL string) (string, error) {
+	// Parse the URL from the string
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		return "", err
+	}
+
+	switch parsedURL.Scheme {
+	case "https":
+		parsedURL.Scheme = "wss"
+	case "http":
+		parsedURL.Scheme = "ws"
+	default:
+		return "", xerrors.New("Scheme not http or https")
+	}
+
+	// Remove the path to clear '/rpc/v0'
+	parsedURL.Path = ""
+
+	// Return the modified URL as a string
+	return parsedURL.String(), nil
 }
 
 // DownloadAddr returns the download address of the node
