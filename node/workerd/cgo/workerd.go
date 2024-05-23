@@ -156,5 +156,9 @@ func QueryWorkerd(projectId string) (bool, error) {
 		return false, errors.Errorf("jsonCall: %s", resp.Msg)
 	}
 
-	return resp.State == 0, nil
+	if resp.State != 0 {
+		return false, errors.Errorf(resp.Error)
+	}
+
+	return true, nil
 }

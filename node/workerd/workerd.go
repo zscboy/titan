@@ -93,10 +93,7 @@ func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Projec
 	w.projects[project.ID].Status = project.Status
 	w.mu.Unlock()
 
-	err := w.api.UpdateProjectStatus(ctx, []*types.Project{{
-		ID:     project.ID,
-		Status: project.Status,
-	}})
+	err := w.api.UpdateProjectStatus(ctx, []*types.Project{project})
 	if err != nil {
 		log.Errorf("UpdateProjectStatus: %v", err)
 		return
@@ -153,16 +150,18 @@ func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, er
 	var out []*types.Project
 
 	for _, id := range ids {
-		status := types.ProjectReplicaStatusStarted
-		running, err := w.queryProject(ctx, id)
-		if err != nil && !running {
-			status = types.ProjectReplicaStatusError
+		project := &types.Project{
+			ID:     id,
+			Status: types.ProjectReplicaStatusStarted,
 		}
 
-		out = append(out, &types.Project{
-			ID:     id,
-			Status: status,
-		})
+		running, err := w.queryProject(ctx, id)
+		if err != nil && !running {
+			project.Status = types.ProjectReplicaStatusError
+			project.Msg = err.Error()
+		}
+
+		out = append(out, project)
 	}
 
 	return out, nil
@@ -225,6 +224,7 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 	socketAddr := fmt.Sprintf("%s:%d", service.Address, service.Port)
 	if err := cgo.CreateWorkerd(project.ID, w.getProjectPath(project.ID), defaultConfigFilename, socketAddr); err != nil {
 		project.Status = types.ProjectReplicaStatusError
+		project.Msg = err.Error()
 		log.Errorf("error in CGo while creating project %s: %v", project.ID, err)
 		return err
 	}
@@ -452,6 +452,8 @@ func (w *Workerd) sync(ctx context.Context) {
 		if _, ok := activeProjects[projectId]; ok {
 			continue
 		}
+
+		log.Infof("destroying inactive local project: %s", projectId)
 
 		err := w.destroyProject(context.Background(), projectId)
 		if err != nil {
