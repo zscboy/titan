@@ -206,7 +206,6 @@ type SchedulerCfg struct {
 	FillAssetEdgeCount int64
 
 	StorageCandidates []string
-	WorkerdNodes      []string
 
 	L2ValidatorCount int
 

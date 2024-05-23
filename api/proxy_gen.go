@@ -425,11 +425,9 @@ type ProjectAPIStruct struct {
 
 		RedeployFailedProjects func(p0 context.Context, p1 []string) (error) `perm:"admin"`
 
-		StartProject func(p0 context.Context, p1 *types.ProjectReq) (error) `perm:"user,web,admin"`
-
 		UpdateProject func(p0 context.Context, p1 *types.ProjectReq) (error) `perm:"user,web,admin"`
 
-		UpdateProjectStatus func(p0 context.Context, p1 []*types.Project) (error) `perm:"edge"`
+		UpdateProjectStatus func(p0 context.Context, p1 []*types.Project) (error) `perm:"edge,candidate"`
 
 	}
 }
@@ -574,10 +572,6 @@ type WorkerdStruct struct {
 		Deploy func(p0 context.Context, p1 *types.Project) (error) `perm:"admin"`
 
 		Query func(p0 context.Context, p1 []string) ([]*types.Project, error) `perm:"admin"`
-
-		Start func(p0 context.Context, p1 *types.Project) (error) `perm:"admin"`
-
-		Stop func(p0 context.Context, p1 string) (error) `perm:"admin"`
 
 		Update func(p0 context.Context, p1 *types.Project) (error) `perm:"admin"`
 
@@ -2027,17 +2021,6 @@ func (s *ProjectAPIStub) RedeployFailedProjects(p0 context.Context, p1 []string)
 	return ErrNotSupported
 }
 
-func (s *ProjectAPIStruct) StartProject(p0 context.Context, p1 *types.ProjectReq) (error) {
-	if s.Internal.StartProject == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.StartProject(p0, p1)
-}
-
-func (s *ProjectAPIStub) StartProject(p0 context.Context, p1 *types.ProjectReq) (error) {
-	return ErrNotSupported
-}
-
 func (s *ProjectAPIStruct) UpdateProject(p0 context.Context, p1 *types.ProjectReq) (error) {
 	if s.Internal.UpdateProject == nil {
 		return ErrNotSupported
@@ -2510,28 +2493,6 @@ func (s *WorkerdStruct) Query(p0 context.Context, p1 []string) ([]*types.Project
 
 func (s *WorkerdStub) Query(p0 context.Context, p1 []string) ([]*types.Project, error) {
 	return *new([]*types.Project), ErrNotSupported
-}
-
-func (s *WorkerdStruct) Start(p0 context.Context, p1 *types.Project) (error) {
-	if s.Internal.Start == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.Start(p0, p1)
-}
-
-func (s *WorkerdStub) Start(p0 context.Context, p1 *types.Project) (error) {
-	return ErrNotSupported
-}
-
-func (s *WorkerdStruct) Stop(p0 context.Context, p1 string) (error) {
-	if s.Internal.Stop == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.Stop(p0, p1)
-}
-
-func (s *WorkerdStub) Stop(p0 context.Context, p1 string) (error) {
-	return ErrNotSupported
 }
 
 func (s *WorkerdStruct) Update(p0 context.Context, p1 *types.Project) (error) {

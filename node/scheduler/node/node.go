@@ -71,10 +71,7 @@ type Node struct {
 	numberOfIPChanges          int64
 	resetNumberOfIPChangesTime time.Time
 
-	IsNewVersion bool
-
-	IsPhone       bool
-	IsProjectNode bool
+	IsPhone bool
 }
 
 // API represents the node API

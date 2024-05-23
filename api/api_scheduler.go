@@ -230,16 +230,15 @@ type ProjectAPI interface {
 	// RedeployFailedProjects retries the pull process for a list of failed assets
 	RedeployFailedProjects(ctx context.Context, ids []string) error //perm:admin
 	// UpdateProjectStatus
-	UpdateProjectStatus(ctx context.Context, list []*types.Project) error //perm:edge
+	UpdateProjectStatus(ctx context.Context, list []*types.Project) error //perm:edge,candidate
 	// GetProjectsForNode
 	GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) //perm:edge,candidate,web,locator
 
 	DeployProject(ctx context.Context, req *types.DeployProjectReq) (string, error)                    //perm:user,web,admin
-	StartProject(ctx context.Context, req *types.ProjectReq) error                                     //perm:user,web,admin
 	DeleteProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
+	UpdateProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
 	GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error)                       //perm:user,web,admin
 	GetProjectInfos(ctx context.Context, user string, limit, offset int) ([]*types.ProjectInfo, error) //perm:user,web,admin
-	UpdateProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
 }
 
 // Scheduler is an interface for scheduler

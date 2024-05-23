@@ -123,14 +123,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	if len(s.SchedulerCfg.WorkerdNodes) > 0 {
-		for _, nID := range s.SchedulerCfg.WorkerdNodes {
-			if nID == nodeID {
-				cNode.IsProjectNode = true
-			}
-		}
-	}
-
 	log.Infof("node connected %s, address:%s , %v", nodeID, remoteAddr, alreadyConnect)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
@@ -236,13 +228,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.UploadTraffic = nodeInfo.UploadTraffic
 
 	if !alreadyConnect {
-		version, err := cNode.API.Version(ctx)
-		if err != nil {
-			log.Infof("node connected %s, Version:%s ", nodeID, err.Error())
-		} else {
-			cNode.IsNewVersion = version.Version == "0.1.18"
-			log.Infof("node connected %s, Version:%s , %v", nodeID, version.Version, cNode.IsNewVersion)
-		}
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {

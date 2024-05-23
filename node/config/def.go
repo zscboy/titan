@@ -175,7 +175,6 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		FillAssetEdgeCount:      500,
 		L2ValidatorCount:        0,
 		StorageCandidates:       []string{},
-		WorkerdNodes:            []string{},
 		NodeScoreLevel: map[string][]int{
 			"A": {90, 100},
 			"B": {50, 89},
