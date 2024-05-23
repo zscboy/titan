@@ -11,6 +11,8 @@ type Project struct {
 	Name      string
 	Status    ProjectReplicaStatus
 	BundleURL string
+
+	Msg string
 }
 
 type ProjectReplicaStatus int

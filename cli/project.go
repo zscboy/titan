@@ -16,7 +16,6 @@ var projectCmds = &cli.Command{
 	Usage: "Manage project",
 	Subcommands: []*cli.Command{
 		deployProjectCmd,
-		startProjectCmd,
 		deleteProjectCmd,
 		showProjectInfoCmd,
 		listProjectCmd,
@@ -170,39 +169,6 @@ var deployProjectCmd = &cli.Command{
 	},
 }
 
-var startProjectCmd = &cli.Command{
-	Name:  "start",
-	Usage: "start the project",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "pid",
-			Usage: "project id",
-			Value: "",
-		},
-		&cli.StringFlag{
-			Name:  "uid",
-			Usage: "user id",
-			Value: "",
-		},
-		nodeIDFlag,
-	},
-	Action: func(cctx *cli.Context) error {
-		pid := cctx.String("pid")
-		uid := cctx.String("uid")
-		nid := cctx.String("node-id")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.StartProject(ctx, &types.ProjectReq{UUID: pid, UserID: uid, NodeID: nid})
-	},
-}
-
 var deleteProjectCmd = &cli.Command{
 	Name:  "delete",
 	Usage: "delete the project",
@@ -241,6 +207,11 @@ var updateProjectCmd = &cli.Command{
 	Usage: "update the project",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Name:  "pid",
+			Usage: "project id",
+			Value: "",
+		},
+		&cli.StringFlag{
 			Name:  "name",
 			Usage: "project name",
 			Value: "",
@@ -258,6 +229,7 @@ var updateProjectCmd = &cli.Command{
 		replicaCountFlag,
 	},
 	Action: func(cctx *cli.Context) error {
+		pid := cctx.String("pid")
 		name := cctx.String("name")
 		url := cctx.String("url")
 		uid := cctx.String("uid")
@@ -271,7 +243,7 @@ var updateProjectCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.UpdateProject(ctx, &types.ProjectReq{Name: name, BundleURL: url, UserID: uid, Replicas: int64(count)})
+		return schedulerAPI.UpdateProject(ctx, &types.ProjectReq{Name: name, BundleURL: url, UserID: uid, Replicas: int64(count), UUID: pid})
 	},
 }
 

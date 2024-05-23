@@ -127,14 +127,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	if len(s.SchedulerCfg.WorkerdNodes) > 0 {
-		for _, nID := range s.SchedulerCfg.WorkerdNodes {
-			if nID == nodeID {
-				cNode.IsProjectNode = true
-			}
-		}
-	}
-
 	log.Infof("node connected %s, address:%s , %v", nodeID, remoteAddr, alreadyConnect)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)

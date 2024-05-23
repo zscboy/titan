@@ -6,13 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Filecoin-Titan/titan/api"
-	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/filecoin-project/go-statemachine"
-	"github.com/google/uuid"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -25,6 +22,8 @@ const (
 	projectTimeoutLimit = 3
 	// Interval to get asset pull progress from node (Unit:Second)
 	progressInterval = 60 * time.Second
+
+	checkProjectInterval = 10 * time.Minute
 )
 
 // Manager manages project replicas
@@ -57,147 +56,7 @@ func (m *Manager) StartTimer(ctx context.Context) {
 	}
 
 	go m.startCheckDeployProgressesTimer()
-}
-
-func (m *Manager) UpdateStatus(nodeID string, list []*types.Project) error {
-	for _, info := range list {
-		exist, _ := m.projectStateMachines.Has(ProjectID(info.ID))
-		if !exist {
-			continue
-		}
-
-		exist = m.isProjectTaskExist(info.ID)
-		if !exist {
-			continue
-		}
-
-		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-			Id:     info.ID,
-			NodeID: nodeID,
-			Status: info.Status,
-		})
-		if err != nil {
-			log.Errorf("UpdateStatus SaveProjectReplicasInfo %s,%s err:%s", nodeID, info.ID, err.Error())
-		}
-	}
-
-	return nil
-}
-
-func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
-	uid := uuid.NewString()
-
-	// Waiting for state machine initialization
-	m.stateMachineWait.Wait()
-	log.Infof("project event: %s, add project ", req.Name)
-
-	expiration := time.Now().Add(150 * 24 * time.Hour)
-
-	info := &types.ProjectInfo{
-		UUID:        uid,
-		ServerID:    m.nodeMgr.ServerID,
-		Expiration:  expiration,
-		State:       Create.String(),
-		CreatedTime: time.Now(),
-		Name:        req.Name,
-		BundleURL:   req.BundleURL,
-		UserID:      req.UserID,
-		Replicas:    req.Replicas,
-	}
-
-	err := m.SaveProjectInfo(info)
-	if err != nil {
-		return "", &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-	}
-
-	rInfo := ProjectForceState{
-		State: Create,
-	}
-
-	// create project task
-	err = m.projectStateMachines.Send(ProjectID(info.UUID), rInfo)
-	if err != nil {
-		return "", &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
-	}
-
-	return uid, nil
-}
-
-func (m *Manager) Update(req *types.ProjectReq) error {
-	if req.UUID == "" {
-		return xerrors.New("UUID is nil")
-	}
-
-	err := m.UpdateProjectInfo(&types.ProjectInfo{
-		UUID:      req.UUID,
-		Name:      req.Name,
-		BundleURL: req.BundleURL,
-		ServerID:  m.nodeMgr.ServerID,
-		Replicas:  req.Replicas,
-	})
-	if err != nil {
-		return err
-	}
-
-	rInfo := ProjectForceState{
-		State: Update,
-	}
-
-	// create project task
-	err = m.projectStateMachines.Send(ProjectID(req.UUID), rInfo)
-	if err != nil {
-		return &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
-	}
-
-	return nil
-}
-
-func (m *Manager) Delete(req *types.ProjectReq) error {
-	if req.UUID == "" {
-		return xerrors.New("UUID is nil")
-	}
-
-	if req.NodeID != "" {
-		m.removeReplica(req.UUID, req.NodeID)
-
-		return nil
-	}
-
-	if exist, _ := m.projectStateMachines.Has(ProjectID(req.UUID)); !exist {
-		return xerrors.Errorf("not found project %s", req.UUID)
-	}
-
-	return m.projectStateMachines.Send(ProjectID(req.UUID), ProjectForceState{State: Remove})
-}
-
-func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
-	info, err := m.LoadProjectInfo(uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	list, err := m.LoadProjectReplicasInfos(uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, dInfo := range list {
-		node := m.nodeMgr.GetNode(dInfo.NodeID)
-		if node == nil {
-			continue
-		}
-
-		vNode := m.nodeMgr.GetNode(node.WSServerID)
-		if vNode == nil {
-			continue
-		}
-
-		dInfo.WsURL = vNode.WsURL()
-	}
-
-	info.DetailsList = list
-
-	return info, nil
+	go m.startCheckProjectTimer()
 }
 
 type deployingProjectsInfo struct {
@@ -206,10 +65,10 @@ type deployingProjectsInfo struct {
 }
 
 // Reset the count of no response project tasks
-func (m *Manager) startProjectTimeoutCounting(hash string, count int) {
+func (m *Manager) startProjectTimeoutCounting(id string, count int) {
 	info := &deployingProjectsInfo{count: 0}
 
-	infoI, _ := m.deployingProjects.Load(hash)
+	infoI, _ := m.deployingProjects.Load(id)
 	if infoI != nil {
 		info = infoI.(*deployingProjectsInfo)
 	} else {
@@ -218,15 +77,15 @@ func (m *Manager) startProjectTimeoutCounting(hash string, count int) {
 	}
 	info.count = count
 
-	m.deployingProjects.Store(hash, info)
+	m.deployingProjects.Store(id, info)
 }
 
-func (m *Manager) stopProjectTimeoutCounting(hash string) {
-	m.deployingProjects.Delete(hash)
+func (m *Manager) stopProjectTimeoutCounting(id string) {
+	m.deployingProjects.Delete(id)
 }
 
-func (m *Manager) isProjectTaskExist(hash string) bool {
-	_, exist := m.deployingProjects.Load(hash)
+func (m *Manager) isProjectTaskExist(id string) bool {
+	_, exist := m.deployingProjects.Load(id)
 
 	return exist
 }
@@ -252,171 +111,166 @@ func (m *Manager) Terminate(ctx context.Context) error {
 	return m.projectStateMachines.Stop(ctx)
 }
 
-func (m *Manager) retrieveNodeDeployProgresses() {
-	m.deployingProjects.Range(func(key, value interface{}) bool {
-		id := key.(string)
-		info := value.(*deployingProjectsInfo)
-
-		if info.expiration.Before(time.Now()) {
-			haveError := false
-			// checkout node state
-			nodes, err := m.LoadNodesOfStartingReplica(id)
-			if err != nil {
-				log.Errorf("retrieveNodeDeployProgresses %s LoadReplicas err:%s", id, err.Error())
-				haveError = true
-			} else {
-				for _, nodeID := range nodes {
-					result, err := m.requestNodeDeployProgresses(nodeID, []string{id})
-					if err != nil {
-						log.Errorf("retrieveNodeDeployProgresses %s %s requestNodeDeployProgresses err:%s", nodeID, id, err.Error())
-						haveError = true
-					} else {
-						m.UpdateStatus(nodeID, result)
-					}
-				}
-			}
-
-			if haveError {
-				m.setProjectTimeout(id, fmt.Sprintf("expiration:%s", info.expiration.String()))
-				return true
-			}
-		}
-
-		exist, _ := m.projectStateMachines.Has(ProjectID(id))
-		if !exist {
-			return true
-		}
-
-		err := m.projectStateMachines.Send(ProjectID(id), DeployResult{})
-		if err != nil {
-			log.Errorf("retrieveNodeDeployProgresses %s  statemachine send err:%s", id, err.Error())
-			return true
-		}
-
-		return true
-	})
-}
-
-// func (m *Manager) retrieveNodeDeployProgresses2() {
-// 	deployingNodes := make(map[string][]string)
-// 	toMap := make(map[string]*deployingProjectsInfo)
-
+// func (m *Manager) retrieveNodeDeployProgresses() {
 // 	m.deployingProjects.Range(func(key, value interface{}) bool {
 // 		id := key.(string)
 // 		info := value.(*deployingProjectsInfo)
 
-// 		toMap[id] = info
+// 		if info.expiration.Before(time.Now()) {
+// 			haveError := false
+// 			// checkout node state
+// 			nodes, err := m.LoadNodesOfStartingReplica(id)
+// 			if err != nil {
+// 				log.Errorf("retrieveNodeDeployProgresses %s LoadReplicas err:%s", id, err.Error())
+// 				haveError = true
+// 			} else {
+// 				for _, nodeID := range nodes {
+// 					result, err := m.requestNodeDeployProgresses(nodeID, []string{id})
+// 					if err != nil {
+// 						log.Errorf("retrieveNodeDeployProgresses %s %s requestNodeDeployProgresses err:%s", nodeID, id, err.Error())
+// 						haveError = true
+// 					} else {
+// 						m.UpdateStatus(nodeID, result)
+// 					}
+// 				}
+// 			}
+
+// 			if haveError {
+// 				m.setProjectTimeout(id, fmt.Sprintf("expiration:%s", info.expiration.String()))
+// 				return true
+// 			}
+// 		}
+
+// 		exist, _ := m.projectStateMachines.Has(ProjectID(id))
+// 		if !exist {
+// 			return true
+// 		}
+
+// 		err := m.projectStateMachines.Send(ProjectID(id), DeployResult{})
+// 		if err != nil {
+// 			log.Errorf("retrieveNodeDeployProgresses %s  statemachine send err:%s", id, err.Error())
+// 			return true
+// 		}
+
 // 		return true
 // 	})
-
-// 	for id, info := range toMap {
-// 		stateInfo, err := m.LoadProjectStateInfo(id, m.nodeMgr.ServerID)
-// 		if err != nil {
-// 			continue
-// 		}
-
-// 		if stateInfo.State != Deploying.String() {
-// 			continue
-// 		}
-
-// 		if info.count >= projectTimeoutLimit {
-// 			m.setProjectTimeout(id, fmt.Sprintf("count:%d", info.count))
-// 			continue
-// 		}
-
-// 		if info.expiration.Before(time.Now()) {
-// 			m.setProjectTimeout(id, fmt.Sprintf("expiration:%s", info.expiration.String()))
-// 			continue
-// 		}
-
-// 		m.startProjectTimeoutCounting(id, info.count+1)
-
-// 		nodes, err := m.LoadNodesOfStartingReplica(id)
-// 		if err != nil {
-// 			log.Errorf("retrieveNodeDeployProgresses %s LoadReplicas err:%s", id, err.Error())
-// 			continue
-// 		}
-
-// 		for _, nodeID := range nodes {
-// 			list := deployingNodes[nodeID]
-// 			deployingNodes[nodeID] = append(list, id)
-// 		}
-// 	}
-
-// 	getCP := func(nodeID string, cids []string, delay int) {
-// 		time.Sleep(time.Duration(delay) * time.Second)
-
-// 		// request node
-// 		result, err := m.requestNodeDeployProgresses(nodeID, cids)
-// 		if err != nil {
-// 			log.Errorf("retrieveNodeDeployProgresses %s requestNodeDeployProgresses err:%s", nodeID, err.Error())
-// 			return
-// 		}
-
-// 		// update project info
-// 		m.updateProjectDeployResults(nodeID, result)
-// 	}
-
-// 	duration := 1
-// 	delay := 0
-// 	for nodeID, ids := range deployingNodes {
-// 		delay += duration
-// 		if delay > 50 {
-// 			delay = 0
-// 		}
-
-// 		go getCP(nodeID, ids, delay)
-// 	}
 // }
 
-// // updateProjectDeployResults updates project results
-// func (m *Manager) updateProjectDeployResults(nodeID string, result []*types.Project) {
-// 	// doneCount := 0
+func (m *Manager) retrieveNodeDeployProgresses() {
+	deployingNodes := make(map[string][]string)
 
-// 	for _, progress := range result {
-// 		log.Infof("updateProjectDeployResults node_id: %s, status: %d, id: %s ", nodeID, progress.Status, progress.ID)
+	m.deployingProjects.Range(func(key, value interface{}) bool {
+		id := key.(string)
+		info := value.(*deployingProjectsInfo)
 
-// 		exist, _ := m.projectStateMachines.Has(ProjectID(progress.ID))
-// 		if !exist {
-// 			continue
-// 		}
+		stateInfo, err := m.LoadProjectStateInfo(id, m.nodeMgr.ServerID)
+		if err != nil {
+			return true
+		}
 
-// 		exist = m.isProjectTaskExist(progress.ID)
-// 		if !exist {
-// 			continue
-// 		}
+		if stateInfo.State != Deploying.String() {
+			return true
+		}
 
-// 		m.startProjectTimeoutCounting(progress.ID, 0)
+		if info.count >= projectTimeoutLimit {
+			m.setProjectTimeout(id, fmt.Sprintf("count:%d", info.count))
+			return true
+		}
 
-// 		if progress.Status == types.ProjectReplicaStatusStarting {
-// 			continue
-// 		}
+		if info.expiration.Before(time.Now()) {
+			m.setProjectTimeout(id, fmt.Sprintf("expiration:%s", info.expiration.String()))
+			return true
+		}
 
-// 		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-// 			Id:     progress.ID,
-// 			NodeID: nodeID,
-// 			Status: progress.Status,
-// 		})
-// 		if err != nil {
-// 			log.Errorf("updateProjectDeployResults %s SaveProjectReplicasInfo err:%s", nodeID, err.Error())
-// 			continue
-// 		}
+		m.startProjectTimeoutCounting(id, info.count+1)
 
-// 		// if progress.Status == types.ProjectReplicaStatusStarted {
-// 		// 	doneCount++
-// 		// }
+		nodes, err := m.LoadNodesOfStartingReplica(id)
+		if err != nil {
+			log.Errorf("retrieveNodeDeployProgresses %s LoadReplicas err:%s", id, err.Error())
+			return true
+		}
 
-// 		// if progress.Status == types.ProjectReplicaStatusError {
-// 		// 	doneCount++
-// 		// }
+		for _, nodeID := range nodes {
+			list := deployingNodes[nodeID]
+			deployingNodes[nodeID] = append(list, id)
+		}
+		return true
+	})
 
-// 		err = m.projectStateMachines.Send(ProjectID(progress.ID), DeployResult{})
-// 		if err != nil {
-// 			log.Errorf("updateProjectDeployResults %s %s statemachine send err:%s", nodeID, progress.ID, err.Error())
-// 			continue
-// 		}
-// 	}
-// }
+	getCP := func(nodeID string, cids []string, delay int) {
+		time.Sleep(time.Duration(delay) * time.Second)
+
+		// request node
+		result, err := m.requestNodeDeployProgresses(nodeID, cids)
+		if err != nil {
+			log.Errorf("retrieveNodeDeployProgresses %s requestNodeDeployProgresses err:%s", nodeID, err.Error())
+			return
+		}
+
+		// update project info
+		m.updateProjectDeployResults(nodeID, result)
+	}
+
+	duration := 1
+	delay := 0
+	for nodeID, ids := range deployingNodes {
+		delay += duration
+		if delay > 50 {
+			delay = 0
+		}
+
+		go getCP(nodeID, ids, delay)
+	}
+}
+
+// updateProjectDeployResults updates project results
+func (m *Manager) updateProjectDeployResults(nodeID string, result []*types.Project) {
+	// doneCount := 0
+
+	for _, progress := range result {
+		log.Infof("updateProjectDeployResults node_id: %s, status: %d, id: %s msg:%s", nodeID, progress.Status, progress.ID, progress.Msg)
+
+		exist, _ := m.projectStateMachines.Has(ProjectID(progress.ID))
+		if !exist {
+			continue
+		}
+
+		exist = m.isProjectTaskExist(progress.ID)
+		if !exist {
+			continue
+		}
+
+		m.startProjectTimeoutCounting(progress.ID, 0)
+
+		if progress.Status == types.ProjectReplicaStatusStarting {
+			continue
+		}
+
+		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
+			Id:     progress.ID,
+			NodeID: nodeID,
+			Status: progress.Status,
+		})
+		if err != nil {
+			log.Errorf("updateProjectDeployResults %s SaveProjectReplicasInfo err:%s", nodeID, err.Error())
+			continue
+		}
+
+		// if progress.Status == types.ProjectReplicaStatusStarted {
+		// 	doneCount++
+		// }
+
+		// if progress.Status == types.ProjectReplicaStatusError {
+		// 	doneCount++
+		// }
+
+		err = m.projectStateMachines.Send(ProjectID(progress.ID), DeployResult{})
+		if err != nil {
+			log.Errorf("updateProjectDeployResults %s %s statemachine send err:%s", nodeID, progress.ID, err.Error())
+			continue
+		}
+	}
+}
 
 func (m *Manager) requestNodeDeployProgresses(nodeID string, ids []string) (result []*types.Project, err error) {
 	node := m.nodeMgr.GetNode(nodeID)
@@ -467,18 +321,76 @@ func (m *Manager) startCheckDeployProgressesTimer() {
 	}
 }
 
-// RestartDeployProjects restarts deploy projects
-func (m *Manager) RestartDeployProjects(ids []string) error {
-	for _, id := range ids {
-		if exist, _ := m.projectStateMachines.Has(ProjectID(id)); !exist {
+// startCheckProjectTimer Periodically Check for expired projects, check for missing replicas of projects
+func (m *Manager) startCheckProjectTimer() {
+	ticker := time.NewTicker(checkProjectInterval)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+
+		m.restartProjects()
+	}
+}
+
+func (m *Manager) checkProjectReplicas(offset int) error {
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 20, offset, []string{Servicing.String()})
+	if err != nil {
+		log.Errorf("Load projects :%s", err.Error())
+		return err
+	}
+	defer rows.Close()
+
+	ids := make([]string, 0)
+
+	// loading projects to local
+	for rows.Next() {
+		cInfo := &types.ProjectInfo{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("project StructScan err: %s", err.Error())
 			continue
 		}
 
-		err := m.projectStateMachines.Send(ProjectID(id), ProjectRestart{})
+		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(cInfo.UUID)
 		if err != nil {
-			log.Errorf("RestartDeployProjects send err:%s", err.Error())
+			log.Errorf("project %s load replicas err: %s", cInfo.UUID, err.Error())
+			continue
 		}
+
+		// 检查超过 n天不在线的节点  把节点剔除
+
+		ids = append(ids, cInfo.UUID)
 	}
 
-	return nil
+	return m.RestartDeployProjects(ids)
+}
+
+func (m *Manager) restartProjects() error {
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 10, 0, []string{Failed.String(), Create.String(), Update.String()})
+	if err != nil {
+		log.Errorf("Load projects :%s", err.Error())
+		return err
+	}
+	defer rows.Close()
+
+	ids := make([]string, 0)
+
+	// loading projects to local
+	for rows.Next() {
+		cInfo := &types.ProjectInfo{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("project StructScan err: %s", err.Error())
+			continue
+		}
+
+		if m.isProjectTaskExist(cInfo.UUID) {
+			continue
+		}
+
+		ids = append(ids, cInfo.UUID)
+	}
+
+	return m.RestartDeployProjects(ids)
 }

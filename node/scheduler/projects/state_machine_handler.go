@@ -38,7 +38,12 @@ func failedCoolDown(ctx statemachine.Context, info ProjectInfo, t time.Duration)
 func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error {
 	log.Debugf("handle Create : %s", info.UUID)
 
-	curCount := int64(0)
+	curCount := int64(len(info.EdgeReplicaSucceeds))
+
+	filterMap := make(map[string]struct{})
+	for _, nodeID := range info.EdgeReplicaSucceeds {
+		filterMap[nodeID] = struct{}{}
+	}
 
 	// select nodes
 	list := m.nodeMgr.GetAllEdgeNode()
@@ -47,7 +52,11 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 			break
 		}
 
-		if node == nil || !node.IsProjectNode {
+		if node == nil {
+			continue
+		}
+
+		if _, exist := filterMap[node.NodeID]; exist {
 			continue
 		}
 
