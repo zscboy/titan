@@ -111,7 +111,7 @@ func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
 	// send req create
 	t.sendCreate2Server(req, serviceID)
 
-	headerString := getHeaderString(r)
+	headerString := t.getHeaderString(r, serviceID)
 	t.onClientRecvData(req.idx, req.tag, []byte(headerString))
 
 	return t.serveConnection(conn, req.idx, req.tag)
@@ -193,21 +193,27 @@ func (t *Tunnel) getServiceID(r *http.Request) string {
 	return ""
 }
 
-func getHeaderString(r *http.Request) string {
+func (t *Tunnel) getHeaderString(r *http.Request, serviceID string) string {
 	// path = /project/{nodeID}/{projectID}/{customPath}
-	reqPath := r.URL.Path
-	parts := strings.SplitN(reqPath, "/", 5)
-	if len(parts) == 5 {
-		reqPath = parts[4]
+	urlString := r.URL.String()
+	prefix := fmt.Sprintf("%s%s/%s", projectPathPrefix, t.ID, serviceID)
+	if strings.HasPrefix(urlString, prefix) {
+		urlString = strings.TrimPrefix(urlString, prefix)
 	}
 
-	handshake := fmt.Sprintf("%s /%s %s\r\n", r.Method, reqPath, r.Proto)
-	handshake += fmt.Sprintf("Host: %s\r\n", r.RemoteAddr)
+	if !strings.HasPrefix(urlString, "/") {
+		urlString = "/" + urlString
+	}
+
+	log.Infof("url %s", urlString)
+
+	headerString := fmt.Sprintf("%s %s %s\r\n", r.Method, urlString, r.Proto)
+	headerString += fmt.Sprintf("Host: %s\r\n", r.RemoteAddr)
 	for name, values := range r.Header {
 		for _, value := range values {
-			handshake += fmt.Sprintf("%s: %s\r\n", name, value)
+			headerString += fmt.Sprintf("%s: %s\r\n", name, value)
 		}
 	}
-	handshake += "\r\n"
-	return handshake
+	headerString += "\r\n"
+	return headerString
 }
