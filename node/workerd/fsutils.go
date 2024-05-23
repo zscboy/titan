@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func Unzip(source, destination string) error {
+func unzip(source, destination string) error {
 	// Open the ZIP file for reading
 	reader, err := zip.OpenReader(source)
 	if err != nil {
@@ -59,7 +59,7 @@ func Unzip(source, destination string) error {
 	return nil
 }
 
-func CopySubDirectory(parentDir, dest string) error {
+func copySubDirectory(parentDir, dest string) error {
 	return filepath.WalkDir(parentDir, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() || path == parentDir {
 			return nil

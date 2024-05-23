@@ -2,7 +2,6 @@ package cgo
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 )
 
@@ -12,8 +11,10 @@ type JsonCallRequest struct {
 }
 
 type JsonCallResponse struct {
-	Code int32  `json:"code"`
-	Msg  string `json:"msg"`
+	Code  int32  `json:"code"`
+	Msg   string `json:"msg"`
+	State int    `json:"state"`
+	Error string `json:"error"`
 }
 
 func jsonCall(jsonString string) (*JsonCallResponse, error) {
@@ -126,14 +127,14 @@ func DestroyWorkerd(projectId string) error {
 	return nil
 }
 
-func QueryWorkerd(projectId string) error {
+func QueryWorkerd(projectId string) (bool, error) {
 	param := map[string]string{
 		"id": projectId,
 	}
 
 	marshalledParam, err := json.Marshal(param)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	jsonCallParam := JsonCallRequest{
@@ -143,19 +144,17 @@ func QueryWorkerd(projectId string) error {
 
 	marshalledJsonCallParam, err := json.Marshal(jsonCallParam)
 	if err != nil {
-		return err
+		return false, err
 	}
-
-	fmt.Println("==>", string(marshalledJsonCallParam))
 
 	resp, err := jsonCall(string(marshalledJsonCallParam))
 	if err != nil {
-		return nil
+		return false, nil
 	}
 
 	if resp.Code != 0 {
-		return errors.Errorf("jsonCall: %s", resp.Msg)
+		return false, errors.Errorf("jsonCall: %s", resp.Msg)
 	}
 
-	return nil
+	return resp.State == 0, nil
 }

@@ -1,7 +1,6 @@
 package workerd
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -26,13 +25,16 @@ import (
 )
 
 const (
-	zipSuffix    = ".zip"
-	sha256Suffix = ".sha256"
+	// specifies the file extension for ZIP archives.
+	defaultZipSuffix      = ".zip"
+	defaultSha256Suffix   = ".sha256"
+	defaultConfigFilename = "config.capnp"
 )
 
-const defaultConfigFilename = "config.capnp"
-
-const syncerInterval = time.Second * 30
+const (
+	defaultQueueSize      = 10
+	defaultSyncerInterval = time.Second * 60
+)
 
 var log = logging.Logger("workerd")
 
@@ -59,7 +61,7 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*W
 		basePath: path,
 		ts:       ts,
 		projects: make(map[string]*types.Project),
-		startCh:  make(chan string, 1),
+		startCh:  make(chan string, defaultQueueSize),
 	}
 
 	go w.run(context.Background())
@@ -68,7 +70,7 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*W
 }
 
 func (w *Workerd) run(ctx context.Context) {
-	syncerTicker := time.NewTicker(syncerInterval)
+	syncerTicker := time.NewTicker(defaultSyncerInterval)
 
 	for {
 		select {
@@ -79,8 +81,7 @@ func (w *Workerd) run(ctx context.Context) {
 			}
 
 		case <-syncerTicker.C:
-			go w.sync()
-			syncerTicker.Reset(syncerInterval)
+			go w.sync(ctx)
 		case <-ctx.Done():
 			return
 		}
@@ -88,6 +89,10 @@ func (w *Workerd) run(ctx context.Context) {
 }
 
 func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Project) {
+	w.mu.Lock()
+	w.projects[project.ID].Status = project.Status
+	w.mu.Unlock()
+
 	err := w.api.UpdateProjectStatus(ctx, []*types.Project{{
 		ID:     project.ID,
 		Status: project.Status,
@@ -105,7 +110,13 @@ func (w *Workerd) Deploy(ctx context.Context, project *types.Project) error {
 	w.projects[project.ID] = project
 	w.mu.Unlock()
 
-	w.startCh <- project.ID
+	select {
+	case w.startCh <- project.ID:
+		log.Infof("Project ID %s sent to start channel", project.ID)
+	case <-ctx.Done():
+		log.Errorf("Deployment cancelled for project ID %s", project.ID)
+		return ctx.Err()
+	}
 
 	return nil
 }
@@ -119,51 +130,21 @@ func (w *Workerd) Update(ctx context.Context, project *types.Project) error {
 		return xerrors.Errorf("project %s not exists", project.ID)
 	}
 
-	if len(project.Name) == 0 {
-		project.Name = project.ID
-	}
-
-	zipFilePath := filepath.Join(w.getProjectPath(project.ID), project.Name) + zipSuffix
-
-	if err := downloadBundle(ctx, project, zipFilePath); err != nil {
+	if err := w.destroyProject(ctx, project.ID); err != nil {
 		return err
 	}
 
-	sha256FilePath := filepath.Join(w.getProjectPath(project.ID), project.Name) + sha256Suffix
+	w.mu.Lock()
+	w.projects[project.ID] = project
+	w.mu.Unlock()
 
-	hashBytes, err := os.ReadFile(sha256FilePath)
-	if err != nil {
-		return err
+	select {
+	case w.startCh <- project.ID:
+		log.Infof("Project ID %s sent to start channel", project.ID)
+	case <-ctx.Done():
+		log.Errorf("Deployment cancelled for project ID %s", project.ID)
+		return ctx.Err()
 	}
-
-	// Check hash.
-	if f, err := os.Open(zipFilePath); err == nil {
-		h := sha256.New()
-		io.Copy(h, f)
-		f.Close()
-
-		if string(hashBytes) == hex.EncodeToString(h.Sum(nil)) {
-			return os.RemoveAll(zipFilePath)
-		}
-	}
-	// Hash did not match. Fall through and rewrite file.
-
-	file, err := os.Create(sha256FilePath)
-	if err != nil {
-		return fmt.Errorf("create file: %s", err)
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, bytes.NewReader(hashBytes))
-	if err != nil {
-		return fmt.Errorf("copy file: %s", err)
-	}
-
-	if err := Unzip(zipFilePath, path); err != nil {
-		return err
-	}
-
-	w.startCh <- project.ID
 
 	return nil
 }
@@ -173,8 +154,8 @@ func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, er
 
 	for _, id := range ids {
 		status := types.ProjectReplicaStatusStarted
-		err := w.queryProject(ctx, id)
-		if err != nil {
+		running, err := w.queryProject(ctx, id)
+		if err != nil && !running {
 			status = types.ProjectReplicaStatusError
 		}
 
@@ -208,57 +189,107 @@ func (w *Workerd) Delete(ctx context.Context, projectId string) error {
 	return nil
 }
 
-func (w *Workerd) startProject(ctx context.Context, projectId string) error {
+func (w *Workerd) getProject(projectId string) (*types.Project, error) {
 	w.mu.Lock()
+	defer w.mu.Unlock()
 	project, exists := w.projects[projectId]
 	if !exists {
-		w.mu.Unlock()
-		return xerrors.Errorf("project %s not exists", projectId)
+		return nil, xerrors.Errorf("project %s does not exist", projectId)
 	}
+	return project, nil
+}
 
-	if project.Status == types.ProjectReplicaStatusStarting {
-		w.mu.Unlock()
-		return xerrors.Errorf("project %s in processing", projectId)
+func (w *Workerd) ensureProjectInitialized(ctx context.Context, project *types.Project) error {
+	if Exists(w.getProjectPath(project.ID)) {
+		return nil
 	}
-
-	project.Status = types.ProjectReplicaStatusStarting
-	w.mu.Unlock()
-
-	if !Exists(w.getProjectPath(projectId)) {
-		if err := w.createProject(ctx, project); err != nil {
-			log.Errorf("creating project %s: %v", project.ID, err)
-			return err
-		}
+	if err := w.createProject(ctx, project); err != nil {
+		log.Errorf("error creating project %s: %v", project.ID, err)
+		return err
 	}
+	return nil
+}
 
+func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Project) error {
 	port, err := GetFreePort()
 	if err != nil {
-		log.Errorf("get free port %s: %v", projectId, err)
+		log.Errorf("error getting free port for project %s: %v", project.ID, err)
 		return err
 	}
 
 	project.Status = types.ProjectReplicaStatusStarted
-	service := &tunnel.Service{ID: projectId, Address: "127.0.0.1", Port: port}
-
+	service := &tunnel.Service{ID: project.ID, Address: "127.0.0.1", Port: port}
 	defer w.reportProjectStatus(ctx, project)
 	defer w.ts.Regiseter(service)
 
 	socketAddr := fmt.Sprintf("%s:%d", service.Address, service.Port)
-	err = cgo.CreateWorkerd(projectId, w.getProjectPath(projectId), defaultConfigFilename, socketAddr)
-	if err != nil {
+	if err := cgo.CreateWorkerd(project.ID, w.getProjectPath(project.ID), defaultConfigFilename, socketAddr); err != nil {
 		project.Status = types.ProjectReplicaStatusError
-		log.Errorf("cgo creating project %s: %v", projectId, err)
+		log.Errorf("error in CGo while creating project %s: %v", project.ID, err)
 		return err
 	}
 
 	return nil
 }
 
+func (w *Workerd) startProject(ctx context.Context, projectId string) error {
+	project, err := w.getProject(projectId)
+	if err != nil {
+		return err
+	}
+
+	if err := w.ensureProjectInitialized(ctx, project); err != nil {
+		return err
+	}
+
+	if running, _ := w.queryProject(ctx, projectId); running {
+		return xerrors.Errorf("project %s is already running", projectId)
+	}
+
+	if err := w.setupAndStartProject(ctx, project); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *Workerd) createProject(ctx context.Context, project *types.Project) error {
+	projectPath := w.getProjectPath(project.ID)
+
+	if _, err := os.Stat(projectPath); !os.IsNotExist(err) {
+		return xerrors.Errorf("project %s already initialized", project.ID)
+	}
+
+	if project.Name == "" {
+		project.Name = project.ID
+	}
+
+	if err := os.MkdirAll(projectPath, 0o755); err != nil {
+		return xerrors.Errorf("failed to create project directory: %v", err)
+	}
+
+	zipFilePath := filepath.Join(projectPath, project.Name+defaultZipSuffix)
+	if err := downloadBundle(ctx, project, zipFilePath); err != nil {
+		return xerrors.Errorf("failed to download bundle: %v", err)
+	}
+
+	sha256FilePath := filepath.Join(projectPath, project.Name+defaultSha256Suffix)
+	if err := writeSha256File(zipFilePath, sha256FilePath); err != nil {
+		return xerrors.Errorf("failed to write SHA256 checksum: %v", err)
+	}
+
+	if err := unzip(zipFilePath, projectPath); err != nil {
+		return err
+	}
+
+	return copySubDirectory(projectPath, projectPath)
+}
+
 func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 	defer w.ts.Remove(&tunnel.Service{ID: projectId})
 
 	if err := cgo.DestroyWorkerd(projectId); err != nil {
-		return err
+		log.Debugf("cgo.DestroyWorkerd: %v", err)
 	}
 
 	if err := os.RemoveAll(w.getProjectPath(projectId)); err != nil {
@@ -268,7 +299,7 @@ func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 	return nil
 }
 
-func (w *Workerd) queryProject(ctx context.Context, projectId string) error {
+func (w *Workerd) queryProject(ctx context.Context, projectId string) (bool, error) {
 	return cgo.QueryWorkerd(projectId)
 }
 
@@ -276,47 +307,23 @@ func (w *Workerd) initializing() error {
 	return cgo.InitWorkerdRuntime()
 }
 
-func (w *Workerd) createProject(ctx context.Context, project *types.Project) error {
-	path := w.getProjectPath(project.ID)
-
-	_, err := os.Stat(path)
-	if !os.IsNotExist(err) {
-		if err == nil {
-			return xerrors.Errorf("project %s already initialized", project.ID)
-		}
-		return err
-	}
-
-	if len(project.Name) == 0 {
-		project.Name = project.ID
-	}
-
-	if err = os.MkdirAll(path, 0o755); err != nil {
-		return err
-	}
-
-	zipFilePath := filepath.Join(path, project.Name) + zipSuffix
-	if err = downloadBundle(ctx, project, zipFilePath); err != nil {
-		return err
-	}
-
-	sha256FilePath := filepath.Join(w.getProjectPath(project.ID), project.Name) + sha256Suffix
-	file, err := os.Create(sha256FilePath)
+func writeSha256File(sourcePath, destinationPath string) error {
+	file, err := os.Create(destinationPath)
 	if err != nil {
-		return fmt.Errorf("create file: %s", err)
+		return err
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, strings.NewReader(computeBundleHash(zipFilePath)))
+	hash, err := computeBundleHash(sourcePath)
 	if err != nil {
-		return fmt.Errorf("copy file: %s", err)
-	}
-
-	if err = Unzip(zipFilePath, path); err != nil {
 		return err
 	}
 
-	return CopySubDirectory(path, path)
+	if _, err := io.Copy(file, strings.NewReader(hash)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func downloadBundle(ctx context.Context, project *types.Project, outPath string) error {
@@ -349,20 +356,26 @@ func downloadBundle(ctx context.Context, project *types.Project, outPath string)
 }
 
 // computeBundleHash calculates file hash
-func computeBundleHash(filename string) string {
-	data, _ := os.ReadFile(filename)
+func computeBundleHash(filename string) (string, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
 	h := sha256.New()
 	h.Write(data)
-	return hex.EncodeToString(h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func (w *Workerd) localProjectIds() ([]string, error) {
-	var out []string
+	var projectIds []string
 	err := filepath.WalkDir(w.basePath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Check if the directory name is a valid project ID.
 		if d.IsDir() {
-			_, pErr := uuid.Parse(d.Name())
-			if pErr == nil {
-				out = append(out, d.Name())
+			if _, pErr := uuid.Parse(d.Name()); pErr == nil {
+				projectIds = append(projectIds, d.Name())
 			}
 		}
 		return nil
@@ -370,54 +383,17 @@ func (w *Workerd) localProjectIds() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return projectIds, nil
 }
 
+// RestartProjects reinitialized and synchronizes the worker's projects.
 func (w *Workerd) RestartProjects(ctx context.Context) {
 	if err := w.initializing(); err != nil {
-		log.Errorf("restarting project initializing failed: %v", err)
+		log.Errorf("Failed to initialize during project restart: %v", err)
 		return
 	}
 
-	localProjects, err := w.localProjectIds()
-	if err != nil {
-		log.Errorf("get local projects: %v", err)
-		return
-	}
-
-	activeProjects := make(map[string]struct{})
-
-	projects, err := w.api.GetProjectsForNode(ctx, w.nodeId)
-	if err != nil {
-		log.Errorf("GetProjectsForNode: %v", err)
-		return
-	}
-
-	for _, project := range projects {
-		w.mu.Lock()
-		w.projects[project.Id] = &types.Project{ID: project.Id}
-		w.mu.Unlock()
-
-		activeProjects[project.Id] = struct{}{}
-
-		switch project.Status {
-		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
-			w.startCh <- project.Id
-		}
-	}
-
-	for _, projectId := range localProjects {
-		if _, ok := activeProjects[projectId]; ok {
-			continue
-		}
-
-		err := w.destroyProject(ctx, projectId)
-		if err != nil {
-			log.Errorf("destroying project %s: %v", projectId, err)
-		}
-	}
-
-	return
+	w.sync(ctx)
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
@@ -433,6 +409,53 @@ func GetFreePort() (port int, err error) {
 	return
 }
 
-func (w *Workerd) sync() {
-	fmt.Println("sync")
+// sync synchronizes the local projects with the active projects from the API.
+func (w *Workerd) sync(ctx context.Context) {
+	// Retrieve local projects.
+	localProjects, err := w.localProjectIds()
+	if err != nil {
+		log.Errorf("failed to get local projects: %v", err)
+		return
+	}
+
+	// Fetch active projects from the API.
+	projects, err := w.api.GetProjectsForNode(ctx, w.nodeId)
+	if err != nil {
+		log.Errorf("GetProjectsForNode: %v", err)
+		return
+	}
+
+	// Use a temporary map to reduce lock contention.
+	tempProjects := make(map[string]*types.Project)
+
+	// Active projects tracking.
+	activeProjects := make(map[string]struct{})
+
+	for _, project := range projects {
+		tempProjects[project.Id] = &types.Project{ID: project.Id}
+		activeProjects[project.Id] = struct{}{}
+
+		switch project.Status {
+		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
+			if running, _ := w.queryProject(ctx, project.Id); !running {
+				w.startCh <- project.Id
+			}
+		}
+	}
+
+	w.mu.Lock()
+	w.projects = tempProjects
+	w.mu.Unlock()
+
+	// Destroy inactive local projects.
+	for _, projectId := range localProjects {
+		if _, ok := activeProjects[projectId]; ok {
+			continue
+		}
+
+		err := w.destroyProject(context.Background(), projectId)
+		if err != nil {
+			log.Errorf("failed to destroy project %s: %v", projectId, err)
+		}
+	}
 }
