@@ -323,7 +323,9 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time) bool {
 	if !lastTime.After(t) {
 		m.RemoveNodeIP(node.NodeID, node.ExternalIP)
 
-		node.ClientCloser()
+		if node.ClientCloser != nil {
+			node.ClientCloser()
+		}
 		if node.Type == types.NodeCandidate || node.Type == types.NodeValidator {
 			m.deleteCandidateNode(node)
 		} else if node.Type == types.NodeEdge {
