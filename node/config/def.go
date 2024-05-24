@@ -53,7 +53,7 @@ func DefaultEdgeCfg() *EdgeCfg {
 		},
 		Bandwidth: Bandwidth{
 			// unlimited
-			BandwidthKB: 0,
+			BandwidthMB: 0,
 			// unlimited
 			BandwidthUp: 0,
 			// unlimited
