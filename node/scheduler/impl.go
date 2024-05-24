@@ -163,7 +163,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	if nodeType == types.NodeCandidate {
-		cNode.MeetCandidateStandard = cNode.IsTestNode || (nodeInfo.Memory > validatorMemoryLimit && nodeInfo.CPUCores > validatorCpuLimit)
+		cNode.MeetCandidateStandard = cNode.IsTestNode || (nodeInfo.Memory >= validatorMemoryLimit && nodeInfo.CPUCores >= validatorCpuLimit)
 
 		isValidator, err := s.db.IsValidator(nodeID)
 		if err != nil {
