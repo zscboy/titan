@@ -701,7 +701,7 @@ var mergeConfigCmd = &cli.Command{
 		edgeConfig.Storage = newEdgeConfig.Storage
 		edgeConfig.Memory = newEdgeConfig.Memory
 		edgeConfig.CPU = newEdgeConfig.CPU
-		edgeConfig.Bandwidth.BandwidthKB = newEdgeConfig.Bandwidth.BandwidthKB
+		edgeConfig.Bandwidth.BandwidthMB = newEdgeConfig.Bandwidth.BandwidthMB
 		edgeConfig.Bandwidth.BandwidthUp = newEdgeConfig.Bandwidth.BandwidthUp
 		edgeConfig.Bandwidth.BandwidthDown = newEdgeConfig.Bandwidth.BandwidthDown
 

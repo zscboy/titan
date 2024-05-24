@@ -11,22 +11,22 @@ type DocField struct {
 var Doc = map[string][]DocField{
 	"Bandwidth": []DocField{
 		{
-			Name: "BandwidthKB",
+			Name: "BandwidthMB",
 			Type: "int64",
 
-			Comment: `unit is KB/s, 0 means no limit`,
+			Comment: `unit is MiB/s, 0 means no limit`,
 		},
 		{
 			Name: "BandwidthUp",
 			Type: "int64",
 
-			Comment: `upload file bandwidth, unit is KB/s, 0 means no limit`,
+			Comment: `upload file bandwidth, unit is MiB/s, 0 means no limit`,
 		},
 		{
 			Name: "BandwidthDown",
 			Type: "int64",
 
-			Comment: `download file bandwidth, unit is KB/s, 0 means no limit`,
+			Comment: `download file bandwidth, unit is MiB/s, 0 means no limit`,
 		},
 	},
 	"Basic": []DocField{
@@ -556,6 +556,12 @@ indicating how many select weight this level can get (the more select weight, th
 		{
 			Name: "StorageCandidates",
 			Type: "[]string",
+
+			Comment: ``,
+		},
+		{
+			Name: "TestCandidates",
+			Type: "map[string]int",
 
 			Comment: ``,
 		},

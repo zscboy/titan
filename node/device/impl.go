@@ -19,8 +19,8 @@ import (
 var log = logging.Logger("device")
 
 const (
-	// 1KB/s
-	BandwidthUnit = 1024
+	// 1MiB/s
+	BandwidthUnit = 1024 * 1024
 	// 1GB
 	StorageUnit = 1024 * 1024 * 1024
 	// 1GB
