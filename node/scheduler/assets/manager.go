@@ -923,15 +923,14 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr
 	}
 
 	for _, rInfo := range replicas {
+		if rInfo.IsCandidate {
+			continue
+		}
 		// Are the nodes unreliable
 		nodeID := rInfo.NodeID
 		lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
 		if err != nil {
 			log.Errorf("checkAssetReliability LoadLastSeenOfNode err: %s", err.Error())
-			continue
-		}
-
-		if rInfo.IsCandidate {
 			continue
 		}
 

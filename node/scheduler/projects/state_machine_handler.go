@@ -2,6 +2,7 @@ package projects
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -11,9 +12,7 @@ import (
 
 var (
 	// MinRetryTime defines the minimum time duration between retries
-	MinRetryTime = 1 * time.Minute
-
-	WaitTime = 5 * time.Second
+	MinRetryTime = 30 * time.Second
 
 	// MaxRetryCount defines the maximum number of retries allowed
 	MaxRetryCount = 1
@@ -47,6 +46,9 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 
 	// select nodes
 	list := m.nodeMgr.GetAllEdgeNode()
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].BackProjectTime < list[j].BackProjectTime
+	})
 	for _, node := range list {
 		if curCount >= info.Replicas {
 			break
@@ -60,6 +62,7 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 			continue
 		}
 
+		node.BackProjectTime = time.Now().Unix()
 		status := types.ProjectReplicaStatusStarting
 		// node.API.d
 		err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})

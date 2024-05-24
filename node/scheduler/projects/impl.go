@@ -52,7 +52,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 		UUID:        uid,
 		ServerID:    m.nodeMgr.ServerID,
 		Expiration:  expiration,
-		State:       Create.String(),
+		State:       NodeSelect.String(),
 		CreatedTime: time.Now(),
 		Name:        req.Name,
 		BundleURL:   req.BundleURL,
@@ -66,7 +66,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 	}
 
 	rInfo := ProjectForceState{
-		State: Create,
+		State: NodeSelect,
 	}
 
 	// create project task
@@ -113,9 +113,7 @@ func (m *Manager) Delete(req *types.ProjectReq) error {
 	}
 
 	if req.NodeID != "" {
-		m.removeReplica(req.UUID, req.NodeID)
-
-		return nil
+		return m.removeReplica(req.UUID, req.NodeID)
 	}
 
 	if exist, _ := m.projectStateMachines.Has(ProjectID(req.UUID)); !exist {

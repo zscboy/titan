@@ -47,7 +47,9 @@ func (n *SQLDB) SaveProjectInfo(info *types.ProjectInfo) error {
 
 	query := fmt.Sprintf(
 		`INSERT INTO %s (id, name, bundle_url, user_id, replicas, scheduler_sid)
-				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid)`, projectInfoTable)
+				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid)				
+				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, replicas=:replicas, user_id=:user_id,
+				bundle_url=:bundle_url, expiration=:expiration, name=:name`, projectInfoTable)
 
 	_, err = tx.NamedExec(query, info)
 	if err != nil {
@@ -199,6 +201,30 @@ func (n *SQLDB) DeleteProjectReplica(id, nodeID string) error {
 	_, err := n.db.Exec(query, id, nodeID)
 
 	return err
+}
+
+// UpdateProjectReplicaStatusToFailed
+func (n *SQLDB) UpdateProjectReplicaStatusToFailed(id string, nodes []string) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("UpdateProjectReplicaStatusToFailed Rollback err:%s", err.Error())
+		}
+	}()
+
+	for _, nid := range nodes {
+		// update state table
+		query := fmt.Sprintf(
+			`UPDATE %s SET status=?,end_time=NOW() WHERE id=? AND node_id=?`, projectReplicasTable)
+		tx.Exec(query, types.ProjectReplicaStatusError, id, nid)
+	}
+
+	return tx.Commit()
 }
 
 // UpdateProjectStateInfo update project information

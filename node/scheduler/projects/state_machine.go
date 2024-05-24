@@ -29,7 +29,7 @@ func (m *Manager) Plan(events []statemachine.Event, user interface{}) (interface
 // maps project states to their corresponding planner functions
 var planners = map[ProjectState]func(events []statemachine.Event, state *ProjectInfo) (uint64, error){
 	// external import
-	Create: planOne(
+	NodeSelect: planOne(
 		on(DeployRequestSent{}, Deploying),
 		on(CreateFailed{}, Failed),
 		on(SkipStep{}, Servicing),
@@ -45,7 +45,7 @@ var planners = map[ProjectState]func(events []statemachine.Event, state *Project
 		apply(DeployResult{}),
 	),
 	Failed: planOne(
-		on(ProjectRedeploy{}, Create),
+		on(ProjectRedeploy{}, NodeSelect),
 	),
 	Remove:    planOne(),
 	Servicing: planOne(),
@@ -76,7 +76,7 @@ func (m *Manager) plan(events []statemachine.Event, state *ProjectInfo) (func(st
 
 	switch state.State {
 	// Happy path
-	case Create:
+	case NodeSelect:
 		return m.handleCreate, processed, nil
 	case Update:
 		return m.handleUpdate, processed, nil
