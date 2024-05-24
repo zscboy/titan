@@ -306,10 +306,12 @@ var cProjectInfosTable = `
 		name          VARCHAR(128)   DEFAULT '',	
 		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,		
 		replicas      INT            DEFAULT 0,
-		scheduler_sid VARCHAR(128)   NOT NULL,    
+		scheduler_sid VARCHAR(128)   NOT NULL,   
+		expiration    DATETIME       DEFAULT CURRENT_TIMESTAMP,	
 		PRIMARY KEY (id),
 	    KEY idx_user_id (user_id),
-	    KEY idx_time (created_time)
+	    KEY idx_time (created_time),
+	    KEY idx_expiration (expiration)
     ) ENGINE=InnoDB COMMENT='project info';`
 
 var cProjectReplicasTable = `
@@ -324,3 +326,14 @@ var cProjectReplicasTable = `
 		KEY idx_node_id (node_id),
 		KEY idx_id (id)
     ) ENGINE=InnoDB COMMENT='project replicas';`
+
+var cProjectEventTable = `
+    CREATE TABLE if not exists %s (
+		id            VARCHAR(128)  NOT NULL,
+		event         TINYINT       DEFAULT 0,
+		node_id       VARCHAR(128)  NOT NULL,
+		created_time  DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		KEY idx_id (id),
+		KEY idx_node_id (node_id),
+		KEY idx_time (created_time)
+	) ENGINE=InnoDB COMMENT='project replica event';`

@@ -23,9 +23,10 @@ const (
 	// Interval to get asset pull progress from node (Unit:Second)
 	progressInterval = 60 * time.Second
 
-	checkProjectInterval = 5 * time.Minute
+	checkFailedProjectInterval    = 5 * time.Minute
+	checkServicingProjectInterval = 30 * time.Minute
 
-	maxNodeOfflineTime = 10 * time.Minute
+	maxNodeOfflineTime = 24 * time.Hour
 )
 
 // Manager manages project replicas
@@ -58,7 +59,8 @@ func (m *Manager) StartTimer(ctx context.Context) {
 	}
 
 	go m.startCheckDeployProgressesTimer()
-	go m.startCheckProjectTimer()
+	go m.startCheckFailedProjectTimer()
+	go m.startCheckServicingProjectTimer()
 }
 
 type deployingProjectsInfo struct {
@@ -192,10 +194,18 @@ func (m *Manager) retrieveNodeDeployProgresses() {
 			return true
 		}
 
-		for _, nodeID := range nodes {
-			list := deployingNodes[nodeID]
-			deployingNodes[nodeID] = append(list, id)
+		if len(nodes) > 0 {
+			for _, nodeID := range nodes {
+				list := deployingNodes[nodeID]
+				deployingNodes[nodeID] = append(list, id)
+			}
+		} else {
+			err := m.projectStateMachines.Send(ProjectID(id), DeployResult{})
+			if err != nil {
+				log.Errorf("retrieveNodeDeployProgresses %s  statemachine send err:%s", id, err.Error())
+			}
 		}
+
 		return true
 	})
 
@@ -323,16 +333,27 @@ func (m *Manager) startCheckDeployProgressesTimer() {
 	}
 }
 
-// startCheckProjectTimer Periodically Check for expired projects, check for missing replicas of projects
-func (m *Manager) startCheckProjectTimer() {
-	ticker := time.NewTicker(checkProjectInterval)
+// startCheckFailedProjectTimer Periodically Check for expired projects,
+func (m *Manager) startCheckFailedProjectTimer() {
+	ticker := time.NewTicker(checkFailedProjectInterval)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+
+		m.restartProjects()
+	}
+}
+
+// startCheckServicingProjectTimer Periodically Check for expired projects,
+func (m *Manager) startCheckServicingProjectTimer() {
+	ticker := time.NewTicker(checkServicingProjectInterval)
 	defer ticker.Stop()
 
 	offset := 0
 	for {
 		<-ticker.C
 
-		m.restartProjects()
 		offset = m.checkProjectReplicas(offset)
 	}
 }

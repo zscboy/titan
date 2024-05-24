@@ -170,7 +170,21 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 		ON DUPLICATE KEY UPDATE status=:status, end_time=NOW()`, projectReplicasTable)
 
 	_, err := n.db.NamedExec(query, info)
-	return err
+	if err != nil {
+		return err
+	}
+
+	if info.Status == types.ProjectReplicaStatusStarted {
+		// replica event
+		query = fmt.Sprintf(
+			`INSERT INTO %s (id, event, node_id) 
+			VALUES (?, ?, ?)`, projectEventTable)
+		_, err = n.db.Exec(query, info.Id, types.ReplicaEventAdd, info.NodeID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // LoadProjectReplicasInfos load project replica information based on id
@@ -197,8 +211,41 @@ func (n *SQLDB) LoadProjectReplicasForNode(nodeID string) ([]*types.ProjectRepli
 
 // DeleteProjectReplica deletes
 func (n *SQLDB) DeleteProjectReplica(id, nodeID string) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("DeleteProjectReplica Rollback err:%s", err.Error())
+		}
+	}()
+
 	query := fmt.Sprintf(`DELETE FROM %s WHERE id=? AND node_id=?`, projectReplicasTable)
-	_, err := n.db.Exec(query, id, nodeID)
+	_, err = tx.Exec(query, id, nodeID)
+	if err != nil {
+		return err
+	}
+
+	// replica event
+	query = fmt.Sprintf(
+		`INSERT INTO %s (id, event, node_id) 
+			VALUES (?, ?, ?)`, projectEventTable)
+
+	_, err = tx.Exec(query, id, types.ReplicaEventRemove, nodeID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// DeleteUnfinishedProjectReplicas deletes the incomplete replicas with the given hash from the database.
+func (n *SQLDB) DeleteUnfinishedProjectReplicas(id string) error {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE id=? AND status!=?`, projectReplicasTable)
+	_, err := n.db.Exec(query, id, types.ProjectReplicaStatusStarted)
 
 	return err
 }
