@@ -15,12 +15,12 @@ func (c ProjectID) String() string {
 type ProjectState string
 
 const (
-	Create    ProjectState = "Create"
-	Update    ProjectState = "Update"
-	Deploying ProjectState = "Deploying"
-	Servicing ProjectState = "Servicing"
-	Failed    ProjectState = "Failed"
-	Remove    ProjectState = "Remove"
+	NodeSelect ProjectState = "NodeSelect"
+	Update     ProjectState = "Update"
+	Deploying  ProjectState = "Deploying"
+	Servicing  ProjectState = "Servicing"
+	Failed     ProjectState = "Failed"
+	Remove     ProjectState = "Remove"
 )
 
 // String status to string

@@ -23,7 +23,9 @@ const (
 	// Interval to get asset pull progress from node (Unit:Second)
 	progressInterval = 60 * time.Second
 
-	checkProjectInterval = 10 * time.Minute
+	checkProjectInterval = 5 * time.Minute
+
+	maxNodeOfflineTime = 10 * time.Minute
 )
 
 // Manager manages project replicas
@@ -326,48 +328,120 @@ func (m *Manager) startCheckProjectTimer() {
 	ticker := time.NewTicker(checkProjectInterval)
 	defer ticker.Stop()
 
+	offset := 0
 	for {
 		<-ticker.C
 
 		m.restartProjects()
+		offset = m.checkProjectReplicas(offset)
 	}
 }
 
-func (m *Manager) checkProjectReplicas(offset int) error {
-	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 20, offset, []string{Servicing.String()})
+func (m *Manager) checkProjectReplicas(offset int) int {
+	limit := 10
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
 	if err != nil {
-		log.Errorf("Load projects :%s", err.Error())
-		return err
+		log.Errorf("checkProjectReplicas projects :%s", err.Error())
+		return offset
 	}
 	defer rows.Close()
 
-	ids := make([]string, 0)
+	nodeProjects := make(map[string][]string, 0)
 
+	count := 0
 	// loading projects to local
 	for rows.Next() {
+		count++
+
 		cInfo := &types.ProjectInfo{}
 		err = rows.StructScan(cInfo)
 		if err != nil {
-			log.Errorf("project StructScan err: %s", err.Error())
+			log.Errorf("checkProjectReplicas StructScan err: %s", err.Error())
 			continue
 		}
 
 		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(cInfo.UUID)
 		if err != nil {
-			log.Errorf("project %s load replicas err: %s", cInfo.UUID, err.Error())
+			log.Errorf("checkProjectReplicas %s load replicas err: %s", cInfo.UUID, err.Error())
 			continue
 		}
 
-		// 检查超过 n天不在线的节点  把节点剔除
+		for _, details := range cInfo.DetailsList {
+			if details.Status != types.ProjectReplicaStatusStarted {
+				continue
+			}
 
-		ids = append(ids, cInfo.UUID)
+			nodeProjects[details.NodeID] = append(nodeProjects[details.NodeID], details.Id)
+		}
 	}
 
-	return m.RestartDeployProjects(ids)
+	projectDeleteReplicas := make(map[string][]string, 0)
+	// check project status from node
+	for nodeID, projectIDs := range nodeProjects {
+		lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
+		if err != nil {
+			log.Errorf("checkProjectReplicas LoadLastSeenOfNode err: %s", err.Error())
+			continue
+		}
+
+		if lastSeen.Add(maxNodeOfflineTime).Before(time.Now()) {
+			// delete replicas
+			for _, id := range projectIDs {
+				projectDeleteReplicas[id] = append(projectDeleteReplicas[id], nodeID)
+			}
+			continue
+		}
+
+		results, err := m.requestNodeDeployProgresses(nodeID, projectIDs)
+		if err != nil {
+			log.Errorf("checkProjectReplicas requestNodeDeployProgresses err: %v", err)
+			continue
+		}
+
+		for _, result := range results {
+			if result.Status != types.ProjectReplicaStatusStarted {
+				// delete replicas
+				projectDeleteReplicas[result.ID] = append(projectDeleteReplicas[result.ID], nodeID)
+			}
+		}
+	}
+
+	for id, nodes := range projectDeleteReplicas {
+		err := m.UpdateProjectReplicaStatusToFailed(id, nodes)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s UpdateProjectReplicaStatusToFailed err: %s", id, err.Error())
+			continue
+		}
+
+		err = m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, 0, m.nodeMgr.ServerID)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s UpdateProjectStateInfo err: %s", id, err.Error())
+			continue
+		}
+
+		rInfo := ProjectForceState{
+			State: NodeSelect,
+		}
+
+		// create project task
+		err = m.projectStateMachines.Send(ProjectID(id), rInfo)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s Send err: %s", id, err.Error())
+			continue
+		}
+	}
+
+	if count == limit {
+		offset += count
+	} else {
+		offset = 0
+	}
+
+	return offset
 }
 
 func (m *Manager) restartProjects() error {
-	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 10, 0, []string{Failed.String(), Create.String(), Update.String()})
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 10, 0, []string{Failed.String(), NodeSelect.String(), Update.String()})
 	if err != nil {
 		log.Errorf("Load projects :%s", err.Error())
 		return err
