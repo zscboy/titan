@@ -58,6 +58,9 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 		BundleURL:   req.BundleURL,
 		UserID:      req.UserID,
 		Replicas:    req.Replicas,
+		CPUCores:    req.CPUCores,
+		Memory:      req.Memory,
+		AreaID:      req.AreaID,
 	}
 
 	err := m.SaveProjectInfo(info)
