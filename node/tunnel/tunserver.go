@@ -127,7 +127,7 @@ func (ts *Tunserver) getNodeID(r *http.Request) string {
 
 func isInvalidNodeID(nodeID string) bool {
 	if len(nodeID) == 0 {
-		return false
+		return true
 	}
 	return false
 }
