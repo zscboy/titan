@@ -103,19 +103,19 @@ func (m *Manager) handleUpdate(ctx statemachine.Context, info ProjectInfo) error
 
 	// select nodes
 	for _, nodeID := range info.EdgeReplicaSucceeds {
+		status := types.ProjectReplicaStatusError
+
 		node := m.nodeMgr.GetNode(nodeID)
-		if node == nil {
-			continue
+		if node != nil {
+			status = types.ProjectReplicaStatusStarting
+			err := node.Update(context.Background(), &types.Project{ID: info.UUID.String(), BundleURL: info.BundleURL, Name: info.Name})
+			if err != nil {
+				log.Errorf("Update %s err:%s", nodeID, err.Error())
+				status = types.ProjectReplicaStatusError
+			}
 		}
 
-		status := types.ProjectReplicaStatusStarting
-		err := node.Update(context.Background(), &types.Project{ID: info.UUID.String(), BundleURL: info.BundleURL, Name: info.Name})
-		if err != nil {
-			log.Errorf("Update %s err:%s", nodeID, err.Error())
-			status = types.ProjectReplicaStatusError
-		}
-
-		err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
+		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
 			Id:     info.UUID.String(),
 			NodeID: node.NodeID,
 			Status: status,
@@ -164,7 +164,7 @@ func (m *Manager) handleServicing(ctx statemachine.Context, info ProjectInfo) er
 	m.stopProjectTimeoutCounting(info.UUID.String())
 
 	// remove fail replicas
-	// return m.DeleteUnfinishedReplicas(info.Hash.String())
+	m.DeleteUnfinishedProjectReplicas(info.UUID.String())
 	return nil
 }
 

@@ -176,7 +176,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
 		nodeInfo.WSServerID = oldInfo.WSServerID
 
-		cNode.WSServerID = nodeInfo.WSServerID
+		cNode.WSServerID = oldInfo.WSServerID
 
 		if oldInfo.DeactivateTime > 0 && oldInfo.DeactivateTime < time.Now().Unix() {
 			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)

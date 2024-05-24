@@ -49,6 +49,7 @@ const (
 	candidateCodeTable    = "candidate_code"
 	projectInfoTable      = "project_info"
 	projectReplicasTable  = "project_replicas"
+	projectEventTable     = "project_event"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
@@ -116,6 +117,7 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cProjectStateTable, projectStateTable(serverID)))
 	tx.MustExec(fmt.Sprintf(cProjectInfosTable, projectInfoTable))
 	tx.MustExec(fmt.Sprintf(cProjectReplicasTable, projectReplicasTable))
+	tx.MustExec(fmt.Sprintf(cProjectEventTable, projectEventTable))
 
 	return tx.Commit()
 }
