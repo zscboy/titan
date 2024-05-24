@@ -44,7 +44,6 @@ type Node struct {
 
 	NATType        types.NatType
 	CPUUsage       float64
-	MemoryUsage    float64
 	DiskUsage      float64
 	TitanDiskUsage float64
 
@@ -71,8 +70,13 @@ type Node struct {
 	numberOfIPChanges          int64
 	resetNumberOfIPChangesTime time.Time
 
-	IsPhone         bool
 	BackProjectTime int64
+	IsNewVersion    bool
+
+	IsPhone    bool
+	IsTestNode bool
+
+	MeetCandidateStandard bool
 }
 
 // API represents the node API
