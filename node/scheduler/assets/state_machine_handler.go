@@ -63,7 +63,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		} else {
 			// find nodes
 			str := ""
-			nodes, str = m.chooseCandidateNodes(seedReplicaCount, info.CandidateReplicaSucceeds)
+			nodes, str = m.chooseCandidateNodes(seedReplicaCount, info.CandidateReplicaSucceeds, float64(info.Size))
 			if len(nodes) < 1 {
 				return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 			}
@@ -233,7 +233,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 	} else {
 		// find nodes
 		str := ""
-		nodes, str = m.chooseCandidateNodes(int(needCount), info.CandidateReplicaSucceeds)
+		nodes, str = m.chooseCandidateNodes(int(needCount), info.CandidateReplicaSucceeds, float64(info.Size))
 		if len(nodes) < 1 {
 			return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 		}
