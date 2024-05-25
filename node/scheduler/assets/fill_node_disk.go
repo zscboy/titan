@@ -79,7 +79,7 @@ func (m *Manager) autoRefillAssetReplicas() bool {
 }
 
 func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
-	list, err := m.LoadRecords([]string{CandidatesFailed.String(), EdgesFailed.String()}, m.nodeMgr.ServerID)
+	list, err := m.LoadRecords([]string{SeedFailed.String(), CandidatesFailed.String(), EdgesFailed.String()}, m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("autoRestartAssetReplicas LoadAssetRecords err:%s", err.Error())
 		return false
@@ -195,7 +195,7 @@ func (m *Manager) pullAssetFromAWSs(edgeCount, candidateCount int64) bool {
 
 	m.updateFillAssetInfo(info.Bucket, candidateCount, info.Replicas)
 
-	go m.requestNodePullAsset(info.Bucket, info.Cid, candidateCount)
+	go m.requestNodePullAsset(info.Bucket, info.Cid, candidateCount, info.Size)
 
 	return true
 }
@@ -228,7 +228,7 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 	return
 }
 
-func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64) {
+func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64, size float64) {
 	_, cNodes := m.nodeMgr.GetAllCandidateNodes()
 	sort.Slice(cNodes, func(i, j int) bool {
 		return cNodes[i].TitanDiskUsage < cNodes[j].TitanDiskUsage
@@ -249,6 +249,10 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64)
 		}
 
 		if !node.MeetCandidateStandard {
+			continue
+		}
+
+		if !node.DiskEnough(size) {
 			continue
 		}
 

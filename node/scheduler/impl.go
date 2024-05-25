@@ -48,7 +48,7 @@ const (
 	availableDiskLimit = 2 * units.TiB
 
 	validatorCpuLimit    = 8
-	validatorMemoryLimit = 8 * units.GiB
+	validatorMemoryLimit = 8 * units.GB
 )
 
 // Scheduler represents a scheduler node in a distributed system.
@@ -245,17 +245,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.NetFlowDown = nodeInfo.NetFlowDown
 	cNode.DownloadTraffic = nodeInfo.DownloadTraffic
 	cNode.UploadTraffic = nodeInfo.UploadTraffic
-
-	// limit node availableDiskSpace to 5 GiB when using phone
-	if cNode.IsPhone {
-		if nodeInfo.AvailableDiskSpace > float64(5*units.GiB) {
-			nodeInfo.AvailableDiskSpace = float64(5 * units.GiB)
-		}
-
-		if size > 5*units.GiB {
-			size = 5 * units.GiB
-		}
-	}
 
 	if !alreadyConnect {
 		version, err := cNode.API.Version(ctx)

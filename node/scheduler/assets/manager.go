@@ -1082,7 +1082,7 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 }
 
 // chooseCandidateNodes selects candidate nodes to pull asset replicas
-func (m *Manager) chooseCandidateNodes(count int, filterNodes []string) (map[string]*node.Node, string) {
+func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size float64) (map[string]*node.Node, string) {
 	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), m.nodeMgr.Candidates)
 
 	selectMap := make(map[string]*node.Node)
@@ -1121,6 +1121,10 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string) (map[str
 		}
 
 		if !node.MeetCandidateStandard {
+			continue
+		}
+
+		if !node.DiskEnough(size) {
 			continue
 		}
 
