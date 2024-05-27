@@ -234,7 +234,7 @@ type ProjectAPI interface {
 	// GetProjectsForNode
 	GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) //perm:edge,candidate,web,locator
 
-	DeployProject(ctx context.Context, req *types.DeployProjectReq) (string, error)                    //perm:user,web,admin
+	DeployProject(ctx context.Context, req *types.DeployProjectReq) error                              //perm:user,web,admin
 	DeleteProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
 	UpdateProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
 	GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error)                       //perm:user,web,admin

@@ -415,7 +415,7 @@ type ProjectAPIStruct struct {
 
 		DeleteProject func(p0 context.Context, p1 *types.ProjectReq) (error) `perm:"user,web,admin"`
 
-		DeployProject func(p0 context.Context, p1 *types.DeployProjectReq) (string, error) `perm:"user,web,admin"`
+		DeployProject func(p0 context.Context, p1 *types.DeployProjectReq) (error) `perm:"user,web,admin"`
 
 		GetProjectInfo func(p0 context.Context, p1 string) (*types.ProjectInfo, error) `perm:"user,web,admin"`
 
@@ -1966,15 +1966,15 @@ func (s *ProjectAPIStub) DeleteProject(p0 context.Context, p1 *types.ProjectReq)
 	return ErrNotSupported
 }
 
-func (s *ProjectAPIStruct) DeployProject(p0 context.Context, p1 *types.DeployProjectReq) (string, error) {
+func (s *ProjectAPIStruct) DeployProject(p0 context.Context, p1 *types.DeployProjectReq) (error) {
 	if s.Internal.DeployProject == nil {
-		return "", ErrNotSupported
+		return ErrNotSupported
 	}
 	return s.Internal.DeployProject(p0, p1)
 }
 
-func (s *ProjectAPIStub) DeployProject(p0 context.Context, p1 *types.DeployProjectReq) (string, error) {
-	return "", ErrNotSupported
+func (s *ProjectAPIStub) DeployProject(p0 context.Context, p1 *types.DeployProjectReq) (error) {
+	return ErrNotSupported
 }
 
 func (s *ProjectAPIStruct) GetProjectInfo(p0 context.Context, p1 string) (*types.ProjectInfo, error) {

@@ -48,6 +48,7 @@ type ProjectReq struct {
 }
 
 type DeployProjectReq struct {
+	UUID      string
 	Name      string
 	BundleURL string
 	UserID    string
