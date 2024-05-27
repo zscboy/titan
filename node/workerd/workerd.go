@@ -289,7 +289,8 @@ func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 	defer w.ts.Remove(&tunnel.Service{ID: projectId})
 
 	if err := cgo.DestroyWorkerd(projectId); err != nil {
-		log.Debugf("cgo.DestroyWorkerd: %v", err)
+		log.Errorf("cgo.DestroyWorkerd: %v", err)
+		return err
 	}
 
 	if err := os.RemoveAll(w.getProjectPath(projectId)); err != nil {
