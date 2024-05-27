@@ -31,10 +31,7 @@ const (
 )
 
 // startValidationTicker starts the validation process.
-func (m *Manager) startValidationTicker() {
-	nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
-	duration := nextTick.Sub(time.Now())
-
+func (m *Manager) startValidationTicker(duration time.Duration) {
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
 
@@ -63,12 +60,13 @@ func (m *Manager) startValidationTicker() {
 	}
 }
 
-func (m *Manager) handValidatorProfits() {
-	ticker := time.NewTicker(handValidatorProfitsInterval)
+func (m *Manager) handleValidatorProfits(duration time.Duration) {
+	ticker := time.NewTimer(duration)
 	defer ticker.Stop()
 
 	for {
 		<-ticker.C
+		ticker.Reset(handValidatorProfitsInterval)
 
 		// save validator profits
 		m.addValidatorProfitsAndInitMap()

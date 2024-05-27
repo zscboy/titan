@@ -143,9 +143,12 @@ func (m *Manager) initCfg() {
 
 // Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
-	go m.startValidationTicker()
+	nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
+	duration := nextTick.Sub(time.Now())
+
+	go m.startValidationTicker(duration)
 	go m.startElectionTicker()
-	go m.handValidatorProfits()
+	go m.handleValidatorProfits(duration + (time.Minute * 2))
 
 	m.subscribeNodeEvents()
 	m.handleResults()

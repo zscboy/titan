@@ -347,19 +347,23 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("IP"),
 			tablewriter.Col("Profit"),
 			tablewriter.Col("OnlineDuration"),
+			tablewriter.Col("DownloadTraffic"),
+			tablewriter.Col("UploadTraffic"),
 		)
 
 		for w := 0; w < len(r.Data); w++ {
 			info := r.Data[w]
 
 			m := map[string]interface{}{
-				"NodeID":         info.NodeID,
-				"NodeType":       info.Type.String(),
-				"Status":         colorOnline(info.Status),
-				"Nat":            info.NATType,
-				"IP":             info.ExternalIP,
-				"Profit":         fmt.Sprintf("%.4f", info.Profit),
-				"OnlineDuration": fmt.Sprintf("%d", info.OnlineDuration),
+				"NodeID":          info.NodeID,
+				"NodeType":        info.Type.String(),
+				"Status":          colorOnline(info.Status),
+				"Nat":             info.NATType,
+				"IP":              info.ExternalIP,
+				"Profit":          fmt.Sprintf("%.4f", info.Profit),
+				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
+				"DownloadTraffic": fmt.Sprintf("%d", info.DownloadTraffic),
+				"UploadTraffic":   fmt.Sprintf("%d", info.UploadTraffic),
 			}
 
 			tw.Write(m)
