@@ -53,7 +53,7 @@ type DeployProjectReq struct {
 	UserID    string
 	Replicas  int64
 
-	CPUCores int
+	CPUCores int64
 	Memory   float64
 	AreaID   string
 }
@@ -70,7 +70,7 @@ type ProjectInfo struct {
 	CreatedTime time.Time       `db:"created_time"`
 	UserID      string          `db:"user_id"`
 
-	CPUCores int     `db:"cpu_cores"`
+	CPUCores int64   `db:"cpu_cores"`
 	Memory   float64 `db:"memory"`
 	AreaID   string  `db:"area_id"`
 
