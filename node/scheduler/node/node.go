@@ -24,56 +24,46 @@ import (
 
 // Node represents an Edge or Candidate node
 type Node struct {
-	NodeID string
-
+	// NodeID string
 	*API
 	jsonrpc.ClientCloser
-
-	token string
-
-	lastRequestTime time.Time // Node last keepalive time
-
-	selectWeights []int // The select weights assigned by the scheduler to each online node
-
-	// node info
-	PublicKey   *rsa.PublicKey
-	RemoteAddr  string
-	TCPPort     int
-	ExternalURL string
-
-	NATType        types.NatType
-	CPUUsage       float64
-	DiskUsage      float64
-	TitanDiskUsage float64
-
-	Type            types.NodeType
-	PortMapping     string
-	BandwidthDown   int64
-	BandwidthUp     int64
-	NetFlowUp       int64
-	NetFlowDown     int64
-	DownloadTraffic int64
-	UploadTraffic   int64
-
-	DeactivateTime int64
-
-	IsPrivateMinioOnly bool
-	IsStorageOnly      bool
-
-	ExternalIP         string
-	IncomeIncr         float64
-	DiskSpace          float64
-	AvailableDiskSpace float64
-
+	*types.NodeInfo
+	token                      string
+	lastRequestTime            time.Time // Node last keepalive time
+	selectWeights              []int     // The select weights assigned by the scheduler to each online node
 	numberOfIPChanges          int64
 	resetNumberOfIPChangesTime time.Time
 
-	IsNewVersion bool
-
-	IsPhone    bool
-	IsTestNode bool
-
+	// node info
+	PublicKey             *rsa.PublicKey
+	RemoteAddr            string
+	TCPPort               int
+	ExternalURL           string
+	IsPrivateMinioOnly    bool
+	IsStorageOnly         bool
+	IncomeIncr            float64
+	BackProjectTime       int64
 	MeetCandidateStandard bool
+
+	// IsPhone               bool
+	// NATType            types.NatType
+	// CPUUsage           float64
+	// DiskUsage          float64
+	// TitanDiskUsage     float64
+	// Type               types.NodeType
+	// PortMapping        string
+	// BandwidthDown      int64
+	// BandwidthUp        int64
+	// NetFlowUp          int64
+	// NetFlowDown        int64
+	// DownloadTraffic    int64
+	// UploadTraffic      int64
+	// WSServerID         string
+	// ExternalIP         string
+	// DiskSpace          float64
+	// AvailableDiskSpace float64
+	// IsTestNode         bool
+	// DeactivateTime     int64
 }
 
 // API represents the node API

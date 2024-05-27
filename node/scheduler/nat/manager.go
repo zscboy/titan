@@ -18,7 +18,7 @@ var log = logging.Logger("scheduler/nat")
 
 const (
 	miniCandidateCount = 2
-	detectInterval     = 120
+	detectInterval     = 30
 	maxRetry           = 5
 )
 
@@ -228,7 +228,7 @@ func (m *Manager) retryCandidateDetectNatType(cNode *retryNode) {
 
 	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
 
-	if eNode.NATType == types.NatTypeUnknown && cNode.retry < (maxRetry*2) {
+	if eNode.NATType == types.NatTypeUnknown.String() && cNode.retry < (maxRetry*2) {
 		m.delayCandidateDetectNatType(cNode)
 	}
 	log.Debugf("retry detect node %s nat type %s", cNode.id, eNode.NATType)
@@ -255,7 +255,7 @@ func (m *Manager) retryEdgeDetectNatType(node *retryNode) {
 
 	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
 
-	if eNode.NATType == types.NatTypeUnknown && node.retry < maxRetry {
+	if eNode.NATType == types.NatTypeUnknown.String() && node.retry < maxRetry {
 		m.delayEdgeDetectNatType(node)
 	}
 	log.Debugf("retry detect node %s nat type %s", node.id, eNode.NATType)
@@ -296,7 +296,7 @@ func (m *Manager) DetermineCandidateNATType(ctx context.Context, nodeID string) 
 
 	eNode.NATType = determineNodeNATType(ctx, eNode, cNodes, m.http3Client)
 
-	if eNode.NATType == types.NatTypeUnknown {
+	if eNode.NATType == types.NatTypeUnknown.String() {
 		m.delayCandidateDetectNatType(&retryNode{id: nodeID, retry: 0})
 	}
 	log.Debugf("%s nat type %s", nodeID, eNode.NATType)
@@ -325,7 +325,7 @@ func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 
 	eNode.NATType = determineNodeNATType(ctx, eNode, cNodes, m.http3Client)
 
-	if eNode.NATType == types.NatTypeUnknown {
+	if eNode.NATType == types.NatTypeUnknown.String() {
 		m.delayEdgeDetectNatType(&retryNode{id: nodeID, retry: 0})
 	}
 	log.Debugf("%s nat type %s", nodeID, eNode.NATType)

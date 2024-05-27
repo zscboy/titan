@@ -119,9 +119,11 @@ func (m *Manager) resetGroup() {
 	for _, node := range nodes {
 		switch node.Type {
 		case types.NodeEdge, types.NodeCandidate:
-			m.unpairedGroup.addNode(node.NodeID, node.BandwidthUp)
+			if !node.IsTestNode {
+				m.unpairedGroup.addNode(node.NodeID, node.BandwidthUp)
+			}
 		case types.NodeValidator:
-			if node.NATType == types.NatTypeNo {
+			if node.NATType == types.NatTypeNo.String() || node.IsTestNode {
 				bwDn := float64(node.BandwidthDown)
 				count := int(math.Floor((bwDn * bandwidthRatio) / m.validatorBaseBwDn))
 				if count < 1 {
