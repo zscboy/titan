@@ -28,6 +28,10 @@ func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectR
 		return "", xerrors.New("BundleURL is nil")
 	}
 
+	if req.Replicas <= 0 {
+		return "", xerrors.New("Replicas is 0")
+	}
+
 	uID := handler.GetUserID(ctx)
 	if len(uID) > 0 {
 		req.UserID = uID
@@ -45,6 +49,18 @@ func (s *Scheduler) DeleteProject(ctx context.Context, req *types.ProjectReq) er
 }
 
 func (s *Scheduler) UpdateProject(ctx context.Context, req *types.ProjectReq) error {
+	if req.BundleURL == "" {
+		return xerrors.New("BundleURL is nil")
+	}
+
+	if req.Replicas <= 0 {
+		return xerrors.New("Replicas is 0")
+	}
+
+	if req.UUID == "" {
+		return xerrors.New("UUID is nil")
+	}
+
 	return s.ProjectManager.Update(req)
 }
 

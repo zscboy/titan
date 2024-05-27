@@ -82,10 +82,6 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 }
 
 func (m *Manager) Update(req *types.ProjectReq) error {
-	if req.UUID == "" {
-		return xerrors.New("UUID is nil")
-	}
-
 	err := m.UpdateProjectInfo(&types.ProjectInfo{
 		UUID:      req.UUID,
 		Name:      req.Name,
