@@ -203,17 +203,17 @@ func (m *Manager) NodeCalculateMCx(isPhone bool) float64 {
 	return mcx
 }
 
-func calculateMip(n types.NatType) float64 {
+func calculateMip(n string) float64 {
 	switch n {
-	case types.NatTypeNo:
+	case types.NatTypeNo.String():
 		return 2
-	case types.NatTypeFullCone:
+	case types.NatTypeFullCone.String():
 		return 1.5
-	case types.NatTypeRestricted:
+	case types.NatTypeRestricted.String():
 		return 1.3
-	case types.NatTypePortRestricted:
+	case types.NatTypePortRestricted.String():
 		return 1.1
-	case types.NatTypeSymmetric:
+	case types.NatTypeSymmetric.String():
 		return 0.8
 	}
 

@@ -149,7 +149,7 @@ func (m *Manager) electValidatorsFromEdge() {
 
 	for _, node := range list {
 		switch node.NATType {
-		case types.NatTypeNo:
+		case types.NatTypeNo.String():
 			if curCount < m.l2ValidatorCount {
 				node.Type = types.NodeValidator
 				curCount++

@@ -37,7 +37,6 @@ var cNodeInfoTable = `
 	    disk_type            VARCHAR(64)     DEFAULT '',
 	    io_system            VARCHAR(64)     DEFAULT '',
 	    system_version       VARCHAR(64)     DEFAULT '',
-	    nat_type             VARCHAR(32)     DEFAULT '',
 	    disk_space           FLOAT           DEFAULT 0,
 		available_disk_space FLOAT           DEFAULT 0,
 		titan_disk_usage     FLOAT           DEFAULT 0,

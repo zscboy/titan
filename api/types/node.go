@@ -34,6 +34,8 @@ type NodeInfo struct {
 	CPUUsage      float64
 	MemoryUsage   float64
 	Status        NodeStatus
+	NATType       string
+	IsPhone       bool
 	IncomeIncr    float64 // Base points increase every half hour (30 minute)
 	AssetCount    int64   `db:"asset_count"`
 	RetrieveCount int64   `db:"retrieve_count"`
@@ -49,7 +51,6 @@ type NodeInfo struct {
 	Memory         float64         `json:"memory" form:"memory" gorm:"column:memory;comment:;" db:"memory"`
 	CPUCores       int             `json:"cpu_cores" form:"cpuCores" gorm:"column:cpu_cores;comment:;" db:"cpu_cores"`
 	MacLocation    string          `json:"mac_location" form:"macLocation" gorm:"column:mac_location;comment:;" db:"mac_location"`
-	NATType        string          `db:"nat_type"`
 	PortMapping    string          `db:"port_mapping"`
 	SchedulerID    dtypes.ServerID `db:"scheduler_sid"`
 	DeactivateTime int64           `db:"deactivate_time"`

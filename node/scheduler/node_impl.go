@@ -412,7 +412,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		nodeInfo.Status = nodeStatus(node)
-		nodeInfo.NATType = node.NATType.String()
+		nodeInfo.NATType = node.NATType
 		nodeInfo.Type = node.Type
 		nodeInfo.CPUUsage = node.CPUUsage
 		nodeInfo.DiskUsage = node.DiskUsage
@@ -453,7 +453,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 		node := s.NodeManager.GetNode(nodeInfo.NodeID)
 		if node != nil {
 			nodeInfo.Status = nodeStatus(node)
-			nodeInfo.NATType = node.NATType.String()
+			nodeInfo.NATType = node.NATType
 			nodeInfo.Type = node.Type
 			nodeInfo.CPUUsage = node.CPUUsage
 			nodeInfo.DiskUsage = node.DiskUsage
@@ -540,7 +540,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 			continue
 		}
 
-		if eNode.NATType == types.NatTypeSymmetric {
+		if eNode.NATType == types.NatTypeSymmetric.String() {
 			continue
 		}
 
@@ -560,7 +560,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 			Address: eNode.DownloadAddr(),
 			NodeID:  nodeID,
 			Tk:      token,
-			NatType: eNode.NATType.String(),
+			NatType: eNode.NATType,
 		}
 		infos = append(infos, info)
 	}
@@ -752,7 +752,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			continue
 		}
 
-		if (cNode.NATType != types.NatTypeNo && cNode.NATType != types.NatTypeFullCone) || cNode.ExternalIP == "" {
+		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
 			continue
 		}
 
@@ -877,7 +877,7 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 			continue
 		}
 
-		if (cNode.NATType != types.NatTypeNo && cNode.NATType != types.NatTypeFullCone) || cNode.ExternalIP == "" {
+		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
 			continue
 		}
 
@@ -1042,7 +1042,7 @@ func newNodeKey() string {
 }
 
 func nodeStatus(node *node.Node) types.NodeStatus {
-	if node.NATType == types.NatTypeSymmetric {
+	if node.NATType == types.NatTypeSymmetric.String() {
 		return types.NodeNatSymmetric
 	}
 
