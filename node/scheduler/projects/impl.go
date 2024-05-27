@@ -6,7 +6,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/google/uuid"
 	xerrors "golang.org/x/xerrors"
 )
 
@@ -39,9 +38,11 @@ func (m *Manager) UpdateStatus(nodeID string, list []*types.Project) error {
 	return nil
 }
 
-func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
-	uid := uuid.NewString()
-
+func (m *Manager) Deploy(req *types.DeployProjectReq) error {
+	exist := m.isProjectTaskExist(req.UUID)
+	if exist {
+		return xerrors.Errorf("project %s is exist ", req.UUID)
+	}
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("project event: %s, add project ", req.Name)
@@ -49,7 +50,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 	expiration := time.Now().Add(150 * 24 * time.Hour)
 
 	info := &types.ProjectInfo{
-		UUID:        uid,
+		UUID:        req.UUID,
 		ServerID:    m.nodeMgr.ServerID,
 		Expiration:  expiration,
 		State:       NodeSelect.String(),
@@ -65,7 +66,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 
 	err := m.SaveProjectInfo(info)
 	if err != nil {
-		return "", &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+		return err
 	}
 
 	rInfo := ProjectForceState{
@@ -75,10 +76,10 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) (string, error) {
 	// create project task
 	err = m.projectStateMachines.Send(ProjectID(info.UUID), rInfo)
 	if err != nil {
-		return "", &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+		return err
 	}
 
-	return uid, nil
+	return nil
 }
 
 func (m *Manager) Update(req *types.ProjectReq) error {

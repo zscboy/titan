@@ -58,13 +58,19 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 			continue
 		}
 
-		// if node.CPUUsage{
-		// 	continue
-		// }
-
 		if _, exist := filterMap[node.NodeID]; exist {
 			continue
 		}
+
+		if node.CPUCores < int(info.CPUCores) {
+			continue
+		}
+
+		if node.Memory < float64(info.Memory) {
+			continue
+		}
+
+		// TODO info.AreaID
 
 		node.BackProjectTime = time.Now().Unix()
 		status := types.ProjectReplicaStatusStarting

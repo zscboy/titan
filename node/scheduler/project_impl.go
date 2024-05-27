@@ -23,13 +23,17 @@ func (s *Scheduler) UpdateProjectStatus(ctx context.Context, list []*types.Proje
 	return s.ProjectManager.UpdateStatus(nodeID, list)
 }
 
-func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectReq) (string, error) {
+func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectReq) error {
+	if req.UUID == "" {
+		return xerrors.New("UUID is nil")
+	}
+
 	if req.BundleURL == "" {
-		return "", xerrors.New("BundleURL is nil")
+		return xerrors.New("BundleURL is nil")
 	}
 
 	if req.Replicas <= 0 {
-		return "", xerrors.New("Replicas is 0")
+		return xerrors.New("Replicas is 0")
 	}
 
 	uID := handler.GetUserID(ctx)

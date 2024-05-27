@@ -8,6 +8,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/tablewriter"
 	"github.com/fatih/color"
+	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
 
@@ -158,7 +159,9 @@ var deployProjectCmd = &cli.Command{
 		}
 		defer closer()
 
-		pid, err := schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{Name: name, BundleURL: url, UserID: uid, Replicas: int64(count)})
+		pid := uuid.NewString()
+
+		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{UUID: pid, Name: name, BundleURL: url, UserID: uid, Replicas: int64(count)})
 		if err != nil {
 			return err
 		}
