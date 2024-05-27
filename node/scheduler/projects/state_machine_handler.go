@@ -58,6 +58,10 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 			continue
 		}
 
+		// if node.CPUUsage{
+		// 	continue
+		// }
+
 		if _, exist := filterMap[node.NodeID]; exist {
 			continue
 		}

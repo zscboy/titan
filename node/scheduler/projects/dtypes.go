@@ -37,6 +37,10 @@ type ProjectInfo struct {
 	BundleURL string
 	Replicas  int64
 
+	CPUCores int64
+	Memory   int64
+	AreaID   string
+
 	UserID string
 
 	DetailsList []string
@@ -58,6 +62,9 @@ func (state *ProjectInfo) ToProjectInfo() *types.ProjectInfo {
 		UserID:            state.UserID,
 		RetryCount:        state.RetryCount,
 		ReplenishReplicas: state.ReplenishReplicas,
+		CPUCores:          state.CPUCores,
+		Memory:            float64(state.Memory),
+		AreaID:            state.AreaID,
 	}
 }
 
@@ -72,6 +79,9 @@ func projectInfoFrom(info *types.ProjectInfo) *ProjectInfo {
 		UserID:            info.UserID,
 		RetryCount:        info.RetryCount,
 		ReplenishReplicas: info.ReplenishReplicas,
+		CPUCores:          info.CPUCores,
+		Memory:            int64(info.Memory),
+		AreaID:            info.AreaID,
 	}
 
 	for _, r := range info.DetailsList {
