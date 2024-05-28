@@ -18,7 +18,10 @@ type JsonCallResponse struct {
 }
 
 func jsonCall(jsonString string) (*JsonCallResponse, error) {
-	result := callC(jsonString)
+	result, err := callC(jsonString)
+	if err != nil {
+		return nil, err
+	}
 
 	var resp JsonCallResponse
 	if err := json.Unmarshal([]byte(result), &resp); err != nil {
