@@ -371,22 +371,30 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
-		info := &types.UploadInfo{AlreadyExists: true}
+		err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+		}
 
+		info := &types.UploadInfo{AlreadyExists: true}
 		m.UpdateAssetRecordExpiration(hash, expiration)
 
 		return info, nil
 	}
 
 	var cNode *node.Node
-	_, nodes := m.nodeMgr.GetAllCandidateNodes()
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-	})
-	for _, node := range nodes {
-		if node.IsStorageOnly {
-			cNode = node
-			break
+	if req.NodeID != "" {
+		cNode = m.nodeMgr.GetCandidateNode(req.NodeID)
+	} else {
+		_, nodes := m.nodeMgr.GetAllCandidateNodes()
+		sort.Slice(nodes, func(i, j int) bool {
+			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+		})
+		for _, node := range nodes {
+			if node.IsStorageOnly {
+				cNode = node
+				break
+			}
 		}
 	}
 
