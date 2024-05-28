@@ -2,4 +2,8 @@
 
 package cgo
 
-func callC(inputs string) string { return "" }
+import "errors"
+
+func callC(inputs string) (string, error) {
+	return "", errors.New("C function failed")
+}

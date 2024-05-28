@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-func callC(inputs string) string {
+func callC(inputs string) (string, error) {
 	ptrInputs := C.CString(inputs)
 	ptrOutputs := C.workerdGoRuntimeJsonCall(ptrInputs)
 	C.free(unsafe.Pointer(ptrInputs))
@@ -22,5 +22,5 @@ func callC(inputs string) string {
 	strOutputs := C.GoString(ptrOutputs)
 	C.workerdGoFreeHeapStrPtr(ptrOutputs)
 
-	return strOutputs
+	return strOutputs, nil
 }
