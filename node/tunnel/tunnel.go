@@ -114,10 +114,10 @@ func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
 	headerString := t.getHeaderString(r, serviceID)
 	t.onClientRecvData(req.idx, req.tag, []byte(headerString))
 
-	return t.serveConnection(conn, req.idx, req.tag)
+	return t.serveConn(conn, req.idx, req.tag)
 }
 
-func (t *Tunnel) serveConnection(conn net.Conn, idx uint16, tag uint16) error {
+func (t *Tunnel) serveConn(conn net.Conn, idx uint16, tag uint16) error {
 	buf := make([]byte, 4096)
 	for {
 		n, err := conn.Read(buf)
