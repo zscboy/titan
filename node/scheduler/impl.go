@@ -156,6 +156,11 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	if err != nil {
 		return err
 	}
+
+	if nodeType != types.NodeEdge && !meetCandidateStandard {
+		return xerrors.Errorf("Node %s does not meet the standard", nodeID)
+	}
+
 	nodeInfo.SchedulerID = s.ServerID
 	nodeInfo.ExternalIP = externalIP
 	nodeInfo.BandwidthUp = units.KiB

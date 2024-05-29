@@ -144,12 +144,18 @@ var deployProjectCmd = &cli.Command{
 			Value: "",
 		},
 		replicaCountFlag,
+		&cli.StringSliceFlag{
+			Name:  "nodes",
+			Usage: "node id list",
+			Value: &cli.StringSlice{},
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		name := cctx.String("name")
 		url := cctx.String("url")
 		uid := cctx.String("uid")
 		count := cctx.Int("replica-count")
+		nodeIDs := cctx.StringSlice("nodes")
 
 		ctx := ReqContext(cctx)
 
@@ -161,7 +167,7 @@ var deployProjectCmd = &cli.Command{
 
 		pid := uuid.NewString()
 
-		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{UUID: pid, Name: name, BundleURL: url, UserID: uid, Replicas: int64(count)})
+		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{UUID: pid, Name: name, BundleURL: url, UserID: uid, Replicas: int64(count), NodeIDs: nodeIDs})
 		if err != nil {
 			return err
 		}

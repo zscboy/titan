@@ -887,13 +887,13 @@ func (m *Manager) processMissingAssetReplicas(offset int) int {
 			continue
 		}
 
-		effectiveEdges, err := m.checkAssetReliability(cInfo.Hash)
-		if err != nil {
-			log.Errorf("checkAssetReliability err: %s", err.Error())
+		if cInfo.Source != int64(AssetSourceStorage) {
 			continue
 		}
 
-		if cInfo.Source != int64(AssetSourceStorage) {
+		effectiveEdges, err := m.checkAssetReliability(cInfo.Hash)
+		if err != nil {
+			log.Errorf("checkAssetReliability err: %s", err.Error())
 			continue
 		}
 

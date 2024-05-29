@@ -49,6 +49,8 @@ type ProjectInfo struct {
 	EdgeWaitings        int64
 	RetryCount          int64
 	ReplenishReplicas   int64
+
+	NodeIDs []string
 }
 
 // ToProjectInfo converts ProjectInfo to types.ProjectInfo

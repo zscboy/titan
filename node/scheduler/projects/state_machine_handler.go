@@ -2,7 +2,6 @@ package projects
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -44,55 +43,88 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 		filterMap[nodeID] = struct{}{}
 	}
 
-	// select nodes
-	list := m.nodeMgr.GetAllEdgeNode()
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].BackProjectTime < list[j].BackProjectTime
-	})
-	for _, node := range list {
-		if curCount >= info.Replicas {
-			break
+	if info.NodeIDs != nil && len(info.NodeIDs) > 0 {
+		for _, nodeID := range info.NodeIDs {
+			node := m.nodeMgr.GetNode(nodeID)
+			if node == nil {
+				continue
+			}
+
+			node.BackProjectTime = time.Now().Unix()
+			status := types.ProjectReplicaStatusStarting
+			// node.API.d
+			err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})
+			if err != nil {
+				log.Errorf("DeployProject Deploy %s err:%s", node.NodeID, err.Error())
+				status = types.ProjectReplicaStatusError
+			}
+
+			err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
+				Id:     info.UUID.String(),
+				NodeID: node.NodeID,
+				Status: status,
+			})
+			if err != nil {
+				log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
+				continue
+			}
+
+			if status == types.ProjectReplicaStatusStarting {
+				curCount++
+			}
 		}
+	} else {
+		// select nodes
+		needCount := int(info.Replicas) - len(info.EdgeReplicaSucceeds)
+		list := m.nodeMgr.GetRandomEdges(needCount)
 
-		if node == nil {
-			continue
-		}
+		log.Infof("handleCreate needCount %d ,%v", needCount, list)
+		// list := m.nodeMgr.GetAllEdgeNode()
+		// sort.Slice(list, func(i, j int) bool {
+		// 	return list[i].BackProjectTime < list[j].BackProjectTime
+		// })
+		for nodeID := range list {
+			node := m.nodeMgr.GetNode(nodeID)
+			if node == nil {
+				continue
+			}
 
-		if _, exist := filterMap[node.NodeID]; exist {
-			continue
-		}
+			if _, exist := filterMap[node.NodeID]; exist {
+				continue
+			}
 
-		if node.CPUCores < int(info.CPUCores) {
-			continue
-		}
+			if node.CPUCores < int(info.CPUCores) {
+				continue
+			}
 
-		if node.Memory < float64(info.Memory) {
-			continue
-		}
+			if node.Memory < float64(info.Memory) {
+				continue
+			}
 
-		// TODO info.AreaID
+			// TODO info.AreaID
 
-		node.BackProjectTime = time.Now().Unix()
-		status := types.ProjectReplicaStatusStarting
-		// node.API.d
-		err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})
-		if err != nil {
-			log.Errorf("DeployProject Deploy %s err:%s", node.NodeID, err.Error())
-			status = types.ProjectReplicaStatusError
-		}
+			node.BackProjectTime = time.Now().Unix()
+			status := types.ProjectReplicaStatusStarting
+			// node.API.d
+			err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})
+			if err != nil {
+				log.Errorf("DeployProject Deploy %s err:%s", node.NodeID, err.Error())
+				status = types.ProjectReplicaStatusError
+			}
 
-		err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-			Id:     info.UUID.String(),
-			NodeID: node.NodeID,
-			Status: status,
-		})
-		if err != nil {
-			log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
-			continue
-		}
+			err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
+				Id:     info.UUID.String(),
+				NodeID: node.NodeID,
+				Status: status,
+			})
+			if err != nil {
+				log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
+				continue
+			}
 
-		if status == types.ProjectReplicaStatusStarting {
-			curCount++
+			if status == types.ProjectReplicaStatusStarting {
+				curCount++
+			}
 		}
 	}
 

@@ -26,7 +26,7 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{174}); err != nil {
+	if _, err := cw.Write([]byte{175}); err != nil {
 		return err
 	}
 
@@ -165,6 +165,38 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := io.WriteString(w, string(t.UserID)); err != nil {
 		return err
+	}
+
+	// t.NodeIDs ([]string) (slice)
+	if len("NodeIDs") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"NodeIDs\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("NodeIDs"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("NodeIDs")); err != nil {
+		return err
+	}
+
+	if len(t.NodeIDs) > cbg.MaxLength {
+		return xerrors.Errorf("Slice value in field t.NodeIDs was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.NodeIDs))); err != nil {
+		return err
+	}
+	for _, v := range t.NodeIDs {
+		if len(v) > cbg.MaxLength {
+			return xerrors.Errorf("Value in field v was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, string(v)); err != nil {
+			return err
+		}
 	}
 
 	// t.CPUCores (int64) (int64)
@@ -485,6 +517,38 @@ func (t *ProjectInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.UserID = string(sval)
 			}
+			// t.NodeIDs ([]string) (slice)
+		case "NodeIDs":
+
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
+			}
+
+			if extra > cbg.MaxLength {
+				return fmt.Errorf("t.NodeIDs: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.NodeIDs = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+
+				{
+					sval, err := cbg.ReadString(cr)
+					if err != nil {
+						return err
+					}
+
+					t.NodeIDs[i] = string(sval)
+				}
+			}
+
 			// t.CPUCores (int64) (int64)
 		case "CPUCores":
 			{

@@ -57,6 +57,7 @@ type DeployProjectReq struct {
 	CPUCores int64
 	Memory   float64
 	AreaID   string
+	NodeIDs  []string
 }
 
 type ProjectInfo struct {
