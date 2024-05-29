@@ -119,7 +119,7 @@ func (tc *Tunclient) onTunnelMessage(message []byte) error {
 }
 
 func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) error {
-	log.Infof("handlRequestCreated idx:%d tag:%d, projectID:%s", idx, tag, projectID)
+	log.Debugf("handlRequestCreated idx:%d tag:%d, projectID:%s", idx, tag, projectID)
 	service := tc.services.get(projectID)
 	if service == nil {
 		// TODO　send server close
@@ -150,7 +150,7 @@ func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) erro
 }
 
 func (tc *Tunclient) handlRequestData(idx, tag uint16, data []byte) error {
-	log.Infof("handlRequestData idx:%d tag:%d, data len:%d", idx, tag, len(data))
+	log.Debugf("handlRequestData idx:%d tag:%d, data len:%d", idx, tag, len(data))
 
 	req := tc.reqq.getReq(idx, tag)
 	if req == nil {
@@ -160,12 +160,12 @@ func (tc *Tunclient) handlRequestData(idx, tag uint16, data []byte) error {
 }
 
 func (tc *Tunclient) handlRequestClosed(idx, tag uint16) error {
-	log.Infof("handlRequestClosed idx:%d tag:%d", idx, tag)
+	log.Debugf("handlRequestClosed idx:%d tag:%d", idx, tag)
 	return tc.reqq.free(idx, tag)
 }
 
 func (tc *Tunclient) onRequestTerminate(idx, tag uint16) error {
-	log.Infof("onRequestTerminate idx:%d tag:%d", idx, tag)
+	log.Debugf("onRequestTerminate idx:%d tag:%d", idx, tag)
 
 	buf := make([]byte, 5)
 	buf[0] = uint8(cMDReqServerClosed)
@@ -183,7 +183,7 @@ func (tc *Tunclient) write(msg []byte) error {
 }
 
 func (tc *Tunclient) onRequestData(req *Request, data []byte) error {
-	log.Infof("onRequestData idx:%d tag:%d, data len:%d", req.idx, req.tag, len(data))
+	log.Debugf("onRequestData idx:%d tag:%d, data len:%d", req.idx, req.tag, len(data))
 
 	buf := make([]byte, 5+len(data))
 	buf[0] = uint8(cMDReqData)
