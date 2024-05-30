@@ -229,6 +229,8 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 		return err
 	}
 
+	log.Infof("Project %s created successfully. Service is now listening on: %s", project.ID, socketAddr)
+
 	return nil
 }
 
