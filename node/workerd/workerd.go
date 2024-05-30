@@ -412,6 +412,19 @@ func GetFreePort() (port int, err error) {
 	return
 }
 
+func (w *Workerd) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	for _, project := range w.projects {
+		if err := cgo.DestroyWorkerd(project.ID); err != nil {
+			log.Errorf("destory project %s failed: %v", project.ID, err)
+		}
+	}
+
+	return nil
+}
+
 // sync synchronizes the local projects with the active projects from the API.
 func (w *Workerd) sync(ctx context.Context) {
 	// Retrieve local projects.

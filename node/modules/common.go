@@ -161,6 +161,9 @@ func NewWorkerd(mctx helpers.MetricsCtx, l fx.Lifecycle, schedulerAPI api.Schedu
 			go w.RestartProjects(ctx)
 			return nil
 		},
+		OnStop: func(ctx context.Context) error {
+			return w.Close()
+		},
 	})
 
 	return w, nil
