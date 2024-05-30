@@ -27,6 +27,8 @@ const (
 	checkServicingProjectInterval = 30 * time.Minute
 
 	maxNodeOfflineTime = 24 * time.Hour
+
+	edgeReplicasLimit = 1000
 )
 
 // Manager manages project replicas

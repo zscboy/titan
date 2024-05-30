@@ -40,7 +40,7 @@ const (
 	// Interval to check candidate backup of asset (Unit:Minute)
 	checkCandidateBackupInterval = 10 * time.Minute
 	// Maximum number of replicas per asset
-	assetEdgeReplicasLimit = 8000
+	assetEdgeReplicasLimit = 1000
 	// The number of retries to select the pull asset node
 	selectNodeRetryLimit = 2
 	// If the node disk size is greater than this value, pulling will not continue

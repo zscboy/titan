@@ -43,6 +43,11 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	if exist {
 		return xerrors.Errorf("project %s is exist ", req.UUID)
 	}
+
+	if req.Replicas > edgeReplicasLimit {
+		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", req.Replicas, edgeReplicasLimit)
+	}
+
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("project event: %s, add project ", req.Name)
@@ -84,6 +89,10 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 }
 
 func (m *Manager) Update(req *types.ProjectReq) error {
+	if req.Replicas > edgeReplicasLimit {
+		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", req.Replicas, edgeReplicasLimit)
+	}
+
 	err := m.UpdateProjectInfo(&types.ProjectInfo{
 		UUID:      req.UUID,
 		Name:      req.Name,
