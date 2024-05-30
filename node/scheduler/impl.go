@@ -190,22 +190,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
 	cNode.MeetCandidateStandard = meetCandidateStandard
 
-	// cNode.BandwidthDown = nodeInfo.BandwidthDown
-	// cNode.BandwidthUp = nodeInfo.BandwidthUp
-	// cNode.PortMapping = nodeInfo.PortMapping
-	// cNode.DeactivateTime = nodeInfo.DeactivateTime
-	// cNode.AvailableDiskSpace = nodeInfo.AvailableDiskSpace
-	// cNode.NodeID = nodeInfo.NodeID
-	// cNode.Type = nodeInfo.Type
-	// cNode.ExternalIP = nodeInfo.ExternalIP
-	// cNode.DiskSpace = nodeInfo.DiskSpace
-	// cNode.TitanDiskUsage = nodeInfo.TitanDiskUsage
-	// cNode.DiskUsage = nodeInfo.DiskUsage
-	// cNode.NetFlowUp = nodeInfo.NetFlowUp
-	// cNode.NetFlowDown = nodeInfo.NetFlowDown
-	// cNode.DownloadTraffic = nodeInfo.DownloadTraffic
-	// cNode.UploadTraffic = nodeInfo.UploadTraffic
-
 	if !alreadyConnect {
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
@@ -248,7 +232,7 @@ func isPhone(systemVersion, cpuInfo, androidSymbol, iosSymbol string) bool {
 	return false
 }
 
-func roundUpToNextGB(bytes int) int {
+func roundUpToNextGB(bytes int64) int64 {
 	const GB = 1 << 30
 	if bytes%GB == 0 {
 		return bytes

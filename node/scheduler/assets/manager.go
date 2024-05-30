@@ -54,7 +54,7 @@ const (
 	// If the node does not reply more than once, the asset pull timeout is determined.
 	assetTimeoutLimit = 3
 
-	checkAssetReplicaLimit = 10
+	checkAssetReplicaLimit = 50
 
 	nodeProfitsLimitOfDay = 50000.0
 )

@@ -416,14 +416,14 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.Type = node.Type
 		nodeInfo.CPUUsage = node.CPUUsage
 		nodeInfo.DiskUsage = node.DiskUsage
-		nodeInfo.BandwidthDown = node.BandwidthDown
-		nodeInfo.BandwidthUp = node.BandwidthUp
 		nodeInfo.ExternalIP = node.ExternalIP
 		nodeInfo.IncomeIncr = node.IncomeIncr
-		nodeInfo.TitanDiskUsage = node.TitanDiskUsage
-		nodeInfo.NetFlowUp = node.NetFlowUp
-		nodeInfo.NetFlowDown = node.NetFlowDown
 		nodeInfo.IsTestNode = node.IsTestNode
+		// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
+		// nodeInfo.NetFlowUp = node.NetFlowUp
+		// nodeInfo.NetFlowDown = node.NetFlowDown
+		// nodeInfo.BandwidthDown = node.BandwidthDown
+		// nodeInfo.BandwidthUp = node.BandwidthUp
 
 		log.Debugf("%s node select codes:%v , url:%s", nodeID, node.SelectWeights(), node.ExternalURL)
 	}
@@ -457,14 +457,14 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.Type = node.Type
 			nodeInfo.CPUUsage = node.CPUUsage
 			nodeInfo.DiskUsage = node.DiskUsage
-			nodeInfo.BandwidthDown = node.BandwidthDown
-			nodeInfo.BandwidthUp = node.BandwidthUp
 			nodeInfo.ExternalIP = node.ExternalIP
 			nodeInfo.IncomeIncr = node.IncomeIncr
-			nodeInfo.TitanDiskUsage = node.TitanDiskUsage
-			nodeInfo.NetFlowUp = node.NetFlowUp
-			nodeInfo.NetFlowDown = node.NetFlowDown
 			nodeInfo.IsTestNode = node.IsTestNode
+			// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
+			// nodeInfo.NetFlowUp = node.NetFlowUp
+			// nodeInfo.NetFlowDown = node.NetFlowDown
+			// nodeInfo.BandwidthDown = node.BandwidthDown
+			// nodeInfo.BandwidthUp = node.BandwidthUp
 		}
 
 		// _, exist := validator[nodeInfo.NodeID]
@@ -720,6 +720,12 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.SourceDownloadInfo, 0)
 
+	// Shuffle array
+	for i := len(replicas) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		replicas[i], replicas[j] = replicas[j], replicas[i]
+	}
+
 	limit := 5
 	for _, rInfo := range replicas {
 		nodeID := rInfo.NodeID
@@ -843,6 +849,12 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		bucket = aInfo.Note
 
 		sources = append(sources, &types.CandidateDownloadInfo{AWSBucket: bucket, NodeID: types.DownloadSourceAWS.String()})
+	}
+
+	// Shuffle array
+	for i := len(replicas) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		replicas[i], replicas[j] = replicas[j], replicas[i]
 	}
 
 	limit := 5

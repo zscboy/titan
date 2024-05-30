@@ -42,29 +42,8 @@ type Node struct {
 	ExternalURL           string
 	IsPrivateMinioOnly    bool
 	IsStorageOnly         bool
-	IncomeIncr            float64
 	BackProjectTime       int64
 	MeetCandidateStandard bool
-
-	// IsPhone               bool
-	// NATType            types.NatType
-	// CPUUsage           float64
-	// DiskUsage          float64
-	// TitanDiskUsage     float64
-	// Type               types.NodeType
-	// PortMapping        string
-	// BandwidthDown      int64
-	// BandwidthUp        int64
-	// NetFlowUp          int64
-	// NetFlowDown        int64
-	// DownloadTraffic    int64
-	// UploadTraffic      int64
-	// WSServerID         string
-	// ExternalIP         string
-	// DiskSpace          float64
-	// AvailableDiskSpace float64
-	// IsTestNode         bool
-	// DeactivateTime     int64
 }
 
 // API represents the node API

@@ -360,9 +360,9 @@ func (n *SQLDB) LoadAllReplicasByNodeID(nodeID string, limit, offset int, statue
 }
 
 // LoadReplicaSizeByNodeID load size of node.
-func (n *SQLDB) LoadReplicaSizeByNodeID(nodeID string) (int, error) {
+func (n *SQLDB) LoadReplicaSizeByNodeID(nodeID string) (int64, error) {
 	// SELECT SUM(b.total_size) AS total_size FROM replica_info a JOIN asset_record b ON a.hash = b.hash WHERE a.status = 3 AND a.node_id='e_77dafc142748480bb38b5f45628807bd';
-	size := 0
+	size := int64(0)
 	query := fmt.Sprintf("SELECT COALESCE(SUM(b.total_size), 0) FROM %s a JOIN %s b ON a.hash = b.hash WHERE a.status=? AND a.node_id=?", replicaInfoTable, assetRecordTable)
 	err := n.db.Get(&size, query, types.ReplicaStatusSucceeded, nodeID)
 	if err != nil {
