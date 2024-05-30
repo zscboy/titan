@@ -88,7 +88,7 @@ func CreateWorkerd(projectId string, directory, configFilePath, addr string) err
 
 	resp, err := jsonCall(string(marshalledJsonCallParam))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if resp.Code != 0 {

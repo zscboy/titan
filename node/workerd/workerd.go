@@ -471,9 +471,10 @@ func (w *Workerd) sync(ctx context.Context) {
 
 		log.Infof("destroying inactive local project: %s", projectId)
 
-		err := w.destroyProject(context.Background(), projectId)
-		if err != nil {
-			log.Errorf("failed to destroy project %s: %v", projectId, err)
+		_ = cgo.DestroyWorkerd(projectId)
+
+		if err := os.RemoveAll(w.getProjectPath(projectId)); err != nil {
+			log.Errorf("failed to remove project %s: %v", projectId, err)
 		}
 	}
 }
