@@ -98,6 +98,7 @@ type Manager struct {
 
 	l2ValidatorCount int
 	electionCycle    time.Duration
+	validatorRatio   float64
 
 	nodeBandwidthDowns map[string]float64
 }
@@ -129,16 +130,16 @@ func (m *Manager) initCfg() {
 		log.Errorf("get schedulerConfig err:%s", err.Error())
 
 		m.electionCycle = electionCycle
+		m.validatorRatio = 1
 		return
 	}
 
 	m.validatorBaseBwDn = float64(cfg.ValidatorBaseBwDn * units.MiB)
 	m.lotusRPCAddress = cfg.LotusRPCAddress
-
 	m.enableValidation = cfg.EnableValidation
-
 	m.l2ValidatorCount = cfg.L2ValidatorCount
 	m.electionCycle = time.Duration(cfg.ElectionCycle) * time.Hour
+	m.validatorRatio = cfg.ValidatorRatio
 }
 
 // Start start validate and elect task

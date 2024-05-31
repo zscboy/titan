@@ -1,6 +1,8 @@
 package validation
 
 import (
+	"math"
+	"math/rand"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -61,12 +63,14 @@ func (m *Manager) elect() error {
 	log.Debugln("start elect ")
 
 	m.electValidatorsFromEdge()
-	// validators, validatables := m.electValidators()
-
-	// m.ResetValidatorGroup(validators, validatables)
-
-	// return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID)
-
+	// validators, _ := m.electValidators()
+	// for _, nodeID := range validators {
+	// 	node := m.nodeMgr.GetCandidateNode(nodeID)
+	// 	if node != nil {
+	// 		node.Type = types.NodeValidator
+	// 	}
+	// }
+	// return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID, true)
 	return nil
 }
 
@@ -113,30 +117,28 @@ func (m *Manager) StartElection() {
 	m.updateCh <- struct{}{}
 }
 
-// // performs the election process and returns the list of elected validators.
-// func (m *Manager) electValidators() ([]string, []string) {
-// 	ratio := m.getValidatorRatio()
+// performs the election process and returns the list of elected validators.
+func (m *Manager) electValidators() ([]string, []string) {
+	list, _ := m.nodeMgr.GetAllCandidateNodes()
 
-// 	list, _ := m.nodeMgr.GetAllCandidateNodes()
+	needValidatorCount := int(math.Ceil(float64(len(list)) * m.validatorRatio))
+	if needValidatorCount <= 0 {
+		return nil, list
+	}
 
-// 	needValidatorCount := int(math.Ceil(float64(len(list)) * ratio))
-// 	if needValidatorCount <= 0 {
-// 		return nil, list
-// 	}
+	rand.Shuffle(len(list), func(i, j int) {
+		list[i], list[j] = list[j], list[i]
+	})
 
-// 	rand.Shuffle(len(list), func(i, j int) {
-// 		list[i], list[j] = list[j], list[i]
-// 	})
+	if needValidatorCount > len(list) {
+		needValidatorCount = len(list)
+	}
 
-// 	if needValidatorCount > len(list) {
-// 		needValidatorCount = len(list)
-// 	}
+	validators := list[:needValidatorCount]
+	validatables := list[needValidatorCount:]
 
-// 	validators := list[:needValidatorCount]
-// 	validatables := list[needValidatorCount:]
-
-// 	return validators, validatables
-// }
+	return validators, validatables
+}
 
 func (m *Manager) electValidatorsFromEdge() {
 	if m.l2ValidatorCount <= 0 {
