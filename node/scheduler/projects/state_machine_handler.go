@@ -214,6 +214,9 @@ func (m *Manager) handleServicing(ctx statemachine.Context, info ProjectInfo) er
 func (m *Manager) handleDeploysFailed(ctx statemachine.Context, info ProjectInfo) error {
 	m.stopProjectTimeoutCounting(info.UUID.String())
 
+	// remove fail replicas
+	m.DeleteUnfinishedProjectReplicas(info.UUID.String())
+
 	if info.RetryCount >= int64(MaxRetryCount) {
 		log.Infof("handle pulls failed: %s, retry count: %d", info.UUID, info.RetryCount)
 

@@ -1584,11 +1584,20 @@ func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp
 		return nil, fmt.Errorf("invalid request")
 	}
 
-	// select candidate
-	_, list := s.NodeManager.GetAllCandidateNodes()
-	index := rand.Intn(len(list))
+	var vNode *node.Node
+	wID, err := s.db.LoadWSServerID(nodeID)
+	if err == nil && wID != "" {
+		vNode = s.NodeManager.GetCandidateNode(wID)
+	}
 
-	vNode := list[index]
+	if vNode == nil {
+		// select candidate
+		_, list := s.NodeManager.GetAllCandidateNodes()
+		index := rand.Intn(len(list))
+
+		vNode = list[index]
+	}
+
 	if vNode == nil {
 		return nil, fmt.Errorf("node not found")
 	}

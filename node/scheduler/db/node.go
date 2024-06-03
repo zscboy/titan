@@ -827,6 +827,14 @@ func (n *SQLDB) SaveWSServerID(nodeID, wID string) error {
 	return err
 }
 
+// LoadWSServerID
+func (n *SQLDB) LoadWSServerID(nodeID string) (string, error) {
+	var wID string
+	query := fmt.Sprintf(`SELECT ws_server_id FROM %s WHERE node_id=?`, nodeInfoTable)
+	err := n.db.Get(&wID, query, nodeID)
+	return wID, err
+}
+
 // LoadDeactivateNodeTime Get node deactivate time
 func (n *SQLDB) LoadDeactivateNodeTime(nodeID string) (int64, error) {
 	query := fmt.Sprintf(`SELECT deactivate_time FROM %s WHERE node_id=?`, nodeInfoTable)

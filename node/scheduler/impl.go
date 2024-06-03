@@ -164,6 +164,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	nodeInfo.SchedulerID = s.ServerID
 	nodeInfo.ExternalIP = externalIP
 	nodeInfo.BandwidthUp = units.KiB
+	nodeInfo.NATType = types.NatTypeUnknown.String()
 
 	oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {

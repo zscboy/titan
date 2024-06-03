@@ -18,8 +18,8 @@ var log = logging.Logger("scheduler/nat")
 
 const (
 	miniCandidateCount = 2
-	detectInterval     = 60
-	maxRetry           = 5
+	detectInterval     = 30
+	maxRetry           = 10
 )
 
 type Manager struct {
@@ -274,7 +274,7 @@ func (m *Manager) retryCandidateDetectNatType(cNode *retryNode) {
 
 	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
 
-	if eNode.NATType != types.NatTypeUnknown.String() || cNode.retry >= (maxRetry*2) {
+	if eNode.NATType != types.NatTypeUnknown.String() || cNode.retry >= maxRetry {
 		m.deleteCandidateNode(cNode)
 	}
 	log.Debugf("retry detect node %s nat type %s , %d", cNode.id, eNode.NATType, cNode.retry)

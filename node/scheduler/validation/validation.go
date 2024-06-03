@@ -264,6 +264,8 @@ func (m *Manager) updateTimeoutResultInfo() {
 					resultInfo.Profit = dInfo.Profit
 					detailsList = append(detailsList, dInfo)
 				}
+			} else {
+				resultInfo.Status = types.ValidationStatusNodeTimeOut
 			}
 
 			node.UploadTraffic += bandwidth
