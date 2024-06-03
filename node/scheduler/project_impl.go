@@ -90,6 +90,7 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 		}
 
 		for _, dInfo := range list {
+			dInfo.BundleURL = pInfo.BundleURL
 			node := s.NodeManager.GetNode(dInfo.NodeID)
 			if node == nil {
 				continue

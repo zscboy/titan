@@ -19,6 +19,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/projects"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/docker/go-units"
 	"github.com/quic-go/quic-go"
 
@@ -56,6 +57,7 @@ const (
 type Scheduler struct {
 	fx.In
 
+	region.Region
 	*common.CommonAPI
 	*EdgeUpdateManager
 	dtypes.ServerID
@@ -127,7 +129,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	log.Infof("node connected %s, address:%s , %v", nodeID, remoteAddr, alreadyConnect)
+	log.Infof("node connected %s, address[%s] , %v", nodeID, remoteAddr, alreadyConnect)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
 	if err != nil {
@@ -165,6 +167,11 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	nodeInfo.ExternalIP = externalIP
 	nodeInfo.BandwidthUp = units.KiB
 	nodeInfo.NATType = types.NatTypeUnknown.String()
+
+	nodeInfo.GeoInfo, err = s.GetGeoInfo(externalIP)
+	if err != nil {
+		log.Warnf("%s getAreaID error %s", nodeID, err.Error())
+	}
 
 	oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {

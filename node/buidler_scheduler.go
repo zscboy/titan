@@ -21,6 +21,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/sync"
 	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/filecoin-project/pubsub"
 	"github.com/jmoiron/sqlx"
 
@@ -78,6 +79,10 @@ func ConfigScheduler(c interface{}) Option {
 		Override(new(dtypes.SetSchedulerConfigFunc), modules.NewSetSchedulerConfigFunc),
 		Override(new(dtypes.GetSchedulerConfigFunc), modules.NewGetSchedulerConfigFunc),
 		Override(new(*rsa.PrivateKey), modules.NewPrivateKey),
+		Override(new(dtypes.GeoDBPath), func() dtypes.GeoDBPath {
+			return dtypes.GeoDBPath(cfg.GeoDBPath)
+		}),
+		Override(new(region.Region), modules.NewRegion),
 		// func() (*rsa.PrivateKey, error) {
 		// return rsa.GenerateKey(rand.Reader, units.KiB) //nolint:gosec   // need smaller key
 		// }),

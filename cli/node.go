@@ -285,23 +285,26 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("IP"),
 			tablewriter.Col("Profit"),
 			tablewriter.Col("OnlineDuration"),
-			tablewriter.Col("DownloadTraffic"),
-			tablewriter.Col("UploadTraffic"),
+			tablewriter.Col("Geo"),
 		)
 
 		for w := 0; w < len(r.Data); w++ {
 			info := r.Data[w]
 
+			geo := ""
+			if info.GeoInfo != nil {
+				geo = info.GeoInfo.Geo
+			}
+
 			m := map[string]interface{}{
-				"NodeID":          info.NodeID,
-				"NodeType":        info.Type.String(),
-				"Status":          colorOnline(info.Status),
-				"Nat":             info.NATType,
-				"IP":              info.ExternalIP,
-				"Profit":          fmt.Sprintf("%.4f", info.Profit),
-				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
-				"DownloadTraffic": fmt.Sprintf("%d", info.DownloadTraffic),
-				"UploadTraffic":   fmt.Sprintf("%d", info.UploadTraffic),
+				"NodeID":         info.NodeID,
+				"NodeType":       info.Type.String(),
+				"Status":         colorOnline(info.Status),
+				"Nat":            info.NATType,
+				"IP":             info.ExternalIP,
+				"Profit":         fmt.Sprintf("%.4f", info.Profit),
+				"OnlineDuration": fmt.Sprintf("%d", info.OnlineDuration),
+				"Geo":            fmt.Sprintf("%s", geo),
 			}
 
 			tw.Write(m)
@@ -511,7 +514,9 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		fmt.Printf("NatType: %s \n", info.NATType)
 		fmt.Printf("OnlineDuration: %d \n", info.OnlineDuration)
-		fmt.Printf("Profit: %.4f \n", info.Profit)
+		if info.GeoInfo != nil {
+			fmt.Printf("Geo: %s \n", info.GeoInfo.Geo)
+		}
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetFlowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetFlowDown)))
 

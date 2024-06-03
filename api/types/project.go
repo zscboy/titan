@@ -88,7 +88,8 @@ type ProjectReplicas struct {
 	CreatedTime time.Time            `db:"created_time"`
 	EndTime     time.Time            `db:"end_time"`
 
-	WsURL string
+	WsURL     string
+	BundleURL string
 }
 
 // ProjectStateInfo represents information about an project state
@@ -98,3 +99,12 @@ type ProjectStateInfo struct {
 	RetryCount        int64  `db:"retry_count"`
 	ReplenishReplicas int64  `db:"replenish_replicas"`
 }
+
+type ProjectEvent int
+
+const (
+	ProjectEventRemove ProjectEvent = iota
+	ProjectEventAdd
+	ProjectEventNodeOffline
+	ProjectEventStatusChange
+)

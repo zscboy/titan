@@ -97,8 +97,8 @@ func (m *Manager) isProjectTaskExist(id string) bool {
 }
 
 // removeReplica remove a replica for node
-func (m *Manager) removeReplica(id, nodeID string) error {
-	err := m.DeleteProjectReplica(id, nodeID)
+func (m *Manager) removeReplica(id, nodeID string, event types.ProjectEvent) error {
+	err := m.DeleteProjectReplica(id, nodeID, event)
 	if err != nil {
 		return err
 	}
@@ -411,6 +411,8 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 			// delete replicas
 			for _, id := range projectIDs {
 				projectDeleteReplicas[id] = append(projectDeleteReplicas[id], nodeID)
+
+				m.removeReplica(id, nodeID, types.ProjectEventNodeOffline)
 			}
 			continue
 		}
@@ -425,16 +427,18 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 			if result.Status != types.ProjectReplicaStatusStarted {
 				// delete replicas
 				projectDeleteReplicas[result.ID] = append(projectDeleteReplicas[result.ID], nodeID)
+
+				m.removeReplica(result.ID, nodeID, types.ProjectEventStatusChange)
 			}
 		}
 	}
 
-	for id, nodes := range projectDeleteReplicas {
-		err := m.UpdateProjectReplicaStatusToFailed(id, nodes)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s UpdateProjectReplicaStatusToFailed err: %s", id, err.Error())
-			continue
-		}
+	for id := range projectDeleteReplicas {
+		// err := m.UpdateProjectReplicaStatusToFailed(id, nodes)
+		// if err != nil {
+		// 	log.Errorf("checkProjectReplicas %s UpdateProjectReplicaStatusToFailed err: %s", id, err.Error())
+		// 	continue
+		// }
 
 		err = m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, 0, m.nodeMgr.ServerID)
 		if err != nil {

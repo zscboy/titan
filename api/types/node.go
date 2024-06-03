@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/region"
 	"golang.org/x/time/rate"
 )
 
@@ -37,8 +38,9 @@ type NodeInfo struct {
 	NATType       string
 	IsPhone       bool
 	IncomeIncr    float64 // Base points increase every half hour (30 minute)
-	AssetCount    int64   `db:"asset_count"`
-	RetrieveCount int64   `db:"retrieve_count"`
+	GeoInfo       *region.GeoInfo
+	AssetCount    int64 `db:"asset_count"`
+	RetrieveCount int64 `db:"retrieve_count"`
 
 	FirstTime      time.Time       `db:"first_login_time"`
 	NetFlowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`

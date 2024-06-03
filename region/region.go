@@ -25,6 +25,11 @@ type GeoInfo struct {
 	Longitude float64
 	IP        string
 	Geo       string
+
+	Continent string
+	Country   string
+	Province  string
+	City      string
 }
 
 var region Region

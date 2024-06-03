@@ -140,6 +140,8 @@ type SchedulerCfg struct {
 	ListenAddress string
 	// database address
 	DatabaseAddress string
+	// geodb path
+	GeoDBPath string
 	// area id
 	AreaID string
 	// InsecureSkipVerify skip tls verify

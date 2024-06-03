@@ -155,6 +155,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		CertificatePath:         "",
 		PrivateKeyPath:          "",
 		CaCertificatePath:       "",
+		GeoDBPath:               "./city.mmdb",
 		AreaID:                  "Asia-China-Guangdong-Shenzhen",
 		DatabaseAddress:         "mysql_user:mysql_password@tcp(127.0.0.1:3306)/titan",
 		EnableValidation:        true,

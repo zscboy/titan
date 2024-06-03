@@ -64,7 +64,7 @@ func analyzeNodeNATType(ctx context.Context, eNode *node.Node, candidateNodes []
 	log.Debugf("check candidate %s to edge %s tcp connectivity failed", candidate2.NodeID, eURL)
 
 	if ok, err := detectFullConeNAT(ctx, candidate2, eURL); err != nil {
-		return types.NatTypeFullCone, err
+		return types.NatTypeUnknown, err
 	} else if ok {
 		return types.NatTypeFullCone, nil
 	}

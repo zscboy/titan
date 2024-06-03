@@ -419,6 +419,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.ExternalIP = node.ExternalIP
 		nodeInfo.IncomeIncr = node.IncomeIncr
 		nodeInfo.IsTestNode = node.IsTestNode
+		nodeInfo.GeoInfo = node.GeoInfo
 		// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
 		// nodeInfo.NetFlowUp = node.NetFlowUp
 		// nodeInfo.NetFlowDown = node.NetFlowDown
@@ -460,6 +461,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.ExternalIP = node.ExternalIP
 			nodeInfo.IncomeIncr = node.IncomeIncr
 			nodeInfo.IsTestNode = node.IsTestNode
+			nodeInfo.GeoInfo = node.GeoInfo
 			// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
 			// nodeInfo.NetFlowUp = node.NetFlowUp
 			// nodeInfo.NetFlowDown = node.NetFlowDown
@@ -1629,5 +1631,19 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 		nodeID = nID
 	}
 
-	return s.db.LoadProjectReplicasForNode(nodeID)
+	list, err := s.db.LoadProjectReplicasForNode(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range list {
+		pInfo, err := s.db.LoadProjectInfo(info.Id)
+		if err != nil {
+			continue
+		}
+
+		info.BundleURL = pInfo.BundleURL
+	}
+
+	return list, nil
 }

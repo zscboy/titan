@@ -123,7 +123,7 @@ func (m *Manager) Delete(req *types.ProjectReq) error {
 	}
 
 	if req.NodeID != "" {
-		return m.removeReplica(req.UUID, req.NodeID)
+		return m.removeReplica(req.UUID, req.NodeID, types.ProjectEventRemove)
 	}
 
 	if exist, _ := m.projectStateMachines.Has(ProjectID(req.UUID)); !exist {
@@ -145,6 +145,7 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 	}
 
 	for _, dInfo := range list {
+		dInfo.BundleURL = info.BundleURL
 		node := m.nodeMgr.GetNode(dInfo.NodeID)
 		if node == nil {
 			continue

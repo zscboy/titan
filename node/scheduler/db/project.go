@@ -179,7 +179,7 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 		query = fmt.Sprintf(
 			`INSERT INTO %s (id, event, node_id) 
 			VALUES (?, ?, ?)`, projectEventTable)
-		_, err = n.db.Exec(query, info.Id, types.ReplicaEventAdd, info.NodeID)
+		_, err = n.db.Exec(query, info.Id, types.ProjectEventAdd, info.NodeID)
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func (n *SQLDB) LoadProjectReplicasForNode(nodeID string) ([]*types.ProjectRepli
 }
 
 // DeleteProjectReplica deletes
-func (n *SQLDB) DeleteProjectReplica(id, nodeID string) error {
+func (n *SQLDB) DeleteProjectReplica(id, nodeID string, event types.ProjectEvent) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -234,7 +234,7 @@ func (n *SQLDB) DeleteProjectReplica(id, nodeID string) error {
 		`INSERT INTO %s (id, event, node_id) 
 			VALUES (?, ?, ?)`, projectEventTable)
 
-	_, err = tx.Exec(query, id, types.ReplicaEventRemove, nodeID)
+	_, err = tx.Exec(query, id, event, nodeID)
 	if err != nil {
 		return err
 	}
