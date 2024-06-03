@@ -81,6 +81,7 @@ func (w *Workerd) run(ctx context.Context) {
 			}
 
 		case <-syncerTicker.C:
+			go w.checkConnectivity()
 			go w.sync(ctx)
 		case <-ctx.Done():
 			return
@@ -91,6 +92,7 @@ func (w *Workerd) run(ctx context.Context) {
 func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Project) {
 	w.mu.Lock()
 	w.projects[project.ID].Status = project.Status
+	w.projects[project.ID].Port = project.Port
 	w.mu.Unlock()
 
 	err := w.api.UpdateProjectStatus(ctx, []*types.Project{project})
@@ -200,8 +202,15 @@ func (w *Workerd) getProject(projectId string) (*types.Project, error) {
 
 func (w *Workerd) ensureProjectInitialized(ctx context.Context, project *types.Project) error {
 	if Exists(w.getProjectPath(project.ID)) {
-		return nil
+		if Exists(filepath.Join(w.getProjectPath(project.ID), defaultConfigFilename)) {
+			return nil
+		}
+
+		if err := os.RemoveAll(w.getProjectPath(project.ID)); err != nil {
+			return err
+		}
 	}
+
 	if err := w.createProject(ctx, project); err != nil {
 		log.Errorf("error creating project %s: %v", project.ID, err)
 		return err
@@ -217,6 +226,7 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 	}
 
 	project.Status = types.ProjectReplicaStatusStarted
+	project.Port = port
 	service := &tunnel.Service{ID: project.ID, Address: "127.0.0.1", Port: port}
 	defer w.reportProjectStatus(ctx, project)
 	defer w.ts.Regiseter(service)
@@ -284,6 +294,10 @@ func (w *Workerd) createProject(ctx context.Context, project *types.Project) err
 		return err
 	}
 
+	if err := os.Remove(zipFilePath); err != nil {
+		return err
+	}
+
 	return copySubDirectory(projectPath, projectPath)
 }
 
@@ -291,8 +305,10 @@ func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 	defer w.ts.Remove(&tunnel.Service{ID: projectId})
 
 	if err := cgo.DestroyWorkerd(projectId); err != nil {
-		log.Errorf("cgo.DestroyWorkerd: %v", err)
-		return err
+		if !strings.Contains(err.Error(), "not exists") {
+			log.Errorf("cgo.DestroyWorkerd: %v", err)
+			return err
+		}
 	}
 
 	if err := os.RemoveAll(w.getProjectPath(projectId)); err != nil {
@@ -425,6 +441,51 @@ func (w *Workerd) Close() error {
 	return nil
 }
 
+func (w *Workerd) checkConnectivity() {
+	w.mu.Lock()
+	projects := w.projects
+	w.mu.Unlock()
+
+	var wg sync.WaitGroup
+	wg.Add(len(projects))
+	for _, p := range projects {
+		go func(project *types.Project) {
+			defer wg.Done()
+
+			err := testWebSocketConnection(fmt.Sprintf("http://127.0.0.1:%d/tun", project.Port))
+			if err == nil {
+				return
+			}
+
+			log.Errorf("project %s unconnectable: %v", project.ID, err)
+
+			err = w.destroyProject(context.Background(), project.ID)
+			if err != nil {
+				log.Errorf("failed to destory project %s, %v", project.ID, err)
+			}
+		}(p)
+	}
+	wg.Wait()
+}
+
+func testWebSocketConnection(url string) error {
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return fmt.Errorf("error making GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUpgradeRequired {
+		return xerrors.Errorf("webSocket connection error, received status code: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 // sync synchronizes the local projects with the active projects from the API.
 func (w *Workerd) sync(ctx context.Context) {
 	// Retrieve local projects.
@@ -441,14 +502,18 @@ func (w *Workerd) sync(ctx context.Context) {
 		return
 	}
 
-	// Use a temporary map to reduce lock contention.
-	tempProjects := make(map[string]*types.Project)
-
 	// Active projects tracking.
 	activeProjects := make(map[string]struct{})
 
 	for _, project := range projects {
-		tempProjects[project.Id] = &types.Project{ID: project.Id}
+		w.mu.Lock()
+		_, ok := w.projects[project.Id]
+		if !ok {
+			w.projects[project.Id] = &types.Project{ID: project.Id, BundleURL: project.BundleURL}
+		}
+		w.projects[project.Id].BundleURL = project.BundleURL
+		w.mu.Unlock()
+
 		activeProjects[project.Id] = struct{}{}
 
 		switch project.Status {
@@ -458,10 +523,6 @@ func (w *Workerd) sync(ctx context.Context) {
 			}
 		}
 	}
-
-	w.mu.Lock()
-	w.projects = tempProjects
-	w.mu.Unlock()
 
 	// Destroy inactive local projects.
 	for _, projectId := range localProjects {
