@@ -35,6 +35,7 @@ var nodeCmds = &cli.Command{
 		freeUpDiskSpaceCmd,
 		updateNodeDynamicInfoCmd,
 		generateCandidateCodeCmd,
+		nodeFromGeoCmd,
 	},
 }
 
@@ -286,6 +287,7 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("Profit"),
 			tablewriter.Col("OnlineDuration"),
 			tablewriter.Col("Geo"),
+			tablewriter.Col("Disk"),
 		)
 
 		for w := 0; w < len(r.Data); w++ {
@@ -305,6 +307,7 @@ var listNodeCmd = &cli.Command{
 				"Profit":         fmt.Sprintf("%.4f", info.Profit),
 				"OnlineDuration": fmt.Sprintf("%d", info.OnlineDuration),
 				"Geo":            fmt.Sprintf("%s", geo),
+				"Disk":           fmt.Sprintf("%s/%s   %.4f", units.BytesSize(info.TitanDiskUsage), units.BytesSize(info.AvailableDiskSpace), info.DiskUsage),
 			}
 
 			tw.Write(m)
@@ -469,6 +472,42 @@ var requestActivationCodesCmd = &cli.Command{
 		}
 
 		return err
+	},
+}
+
+var nodeFromGeoCmd = &cli.Command{
+	Name:  "nfg",
+	Usage: "get nodes from geo",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "area",
+			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		areaID := cctx.String("area")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		list, err := schedulerAPI.GetNodesFromGeo(ctx, areaID)
+		if err != nil {
+			return err
+		}
+
+		for _, nodeID := range list {
+			fmt.Println(nodeID)
+		}
+
+		fmt.Println("size:", len(list))
+
+		return nil
 	},
 }
 

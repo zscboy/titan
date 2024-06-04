@@ -241,9 +241,9 @@ func (m *Manager) retryDetectCandidatesNatType(nodes []*retryNode) {
 	wg.Wait()
 }
 
-func (m *Manager) retryCandidateDetectNatType(cNode *retryNode) {
-	cNode.retry++
-	nodeID := cNode.id
+func (m *Manager) retryCandidateDetectNatType(rInfo *retryNode) {
+	rInfo.retry++
+	nodeID := rInfo.id
 
 	_, ok := m.candidateMap.LoadOrStore(nodeID, struct{}{})
 	if ok {
@@ -252,9 +252,9 @@ func (m *Manager) retryCandidateDetectNatType(cNode *retryNode) {
 	}
 	defer m.candidateMap.Delete(nodeID)
 
-	eNode := m.nodeManager.GetNode(nodeID)
-	if eNode == nil {
-		log.Errorf("node %s offline or not exists", nodeID)
+	cNode := m.nodeManager.GetNode(nodeID)
+	if cNode == nil {
+		m.deleteCandidateNode(rInfo)
 		return
 	}
 
@@ -272,17 +272,17 @@ func (m *Manager) retryCandidateDetectNatType(cNode *retryNode) {
 		}
 	}
 
-	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
+	cNode.NATType = determineNodeNATType(context.Background(), cNode, cNodes, m.http3Client)
 
-	if eNode.NATType != types.NatTypeUnknown.String() || cNode.retry >= maxRetry {
-		m.deleteCandidateNode(cNode)
+	if cNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= maxRetry {
+		m.deleteCandidateNode(rInfo)
 	}
-	log.Debugf("retry detect node %s nat type %s , %d", cNode.id, eNode.NATType, cNode.retry)
+	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, cNode.NATType, rInfo.retry)
 }
 
-func (m *Manager) retryEdgeDetectNatType(node *retryNode) {
-	node.retry++
-	nodeID := node.id
+func (m *Manager) retryEdgeDetectNatType(rInfo *retryNode) {
+	rInfo.retry++
+	nodeID := rInfo.id
 
 	_, ok := m.edgeMap.LoadOrStore(nodeID, struct{}{})
 	if ok {
@@ -293,7 +293,7 @@ func (m *Manager) retryEdgeDetectNatType(node *retryNode) {
 
 	eNode := m.nodeManager.GetNode(nodeID)
 	if eNode == nil {
-		log.Errorf("node %s offline or not exists", nodeID)
+		m.deleteEdgeNode(rInfo)
 		return
 	}
 
@@ -301,10 +301,10 @@ func (m *Manager) retryEdgeDetectNatType(node *retryNode) {
 
 	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
 
-	if eNode.NATType != types.NatTypeUnknown.String() || node.retry >= maxRetry {
-		m.deleteEdgeNode(node)
+	if eNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= maxRetry {
+		m.deleteEdgeNode(rInfo)
 	}
-	log.Debugf("retry detect node %s nat type %s , %d", node.id, eNode.NATType, node.retry)
+	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, eNode.NATType, rInfo.retry)
 }
 
 func (m *Manager) DetermineCandidateNATType(ctx context.Context, nodeID string) {

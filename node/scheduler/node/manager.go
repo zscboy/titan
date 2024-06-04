@@ -8,6 +8,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/etcdcli"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/docker/go-units"
 	"github.com/filecoin-project/pubsub"
 
@@ -49,6 +50,7 @@ type Manager struct {
 	nodeIPs sync.Map
 
 	nodeScoreLevel map[string][]int
+	geoMgr         *GeoMgr
 }
 
 // NewManager creates a new instance of the node manager
@@ -61,6 +63,7 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 		config:     config,
 		etcdcli:    ec,
 		weightMgr:  newWeightManager(config),
+		geoMgr:     newMgr(),
 	}
 
 	nodeManager.ipLimit = nodeManager.getIPLimit()
@@ -76,6 +79,18 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	go nodeManager.startMxTimer()
 
 	return nodeManager
+}
+
+func (m *Manager) AddNodeGeo(nodeID string, geo *region.GeoInfo) {
+	m.geoMgr.AddNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+}
+
+func (m *Manager) RemoveNodeGeo(nodeID string, geo *region.GeoInfo) {
+	m.geoMgr.RemoveNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+}
+
+func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []string {
+	return m.geoMgr.FindNodes(continent, country, province, city)
 }
 
 func (m *Manager) getIPLimit() int {
@@ -322,6 +337,7 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time) bool {
 
 	if !lastTime.After(t) {
 		m.RemoveNodeIP(node.NodeID, node.ExternalIP)
+		m.RemoveNodeGeo(node.NodeID, node.GeoInfo)
 
 		// if node.ClientCloser != nil {
 		// 	node.ClientCloser()

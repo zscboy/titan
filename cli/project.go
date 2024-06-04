@@ -149,6 +149,11 @@ var deployProjectCmd = &cli.Command{
 			Usage: "node id list",
 			Value: &cli.StringSlice{},
 		},
+		&cli.StringFlag{
+			Name:  "area",
+			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
+			Value: "",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		name := cctx.String("name")
@@ -156,6 +161,7 @@ var deployProjectCmd = &cli.Command{
 		uid := cctx.String("uid")
 		count := cctx.Int("replica-count")
 		nodeIDs := cctx.StringSlice("nodes")
+		areaID := cctx.String("area")
 
 		ctx := ReqContext(cctx)
 
@@ -167,7 +173,15 @@ var deployProjectCmd = &cli.Command{
 
 		pid := uuid.NewString()
 
-		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{UUID: pid, Name: name, BundleURL: url, UserID: uid, Replicas: int64(count), NodeIDs: nodeIDs})
+		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{
+			UUID:      pid,
+			Name:      name,
+			BundleURL: url,
+			UserID:    uid,
+			Replicas:  int64(count),
+			NodeIDs:   nodeIDs,
+			AreaID:    areaID,
+		})
 		if err != nil {
 			return err
 		}

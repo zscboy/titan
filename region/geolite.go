@@ -88,10 +88,10 @@ func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	geoInfo.Geo = fmt.Sprintf("%s%s%s%s%s%s%s", continent, separate, country, separate, province, separate, city)
 	geoInfo.Geo = strings.Replace(geoInfo.Geo, " ", separate, -1)
 
-	geoInfo.Continent = continent
-	geoInfo.Country = country
-	geoInfo.Province = province
-	geoInfo.City = city
+	geoInfo.Continent = strings.ToLower(strings.Replace(continent, " ", "", -1))
+	geoInfo.Country = strings.ToLower(strings.Replace(country, " ", "", -1))
+	geoInfo.Province = strings.ToLower(strings.Replace(province, " ", "", -1))
+	geoInfo.City = strings.ToLower(strings.Replace(city, " ", "", -1))
 
 	return geoInfo, nil
 }

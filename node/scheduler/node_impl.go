@@ -24,6 +24,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/handler"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/docker/go-units"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/google/uuid"
@@ -1646,4 +1647,13 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 	}
 
 	return list, nil
+}
+
+func (s *Scheduler) GetNodesFromGeo(ctx context.Context, areaID string) ([]string, error) {
+	continent, country, province, city := region.DecodeAreaID(areaID)
+	if continent != "" {
+		return s.NodeManager.FindNodesFromGeo(continent, country, province, city), nil
+	}
+
+	return nil, xerrors.Errorf("continent is nil ; %s", areaID)
 }

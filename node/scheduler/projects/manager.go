@@ -9,6 +9,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/filecoin-project/go-statemachine"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
@@ -494,4 +495,65 @@ func (m *Manager) restartProjects() error {
 	}
 
 	return m.RestartDeployProjects(ids)
+}
+
+func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info ProjectInfo) []*node.Node {
+	out := make([]*node.Node, 0)
+	continent, country, province, city := region.DecodeAreaID(info.AreaID)
+	if continent != "" {
+		list := m.nodeMgr.FindNodesFromGeo(continent, country, province, city)
+		for _, nodeID := range list {
+			if len(out) >= needCount {
+				break
+			}
+
+			node := m.nodeMgr.GetEdgeNode(nodeID)
+			if node == nil {
+				continue
+			}
+
+			if _, exist := filterMap[node.NodeID]; exist {
+				continue
+			}
+
+			if node.CPUCores < int(info.CPUCores) {
+				continue
+			}
+
+			if node.Memory < float64(info.Memory) {
+				continue
+			}
+
+			out = append(out, node)
+		}
+	} else {
+		list := m.nodeMgr.GetRandomEdges(needCount)
+		log.Infof("chooseNodes needCount %d ,%v", needCount, list)
+		// list := m.nodeMgr.GetAllEdgeNode()
+		// sort.Slice(list, func(i, j int) bool {
+		// 	return list[i].BackProjectTime < list[j].BackProjectTime
+		// })
+		for nodeID := range list {
+			node := m.nodeMgr.GetEdgeNode(nodeID)
+			if node == nil {
+				continue
+			}
+
+			if _, exist := filterMap[node.NodeID]; exist {
+				continue
+			}
+
+			if node.CPUCores < int(info.CPUCores) {
+				continue
+			}
+
+			if node.Memory < float64(info.Memory) {
+				continue
+			}
+
+			out = append(out, node)
+		}
+	}
+
+	return out
 }

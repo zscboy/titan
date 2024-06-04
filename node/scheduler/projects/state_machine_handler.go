@@ -45,14 +45,18 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 
 	if info.NodeIDs != nil && len(info.NodeIDs) > 0 {
 		for _, nodeID := range info.NodeIDs {
-			node := m.nodeMgr.GetNode(nodeID)
+			node := m.nodeMgr.GetEdgeNode(nodeID)
 			if node == nil {
+				continue
+			}
+
+			if _, exist := filterMap[node.NodeID]; exist {
 				continue
 			}
 
 			node.BackProjectTime = time.Now().Unix()
 			status := types.ProjectReplicaStatusStarting
-			// node.API.d
+
 			err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})
 			if err != nil {
 				log.Errorf("DeployProject Deploy %s err:%s", node.NodeID, err.Error())
@@ -76,35 +80,12 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 	} else {
 		// select nodes
 		needCount := int(info.Replicas) - len(info.EdgeReplicaSucceeds)
-		list := m.nodeMgr.GetRandomEdges(needCount)
 
-		log.Infof("handleCreate needCount %d ,%v", needCount, list)
-		// list := m.nodeMgr.GetAllEdgeNode()
-		// sort.Slice(list, func(i, j int) bool {
-		// 	return list[i].BackProjectTime < list[j].BackProjectTime
-		// })
-		for nodeID := range list {
-			node := m.nodeMgr.GetNode(nodeID)
-			if node == nil {
-				continue
-			}
-
-			if _, exist := filterMap[node.NodeID]; exist {
-				continue
-			}
-
-			if node.CPUCores < int(info.CPUCores) {
-				continue
-			}
-
-			if node.Memory < float64(info.Memory) {
-				continue
-			}
-
-			// TODO info.AreaID
-
+		list := m.chooseNodes(needCount, filterMap, info)
+		for _, node := range list {
 			node.BackProjectTime = time.Now().Unix()
 			status := types.ProjectReplicaStatusStarting
+
 			// node.API.d
 			err := node.Deploy(context.Background(), &types.Project{ID: info.UUID.String(), Name: info.Name, BundleURL: info.BundleURL})
 			if err != nil {

@@ -1,6 +1,8 @@
 package region
 
 import (
+	"strings"
+
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 )
@@ -64,4 +66,28 @@ func DefaultGeoInfo(ip string) *GeoInfo {
 		IP:        ip,
 		Geo:       defaultArea,
 	}
+}
+
+func DecodeAreaID(areaID string) (continent, country, province, city string) {
+	parts := strings.Split(areaID, "-")
+
+	size := len(parts)
+	switch size {
+	case 1:
+		continent = parts[0]
+	case 2:
+		continent = parts[0]
+		country = parts[1]
+	case 3:
+		continent = parts[0]
+		country = parts[1]
+		province = parts[2]
+	case 4:
+		continent = parts[0]
+		country = parts[1]
+		province = parts[2]
+		city = parts[3]
+	}
+
+	return
 }

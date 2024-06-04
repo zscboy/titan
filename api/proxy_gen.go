@@ -362,6 +362,8 @@ type NodeAPIStruct struct {
 
 		GetNodeToken func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
 
+		GetNodesFromGeo func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
+
 		GetOnlineNodeCount func(p0 context.Context, p1 types.NodeType) (int, error) `perm:"web,admin"`
 
 		GetProfitDetailsForNode func(p0 context.Context, p1 string, p2 int, p3 int, p4 []int) (*types.ListNodeProfitDetailsRsp, error) `perm:"web,admin"`
@@ -1730,6 +1732,17 @@ func (s *NodeAPIStruct) GetNodeToken(p0 context.Context, p1 string) (string, err
 
 func (s *NodeAPIStub) GetNodeToken(p0 context.Context, p1 string) (string, error) {
 	return "", ErrNotSupported
+}
+
+func (s *NodeAPIStruct) GetNodesFromGeo(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetNodesFromGeo == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetNodesFromGeo(p0, p1)
+}
+
+func (s *NodeAPIStub) GetNodesFromGeo(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) GetOnlineNodeCount(p0 context.Context, p1 types.NodeType) (int, error) {

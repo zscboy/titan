@@ -95,8 +95,14 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		alreadyConnect = false
 	}
 
-	if cNode.NodeInfo != nil && cNode.ExternalIP != "" {
-		s.NodeManager.RemoveNodeIP(nodeID, cNode.ExternalIP)
+	if cNode.NodeInfo != nil {
+		// clean old info
+		if cNode.ExternalIP != "" {
+			s.NodeManager.RemoveNodeIP(nodeID, cNode.ExternalIP)
+		}
+		if cNode.GeoInfo != nil {
+			s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
+		}
 	}
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
@@ -216,6 +222,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			return err
 		}
 	}
+
+	s.NodeManager.AddNodeGeo(nodeID, cNode.GeoInfo)
 
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
