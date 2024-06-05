@@ -443,7 +443,10 @@ func (w *Workerd) Close() error {
 
 func (w *Workerd) checkConnectivity() {
 	w.mu.Lock()
-	projects := w.projects
+	projects := make([]*types.Project, 0, len(w.projects))
+	for _, project := range w.projects {
+		projects = append(projects, project)
+	}
 	w.mu.Unlock()
 
 	var wg sync.WaitGroup
