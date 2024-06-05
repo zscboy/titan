@@ -315,6 +315,10 @@ func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 		return err
 	}
 
+	w.mu.Lock()
+	delete(w.projects, projectId)
+	w.mu.Unlock()
+
 	return nil
 }
 
