@@ -93,6 +93,10 @@ func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []
 	return m.geoMgr.FindNodes(continent, country, province, city)
 }
 
+func (m *Manager) GetGeoKey(continent, country, province string) []string {
+	return m.geoMgr.GetGeoKey(continent, country, province)
+}
+
 func (m *Manager) getIPLimit() int {
 	cfg, err := m.config()
 	if err != nil {

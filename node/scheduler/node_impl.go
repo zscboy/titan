@@ -1649,11 +1649,16 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 	return list, nil
 }
 
-func (s *Scheduler) GetNodesFromGeo(ctx context.Context, areaID string) ([]string, error) {
+func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]string, error) {
 	continent, country, province, city := region.DecodeAreaID(areaID)
 	if continent != "" {
 		return s.NodeManager.FindNodesFromGeo(continent, country, province, city), nil
 	}
 
 	return nil, xerrors.Errorf("continent is nil ; %s", areaID)
+}
+
+func (s *Scheduler) GetCurrentRegionInfo(ctx context.Context, areaID string) ([]string, error) {
+	continent, country, province, _ := region.DecodeAreaID(areaID)
+	return s.NodeManager.GetGeoKey(continent, country, province), nil
 }

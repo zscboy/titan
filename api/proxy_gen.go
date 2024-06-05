@@ -342,6 +342,8 @@ type NodeAPIStruct struct {
 
 		GetCandidateURLsForDetectNat func(p0 context.Context) ([]string, error) `perm:"default"`
 
+		GetCurrentRegionInfo func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
+
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"default"`
 
 		GetEdgeExternalServiceAddress func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"admin"`
@@ -362,7 +364,7 @@ type NodeAPIStruct struct {
 
 		GetNodeToken func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
 
-		GetNodesFromGeo func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
+		GetNodesFromRegion func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
 
 		GetOnlineNodeCount func(p0 context.Context, p1 types.NodeType) (int, error) `perm:"web,admin"`
 
@@ -1624,6 +1626,17 @@ func (s *NodeAPIStub) GetCandidateURLsForDetectNat(p0 context.Context) ([]string
 	return *new([]string), ErrNotSupported
 }
 
+func (s *NodeAPIStruct) GetCurrentRegionInfo(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetCurrentRegionInfo == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetCurrentRegionInfo(p0, p1)
+}
+
+func (s *NodeAPIStub) GetCurrentRegionInfo(p0 context.Context, p1 string) ([]string, error) {
+	return *new([]string), ErrNotSupported
+}
+
 func (s *NodeAPIStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {
 	if s.Internal.GetEdgeDownloadInfos == nil {
 		return nil, ErrNotSupported
@@ -1734,14 +1747,14 @@ func (s *NodeAPIStub) GetNodeToken(p0 context.Context, p1 string) (string, error
 	return "", ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetNodesFromGeo(p0 context.Context, p1 string) ([]string, error) {
-	if s.Internal.GetNodesFromGeo == nil {
+func (s *NodeAPIStruct) GetNodesFromRegion(p0 context.Context, p1 string) ([]string, error) {
+	if s.Internal.GetNodesFromRegion == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetNodesFromGeo(p0, p1)
+	return s.Internal.GetNodesFromRegion(p0, p1)
 }
 
-func (s *NodeAPIStub) GetNodesFromGeo(p0 context.Context, p1 string) ([]string, error) {
+func (s *NodeAPIStub) GetNodesFromRegion(p0 context.Context, p1 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 

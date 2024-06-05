@@ -36,6 +36,7 @@ var nodeCmds = &cli.Command{
 		updateNodeDynamicInfoCmd,
 		generateCandidateCodeCmd,
 		nodeFromGeoCmd,
+		getRegionInfosCmd,
 	},
 }
 
@@ -496,7 +497,43 @@ var nodeFromGeoCmd = &cli.Command{
 		}
 		defer closer()
 
-		list, err := schedulerAPI.GetNodesFromGeo(ctx, areaID)
+		list, err := schedulerAPI.GetNodesFromRegion(ctx, areaID)
+		if err != nil {
+			return err
+		}
+
+		for _, nodeID := range list {
+			fmt.Println(nodeID)
+		}
+
+		fmt.Println("size:", len(list))
+
+		return nil
+	},
+}
+
+var getRegionInfosCmd = &cli.Command{
+	Name:  "regions",
+	Usage: "get region infos",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "area",
+			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		areaID := cctx.String("area")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		list, err := schedulerAPI.GetCurrentRegionInfo(ctx, areaID)
 		if err != nil {
 			return err
 		}

@@ -104,8 +104,10 @@ type NodeAPI interface {
 	GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) //perm:web,admin
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:web,admin
-	// GetNodesFromGeo retrieves a list of nodes with pagination using the specified cursor and count
-	GetNodesFromGeo(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
+	// GetNodesFromRegion retrieves a list of nodes with pagination using the specified cursor and count
+	GetNodesFromRegion(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
+	// GetCurrentRegionInfo retrieves a list of nodes with pagination using the specified cursor and count
+	GetCurrentRegionInfo(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
 	// GetCandidateURLsForDetectNat Get the rpc url of the specified number of candidate nodes
 	GetCandidateURLsForDetectNat(ctx context.Context) ([]string, error) //perm:default
 	// GetEdgeExternalServiceAddress nat travel, get edge external addr with different candidate
