@@ -87,10 +87,16 @@ func (w *Workerd) run(ctx context.Context) {
 				}
 				w.reportProjectStatus(ctx, project)
 			}
-
 		case <-syncerTicker.C:
-			go w.checkConnectivity()
-			go w.sync(ctx)
+			w.mu.Lock()
+			projects := make([]*types.Project, 0)
+			for _, project := range w.projects {
+				projects = append(projects, project)
+			}
+			w.mu.Unlock()
+
+			go w.checkConnectivity(ctx, projects)
+			go w.sync(ctx, projects)
 		case <-ctx.Done():
 			return
 		}
@@ -165,7 +171,7 @@ func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, er
 		project := &types.Project{ID: id}
 
 		w.mu.Lock()
-		if w.projects[id].Status == types.ProjectReplicaStatusStarting {
+		if _, ok := w.projects[project.ID]; ok && w.projects[id].Status == types.ProjectReplicaStatusStarting {
 			project.Status = types.ProjectReplicaStatusStarting
 			out = append(out, project)
 			w.mu.Unlock()
@@ -364,6 +370,8 @@ func writeSha256File(sourcePath, destinationPath string) error {
 }
 
 func downloadBundle(ctx context.Context, project *types.Project, outPath string) error {
+	//<-time.After(10 * time.Second)
+	//return errors.New("test timeout")
 	// Create the file
 	out, err := os.Create(outPath)
 	if err != nil {
@@ -407,8 +415,8 @@ func computeBundleHash(filename string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-func (w *Workerd) localProjectIds() ([]string, error) {
-	var projectIds []string
+func (w *Workerd) localProjectIds() (map[string]struct{}, error) {
+	projectIds := make(map[string]struct{})
 	err := filepath.WalkDir(w.basePath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -416,7 +424,7 @@ func (w *Workerd) localProjectIds() ([]string, error) {
 		// Check if the directory name is a valid project ID.
 		if d.IsDir() {
 			if _, pErr := uuid.Parse(d.Name()); pErr == nil {
-				projectIds = append(projectIds, d.Name())
+				projectIds[d.Name()] = struct{}{}
 			}
 		}
 		return nil
@@ -445,7 +453,7 @@ func (w *Workerd) RestartProjects(ctx context.Context) {
 		w.mu.Lock()
 		_, ok := w.projects[project.Id]
 		if !ok {
-			w.projects[project.Id] = &types.Project{ID: project.Id, BundleURL: project.BundleURL}
+			w.projects[project.Id] = &types.Project{ID: project.Id, Status: project.Status, BundleURL: project.BundleURL}
 		}
 		w.projects[project.Id].BundleURL = project.BundleURL
 		w.mu.Unlock()
@@ -486,22 +494,16 @@ func (w *Workerd) Close() error {
 	return nil
 }
 
-func (w *Workerd) checkConnectivity() {
-	w.mu.Lock()
-	projects := make([]*types.Project, 0)
-	for _, project := range w.projects {
-		if project.Status != types.ProjectReplicaStatusStarted {
-			continue
-		}
-		projects = append(projects, project)
-	}
-	w.mu.Unlock()
-
+func (w *Workerd) checkConnectivity(ctx context.Context, projects []*types.Project) {
 	var wg sync.WaitGroup
 	wg.Add(len(projects))
 	for _, p := range projects {
 		go func(project *types.Project) {
 			defer wg.Done()
+
+			if project.Status != types.ProjectReplicaStatusStarted {
+				return
+			}
 
 			err := testWebSocketConnection(fmt.Sprintf("http://127.0.0.1:%d/tun", project.Port))
 			if err == nil {
@@ -510,7 +512,7 @@ func (w *Workerd) checkConnectivity() {
 
 			log.Errorf("project %s unconnectable: %v", project.ID, err)
 
-			err = w.destroyProject(context.Background(), project.ID)
+			err = w.destroyProject(ctx, project.ID)
 			if err != nil {
 				log.Errorf("failed to destory project %s, %v", project.ID, err)
 			}
@@ -538,7 +540,7 @@ func testWebSocketConnection(url string) error {
 }
 
 // sync synchronizes the local projects with the active projects from the API.
-func (w *Workerd) sync(ctx context.Context) {
+func (w *Workerd) sync(ctx context.Context, projects []*types.Project) {
 	// Retrieve local projects.
 	localProjects, err := w.localProjectIds()
 	if err != nil {
@@ -546,22 +548,46 @@ func (w *Workerd) sync(ctx context.Context) {
 		return
 	}
 
-	// Fetch active projects from the API.
-	projects, err := w.api.GetProjectsForNode(ctx, w.nodeId)
+	// Fetch created projects from the API.
+	projectsResponse, err := w.api.GetProjectsForNode(ctx, w.nodeId)
 	if err != nil {
 		log.Errorf("GetProjectsForNode: %v", err)
 		return
 	}
 
-	// Active projects tracking.
 	activeProjects := make(map[string]struct{})
 
-	for _, project := range projects {
+	for _, project := range projectsResponse {
 		activeProjects[project.Id] = struct{}{}
+
+		if _, exists := localProjects[project.Id]; exists {
+			continue
+		}
+
+		w.mu.Lock()
+		w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
+		w.mu.Unlock()
+
+		localProjects[project.Id] = struct{}{}
+
+		w.startCh <- project.Id
+	}
+
+	for _, project := range projects {
+		if _, exists := localProjects[project.ID]; exists {
+			continue
+		}
+
+		// the project directory does not exist, it may have been accidentally deleted, so redeploy
+		if err := cgo.DestroyWorkerd(project.ID); err != nil {
+			log.Errorf("destory cgo: %v", err)
+		}
+
+		w.startCh <- project.ID
 	}
 
 	// Destroy inactive local projects.
-	for _, projectId := range localProjects {
+	for projectId := range localProjects {
 		if _, ok := activeProjects[projectId]; ok {
 			continue
 		}
