@@ -40,6 +40,7 @@ func newTunnel(id string, conn *websocket.Conn) *Tunnel {
 }
 
 func (t *Tunnel) onPing(data string) error {
+	t.lastActivitTime = time.Now()
 	return t.writePong([]byte(data))
 }
 
@@ -173,7 +174,6 @@ func (t *Tunnel) writePong(data []byte) error {
 	t.writeLock.Lock()
 	defer t.writeLock.Unlock()
 
-	t.lastActivitTime = time.Now()
 	return t.conn.WriteMessage(websocket.PongMessage, data)
 }
 

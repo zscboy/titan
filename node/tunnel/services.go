@@ -61,7 +61,7 @@ func (s *Services) start() {
 }
 
 func (s *Services) Regiseter(service *Service) {
-	log.Debugf("Regiseter servie %s %s %s", service.ID, service.Address, service.Port)
+	log.Debugf("Regiseter servie %s %s %d", service.ID, service.Address, service.Port)
 	s.services.Store(service.ID, service)
 }
 
