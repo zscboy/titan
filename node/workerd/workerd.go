@@ -32,8 +32,9 @@ const (
 )
 
 const (
-	defaultQueueSize      = 10
-	defaultSyncerInterval = time.Second * 60
+	defaultQueueSize          = 10
+	defaultSyncerInterval     = time.Second * 60
+	defaultDownloadingTimeout = 30 * time.Minute
 )
 
 var log = logging.Logger("workerd")
@@ -368,7 +369,11 @@ func downloadBundle(ctx context.Context, project *types.Project, outPath string)
 	defer out.Close()
 
 	// Get the data
-	resp, err := http.Get(project.BundleURL)
+	client := http.Client{
+		Timeout: defaultDownloadingTimeout,
+	}
+
+	resp, err := client.Get(project.BundleURL)
 	if err != nil {
 		return err
 	}
