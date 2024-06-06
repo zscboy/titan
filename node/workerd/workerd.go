@@ -99,8 +99,10 @@ func (w *Workerd) run(ctx context.Context) {
 
 func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Project) {
 	w.mu.Lock()
-	w.projects[project.ID].Status = project.Status
-	w.projects[project.ID].Port = project.Port
+	if _, ok := w.projects[project.ID]; ok {
+		w.projects[project.ID].Status = project.Status
+		w.projects[project.ID].Port = project.Port
+	}
 	w.mu.Unlock()
 
 	err := w.api.UpdateProjectStatus(ctx, []*types.Project{project})
@@ -250,6 +252,7 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 		return err
 	}
 
+	w.reportProjectStatus(ctx, project)
 	log.Infof("Project %s created successfully. Service is now listening on: %s", project.ID, socketAddr)
 
 	return nil
@@ -431,7 +434,30 @@ func (w *Workerd) RestartProjects(ctx context.Context) {
 		return
 	}
 
-	w.sync(ctx)
+	// Fetch active projects from the API.
+	projects, err := w.api.GetProjectsForNode(ctx, w.nodeId)
+	if err != nil {
+		log.Errorf("GetProjectsForNode: %v", err)
+		return
+	}
+
+	for _, project := range projects {
+		w.mu.Lock()
+		_, ok := w.projects[project.Id]
+		if !ok {
+			w.projects[project.Id] = &types.Project{ID: project.Id, BundleURL: project.BundleURL}
+		}
+		w.projects[project.Id].BundleURL = project.BundleURL
+		w.mu.Unlock()
+
+		switch project.Status {
+		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
+			if running, _ := w.queryProject(ctx, project.Id); !running {
+				w.startCh <- project.Id
+			}
+		}
+	}
+
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
@@ -462,8 +488,11 @@ func (w *Workerd) Close() error {
 
 func (w *Workerd) checkConnectivity() {
 	w.mu.Lock()
-	projects := make([]*types.Project, 0, len(w.projects))
+	projects := make([]*types.Project, 0)
 	for _, project := range w.projects {
+		if project.Status != types.ProjectReplicaStatusStarted {
+			continue
+		}
 		projects = append(projects, project)
 	}
 	w.mu.Unlock()
@@ -528,22 +557,7 @@ func (w *Workerd) sync(ctx context.Context) {
 	activeProjects := make(map[string]struct{})
 
 	for _, project := range projects {
-		w.mu.Lock()
-		_, ok := w.projects[project.Id]
-		if !ok {
-			w.projects[project.Id] = &types.Project{ID: project.Id, BundleURL: project.BundleURL}
-		}
-		w.projects[project.Id].BundleURL = project.BundleURL
-		w.mu.Unlock()
-
 		activeProjects[project.Id] = struct{}{}
-
-		switch project.Status {
-		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
-			if running, _ := w.queryProject(ctx, project.Id); !running {
-				w.startCh <- project.Id
-			}
-		}
 	}
 
 	// Destroy inactive local projects.
