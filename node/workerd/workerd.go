@@ -78,6 +78,13 @@ func (w *Workerd) run(ctx context.Context) {
 			err := w.startProject(ctx, projectId)
 			if err != nil {
 				log.Errorf("starting project %s: %v", projectId, err)
+
+				project := &types.Project{
+					ID:     projectId,
+					Status: types.ProjectReplicaStatusError,
+					Msg:    err.Error(),
+				}
+				w.reportProjectStatus(ctx, project)
 			}
 
 		case <-syncerTicker.C:
@@ -152,11 +159,18 @@ func (w *Workerd) Query(ctx context.Context, ids []string) ([]*types.Project, er
 	var out []*types.Project
 
 	for _, id := range ids {
-		project := &types.Project{
-			ID:     id,
-			Status: types.ProjectReplicaStatusStarted,
-		}
+		project := &types.Project{ID: id}
 
+		w.mu.Lock()
+		if w.projects[id].Status == types.ProjectReplicaStatusStarting {
+			project.Status = types.ProjectReplicaStatusStarting
+			out = append(out, project)
+			w.mu.Unlock()
+			continue
+		}
+		w.mu.Unlock()
+
+		project.Status = types.ProjectReplicaStatusStarted
 		running, err := w.queryProject(ctx, id)
 		if err != nil && !running {
 			project.Status = types.ProjectReplicaStatusError
@@ -212,7 +226,6 @@ func (w *Workerd) ensureProjectInitialized(ctx context.Context, project *types.P
 	}
 
 	if err := w.createProject(ctx, project); err != nil {
-		log.Errorf("error creating project %s: %v", project.ID, err)
 		return err
 	}
 	return nil
@@ -228,13 +241,10 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 	project.Status = types.ProjectReplicaStatusStarted
 	project.Port = port
 	service := &tunnel.Service{ID: project.ID, Address: "127.0.0.1", Port: port}
-	defer w.reportProjectStatus(ctx, project)
 	defer w.ts.Regiseter(service)
 
 	socketAddr := fmt.Sprintf("%s:%d", service.Address, service.Port)
 	if err := cgo.CreateWorkerd(project.ID, w.getProjectPath(project.ID), defaultConfigFilename, socketAddr); err != nil {
-		project.Status = types.ProjectReplicaStatusError
-		project.Msg = err.Error()
 		log.Errorf("error in CGo while creating project %s: %v", project.ID, err)
 		return err
 	}
