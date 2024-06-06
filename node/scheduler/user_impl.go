@@ -3,7 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"sort"
+	"math/rand"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -436,17 +436,27 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 		userID = uID
 	}
 
-	var cNode *node.Node
 	_, nodes := s.NodeManager.GetAllCandidateNodes()
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-	})
+
+	cNodes := make([]*node.Node, 0)
+	// sort.Slice(nodes, func(i, j int) bool {
+	// 	return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+	// })
 	for _, node := range nodes {
+		// if node.Type == types.NodeValidator {
+		// 	continue
+		// }
 		if node.IsStorageOnly {
-			cNode = node
-			break
+			cNodes = append(cNodes, node)
 		}
 	}
+
+	if len(cNodes) == 0 {
+		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+	}
+
+	index := rand.Intn(len(cNodes))
+	cNode := cNodes[index]
 
 	if cNode == nil {
 		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}

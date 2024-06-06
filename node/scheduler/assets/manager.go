@@ -387,15 +387,23 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		cNode = m.nodeMgr.GetCandidateNode(req.NodeID)
 	} else {
 		_, nodes := m.nodeMgr.GetAllCandidateNodes()
-		sort.Slice(nodes, func(i, j int) bool {
-			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-		})
+		// sort.Slice(nodes, func(i, j int) bool {
+		// 	return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+		// })
+
+		cNodes := make([]*node.Node, 0)
 		for _, node := range nodes {
 			if node.IsStorageOnly {
-				cNode = node
-				break
+				cNodes = append(cNodes, node)
 			}
 		}
+
+		if len(cNodes) == 0 {
+			return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+		}
+
+		index := rand.Intn(len(cNodes))
+		cNode = cNodes[index]
 	}
 
 	if cNode == nil {
@@ -1034,18 +1042,18 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
-		if cNode.Type == types.NodeValidator {
-			continue
-		}
+		// if cNode.Type == types.NodeValidator {
+		// 	continue
+		// }
 
 		if cNode.NetFlowUpExcess(float64(replica.DoneSize)) {
 			continue
 		}
 
 		if cNode.Type == types.NodeCandidate {
-			if assetSource == AssetSourceStorage && !cNode.IsStorageOnly {
-				continue
-			}
+			// if assetSource == AssetSourceStorage && !cNode.IsStorageOnly {
+			// 	continue
+			// }
 
 			source := &types.CandidateDownloadInfo{
 				NodeID:    nodeID,
@@ -1123,9 +1131,9 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 			continue
 		}
 
-		if node.IsStorageOnly {
-			continue
-		}
+		// if node.IsStorageOnly {
+		// 	continue
+		// }
 
 		if !node.MeetCandidateStandard {
 			continue

@@ -244,9 +244,9 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64,
 			continue
 		}
 
-		if node.IsStorageOnly {
-			continue
-		}
+		// if node.IsStorageOnly {
+		// 	continue
+		// }
 
 		if !node.MeetCandidateStandard {
 			continue

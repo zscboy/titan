@@ -68,11 +68,19 @@ func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 		return geoInfo, err
 	}
 
-	continent := record.Continent.Names["en"]
-	country := record.Country.Names["en"]
+	continent := unknown
+	country := unknown
 	city := unknown
 	province := unknown
+
 	// geoInfo.IsoCode = record.Country.IsoCode
+	if record.Continent.Names["en"] != "" {
+		continent = record.Continent.Names["en"]
+	}
+
+	if record.Country.Names["en"] != "" {
+		country = record.Country.Names["en"]
+	}
 
 	if record.City.Names["en"] != "" {
 		city = record.City.Names["en"]

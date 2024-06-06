@@ -274,7 +274,7 @@ func (m *Manager) retryCandidateDetectNatType(rInfo *retryNode) {
 
 	cNode.NATType = determineNodeNATType(context.Background(), cNode, cNodes, m.http3Client)
 
-	if cNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= maxRetry {
+	if cNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= (maxRetry*2) {
 		m.deleteCandidateNode(rInfo)
 	}
 	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, cNode.NATType, rInfo.retry)

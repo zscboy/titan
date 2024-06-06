@@ -485,9 +485,15 @@ var nodeFromGeoCmd = &cli.Command{
 			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
 			Value: "",
 		},
+		&cli.BoolFlag{
+			Name:  "show-node",
+			Usage: "is list nodes",
+			Value: false,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		areaID := cctx.String("area")
+		show := cctx.Bool("show-node")
 
 		ctx := ReqContext(cctx)
 
@@ -502,8 +508,10 @@ var nodeFromGeoCmd = &cli.Command{
 			return err
 		}
 
-		for _, nodeID := range list {
-			fmt.Println(nodeID)
+		if show {
+			for _, nodeID := range list {
+				fmt.Println(nodeID)
+			}
 		}
 
 		fmt.Println("size:", len(list))

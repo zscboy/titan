@@ -1,6 +1,7 @@
 package region
 
 import (
+	"fmt"
 	"strings"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -40,7 +41,7 @@ var region Region
 func NewRegion(dbPath, geoType, area string) error {
 	var err error
 
-	defaultArea = area
+	// defaultArea = area
 
 	switch geoType {
 	case TypeGeoLite():
@@ -64,12 +65,17 @@ func DefaultGeoInfo(ip string) *GeoInfo {
 		Latitude:  0,
 		Longitude: 0,
 		IP:        ip,
-		Geo:       defaultArea,
+		Geo:       fmt.Sprintf("%s%s%s%s%s%s%s", unknown, separate, unknown, separate, unknown, separate, unknown),
+
+		Continent: unknown,
+		Country:   unknown,
+		Province:  unknown,
+		City:      unknown,
 	}
 }
 
 func DecodeAreaID(areaID string) (continent, country, province, city string) {
-	parts := strings.Split(areaID, "-")
+	parts := strings.Split(areaID, separate)
 
 	size := len(parts)
 	switch size {

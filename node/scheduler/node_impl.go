@@ -742,11 +742,11 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 		}
 
 		if rInfo.IsCandidate {
-			if aInfo.Source == int64(types.AssetSourceStorage) {
-				if !cNode.IsStorageOnly {
-					continue
-				}
-			}
+			// if aInfo.Source == int64(types.AssetSourceStorage) {
+			// 	if !cNode.IsStorageOnly {
+			// 		continue
+			// 	}
+			// }
 
 			source := s.getSource2(cNode, cid, titanRsa)
 			if source != nil {
@@ -873,11 +873,11 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 		}
 
 		if rInfo.IsCandidate {
-			if aInfo.Source == int64(types.AssetSourceStorage) {
-				if !cNode.IsStorageOnly {
-					continue
-				}
-			}
+			// if aInfo.Source == int64(types.AssetSourceStorage) {
+			// 	if !cNode.IsStorageOnly {
+			// 		continue
+			// 	}
+			// }
 
 			source := s.getSource(cNode, cid, bucket, titanRsa)
 			if source != nil {

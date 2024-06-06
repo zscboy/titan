@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+const (
+	unknown = "unknown"
+)
+
 type GeoMgr struct {
 	geoMap map[string]map[string]map[string]map[string][]string
 	mu     sync.Mutex
