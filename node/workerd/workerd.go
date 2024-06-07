@@ -81,6 +81,8 @@ func (w *Workerd) run(ctx context.Context) {
 			if err != nil {
 				log.Errorf("starting project %s: %v", projectId, err)
 
+				w.deleteProject(projectId)
+
 				project := &types.Project{
 					ID:     projectId,
 					Status: types.ProjectReplicaStatusError,
@@ -102,6 +104,13 @@ func (w *Workerd) run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (w *Workerd) deleteProject(projectId string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	delete(w.projects, projectId)
 }
 
 func (w *Workerd) reportProjectStatus(ctx context.Context, project *types.Project) {
@@ -336,9 +345,7 @@ func (w *Workerd) destroyProject(ctx context.Context, projectId string) error {
 		return err
 	}
 
-	w.mu.Lock()
-	delete(w.projects, projectId)
-	w.mu.Unlock()
+	w.deleteProject(projectId)
 
 	return nil
 }
@@ -371,8 +378,6 @@ func writeSha256File(sourcePath, destinationPath string) error {
 }
 
 func downloadBundle(ctx context.Context, project *types.Project, outPath string) error {
-	//<-time.After(10 * time.Second)
-	//return errors.New("test timeout")
 	// Create the file
 	out, err := os.Create(outPath)
 	if err != nil {
