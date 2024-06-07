@@ -3,7 +3,6 @@ package tunnel
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -79,7 +78,12 @@ func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
 func (t *Tunnel) onServerRequestClose(idx, tag uint16) error {
 	log.Infof("onServerRequestClose, idx:%d tag:%d", idx, tag)
 
-	return t.reqq.free(idx, tag)
+	req := t.reqq.getReq(idx, tag)
+	if req == nil {
+		return fmt.Errorf("can not find request, idx %d, tag %d", idx, tag)
+	}
+	req.dofree()
+	return nil
 }
 
 func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
@@ -124,22 +128,20 @@ func (t *Tunnel) serveConn(conn net.Conn, idx uint16, tag uint16) error {
 		n, err := conn.Read(buf)
 		if err != nil {
 			log.Infof("serveConnection, read message failed: %s", err.Error())
-			if err == io.EOF || isNetErrCloseByRemoteHost(err) {
-				t.onClientClose(idx, tag)
+			if !isNetErrUseOfCloseNetworkConnection(err) {
+				t.sendClose2Server(idx, tag)
 			}
-			return nil
+			break
 		}
-
 		t.onClientRecvData(idx, tag, buf[:n])
 	}
+
+	return t.onClientClose(idx, tag)
 }
 
 func (t *Tunnel) onClientClose(idx, tag uint16) error {
 	log.Infof("onClientClose idx:%d tag:%d", idx, tag)
-	if err := t.reqq.free(idx, tag); err != nil {
-		return err
-	}
-	return t.sendClose2Server(idx, tag)
+	return t.reqq.free(idx, tag)
 }
 
 func (t *Tunnel) onClientRecvData(idx, tag uint16, data []byte) error {

@@ -15,11 +15,12 @@ const (
 )
 
 type Tunclient struct {
-	id        string
-	conn      *websocket.Conn
-	reqq      *Reqq
-	writeLock sync.Mutex
-	services  *Services
+	id              string
+	conn            *websocket.Conn
+	reqq            *Reqq
+	writeLock       sync.Mutex
+	services        *Services
+	lastActivitTime time.Time
 }
 
 func newTunclient(tunServerURL string, nodeID string, services *Services) (*Tunclient, error) {
@@ -43,7 +44,6 @@ func newTunclient(tunServerURL string, nodeID string, services *Services) (*Tunc
 
 func (tc *Tunclient) startService() error {
 	conn := tc.conn
-	defer conn.Close()
 	defer tc.onClose()
 
 	conn.SetPongHandler(tc.onPone)
@@ -74,6 +74,16 @@ func (tc *Tunclient) keepalive() error {
 
 	for {
 		<-ticker.C
+		if tc.conn == nil {
+			log.Infof("keepalive conn == nil")
+			return nil
+		}
+
+		if time.Since(tc.lastActivitTime) > keepaliveTimeout {
+			log.Warnf("keepalive timeout, id %s", tc.id)
+			return tc.conn.Close()
+		}
+
 		tc.writePing()
 	}
 }
@@ -82,6 +92,10 @@ func (tc *Tunclient) writePing() error {
 	tc.writeLock.Lock()
 	tc.writeLock.Unlock()
 
+	if tc.conn == nil {
+		return fmt.Errorf("writePing conn == nil")
+	}
+
 	now := time.Now().Unix()
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, uint64(now))
@@ -89,10 +103,18 @@ func (tc *Tunclient) writePing() error {
 }
 
 func (tc *Tunclient) onPone(data string) error {
+	tc.lastActivitTime = time.Now()
 	return nil
 }
 
 func (tc *Tunclient) onClose() {
+	if tc.conn != nil {
+		if err := tc.conn.Close(); err != nil {
+			log.Errorf("close conn %s", err.Error())
+		}
+		tc.conn = nil
+	}
+
 	tc.reqq.cleanup()
 }
 
@@ -161,11 +183,21 @@ func (tc *Tunclient) handlRequestData(idx, tag uint16, data []byte) error {
 
 func (tc *Tunclient) handlRequestClosed(idx, tag uint16) error {
 	log.Debugf("handlRequestClosed idx:%d tag:%d", idx, tag)
-	return tc.reqq.free(idx, tag)
+	req := tc.reqq.getReq(idx, tag)
+	if req == nil {
+		return fmt.Errorf("get req idx:%d tag:%d failed", idx, tag)
+	}
+	req.dofree()
+	return nil
 }
 
 func (tc *Tunclient) onRequestTerminate(idx, tag uint16) error {
 	log.Debugf("onRequestTerminate idx:%d tag:%d", idx, tag)
+	return tc.reqq.free(idx, tag)
+}
+
+func (tc *Tunclient) sendClose2Client(idx, tag uint16) error {
+	log.Debugf("sendClose2Client idx:%d tag:%d", idx, tag)
 
 	buf := make([]byte, 5)
 	buf[0] = uint8(cMDReqServerClosed)
@@ -179,6 +211,9 @@ func (tc *Tunclient) write(msg []byte) error {
 	tc.writeLock.Lock()
 	defer tc.writeLock.Unlock()
 
+	if tc.conn == nil {
+		return fmt.Errorf("write conn == nil")
+	}
 	return tc.conn.WriteMessage(websocket.BinaryMessage, msg)
 }
 

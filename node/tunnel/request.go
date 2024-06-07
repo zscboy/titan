@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"fmt"
-	"io"
 	"net"
 )
 
@@ -59,23 +58,28 @@ func (r *Request) proxy(tunclient *Tunclient) {
 		return
 	}
 
+	defer log.Infof("request idx %d tag %d close", r.idx, r.tag)
+
 	conn := r.conn
 	buf := make([]byte, 4096)
 	for {
 		n, err := conn.Read(buf)
 		if !r.inused {
-			// request is free!
 			log.Errorf("request is free, discard data:", n)
 			break
 		}
 
 		if err != nil {
 			log.Infof("read server message failed: %s", err.Error())
-			if err == io.EOF || isNetErrCloseByRemoteHost(err) {
-				tunclient.onRequestTerminate(r.idx, r.tag)
+			if !isNetErrUseOfCloseNetworkConnection(err) {
+				tunclient.sendClose2Client(r.idx, r.tag)
 			}
 			break
 		}
 		tunclient.onRequestData(r, buf[:n])
+	}
+
+	if err := tunclient.onRequestTerminate(r.idx, r.tag); err != nil {
+		log.Errorf("onRequestTerminate %s", err.Error())
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 const (
 	keepaliveIntervel = 10 * time.Second
+	keepaliveTimeout  = 3 * keepaliveIntervel
 )
 
 type TunManager struct {
@@ -41,7 +42,7 @@ func (tm *TunManager) keepAlive() {
 				return true
 			}
 
-			if time.Since(tunnel.lastActivitTime) > keepaliveIntervel {
+			if time.Since(tunnel.lastActivitTime) > keepaliveTimeout {
 				tunnel.conn.Close()
 				log.Infof("tunnel client %s offline", tunnel.ID)
 			}
