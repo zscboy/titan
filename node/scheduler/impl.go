@@ -221,6 +221,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			log.Errorf("nodeConnect err:%s,nodeID:%s", err.Error(), nodeID)
 			return err
 		}
+
+		s.ProjectManager.CheckProjectReplicasFromNode(nodeID)
 	}
 
 	s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)

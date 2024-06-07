@@ -119,51 +119,6 @@ func (m *Manager) Terminate(ctx context.Context) error {
 	return m.projectStateMachines.Stop(ctx)
 }
 
-// func (m *Manager) retrieveNodeDeployProgresses() {
-// 	m.deployingProjects.Range(func(key, value interface{}) bool {
-// 		id := key.(string)
-// 		info := value.(*deployingProjectsInfo)
-
-// 		if info.expiration.Before(time.Now()) {
-// 			haveError := false
-// 			// checkout node state
-// 			nodes, err := m.LoadNodesOfStartingReplica(id)
-// 			if err != nil {
-// 				log.Errorf("retrieveNodeDeployProgresses %s LoadReplicas err:%s", id, err.Error())
-// 				haveError = true
-// 			} else {
-// 				for _, nodeID := range nodes {
-// 					result, err := m.requestNodeDeployProgresses(nodeID, []string{id})
-// 					if err != nil {
-// 						log.Errorf("retrieveNodeDeployProgresses %s %s requestNodeDeployProgresses err:%s", nodeID, id, err.Error())
-// 						haveError = true
-// 					} else {
-// 						m.UpdateStatus(nodeID, result)
-// 					}
-// 				}
-// 			}
-
-// 			if haveError {
-// 				m.setProjectTimeout(id, fmt.Sprintf("expiration:%s", info.expiration.String()))
-// 				return true
-// 			}
-// 		}
-
-// 		exist, _ := m.projectStateMachines.Has(ProjectID(id))
-// 		if !exist {
-// 			return true
-// 		}
-
-// 		err := m.projectStateMachines.Send(ProjectID(id), DeployResult{})
-// 		if err != nil {
-// 			log.Errorf("retrieveNodeDeployProgresses %s  statemachine send err:%s", id, err.Error())
-// 			return true
-// 		}
-
-// 		return true
-// 	})
-// }
-
 func (m *Manager) retrieveNodeDeployProgresses() {
 	deployingNodes := make(map[string][]string)
 
@@ -353,6 +308,54 @@ func (m *Manager) startCheckServicingProjectTimer() {
 	}
 }
 
+func (m *Manager) CheckProjectReplicasFromNode(nodeID string) {
+	list, err := m.LoadProjectReplicasForNode(nodeID)
+	if err != nil {
+		log.Errorf("checkProjectReplicasFromNode projects :%s", err.Error())
+		return
+	}
+
+	if len(list) == 0 {
+		return
+	}
+
+	nodeProjects := make([]string, 0)
+
+	// loading projects to local
+	for _, info := range list {
+		if info.Status == types.ProjectReplicaStatusError {
+			continue
+		}
+
+		nodeProjects = append(nodeProjects, info.Id)
+	}
+
+	if len(nodeProjects) == 0 {
+		return
+	}
+
+	results, err := m.requestNodeDeployProgresses(nodeID, nodeProjects)
+	if err != nil {
+		err = m.UpdateProjectReplicaStatusFromNode(nodeID, nodeProjects, types.ProjectReplicaStatusOffline)
+		if err != nil {
+			log.Errorf("checkProjectReplicas UpdateProjectReplicaStatusFromNode err: %v", err)
+		}
+		return
+	}
+
+	startedList := make([]string, 0)
+	for _, result := range results {
+		if result.Status == types.ProjectReplicaStatusStarted {
+			startedList = append(startedList, result.ID)
+		}
+	}
+
+	err = m.UpdateProjectReplicaStatusFromNode(nodeID, startedList, types.ProjectReplicaStatusStarted)
+	if err != nil {
+		log.Errorf("checkProjectReplicas UpdateProjectReplicaStatusFromNode err: %v", err)
+	}
+}
+
 func (m *Manager) checkProjectReplicas(limit, offset int) int {
 	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
 	if err != nil {
@@ -410,9 +413,9 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 
 		results, err := m.requestNodeDeployProgresses(nodeID, projectIDs)
 		if err != nil {
-			err = m.UpdateProjectReplicaStatusToOffline(nodeID, projectIDs)
+			err = m.UpdateProjectReplicaStatusFromNode(nodeID, projectIDs, types.ProjectReplicaStatusOffline)
 			if err != nil {
-				log.Errorf("checkProjectReplicas UpdateProjectReplicaStatusToOffline err: %v", err)
+				log.Errorf("checkProjectReplicas UpdateProjectReplicaStatusFromNode err: %v", err)
 			}
 			continue
 		}

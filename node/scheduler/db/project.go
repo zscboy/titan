@@ -250,8 +250,8 @@ func (n *SQLDB) DeleteUnfinishedProjectReplicas(id string) error {
 	return err
 }
 
-// UpdateProjectReplicaStatusToOffline
-func (n *SQLDB) UpdateProjectReplicaStatusToOffline(nodeID string, uuids []string) error {
+// UpdateProjectReplicaStatusFromNode
+func (n *SQLDB) UpdateProjectReplicaStatusFromNode(nodeID string, uuids []string, status types.ProjectReplicaStatus) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func (n *SQLDB) UpdateProjectReplicaStatusToOffline(nodeID string, uuids []strin
 		// update state table
 		query := fmt.Sprintf(
 			`UPDATE %s SET status=?,end_time=NOW() WHERE id=? AND node_id=?`, projectReplicasTable)
-		tx.Exec(query, types.ProjectReplicaStatusOffline, uid, nodeID)
+		tx.Exec(query, status, uid, nodeID)
 	}
 
 	return tx.Commit()
