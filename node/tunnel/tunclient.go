@@ -71,6 +71,7 @@ func (tc *Tunclient) startService() error {
 
 func (tc *Tunclient) keepalive() error {
 	ticker := time.NewTicker(keepaliveIntervel)
+	tc.lastActivitTime = time.Now()
 
 	for {
 		<-ticker.C
