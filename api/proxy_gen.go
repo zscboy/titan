@@ -168,8 +168,6 @@ type CommonStruct struct {
 
 		LogSetLevel func(p0 context.Context, p1 string, p2 string) error `perm:"admin"`
 
-		Restart func(p0 context.Context) error `perm:"admin"`
-
 		Session func(p0 context.Context) (uuid.UUID, error) `perm:"edge,candidate"`
 
 		Shutdown func(p0 context.Context) error `perm:"admin"`
@@ -218,6 +216,8 @@ type EdgeStruct struct {
 
 	Internal struct {
 		GetEdgeOnlineStateFromScheduler func(p0 context.Context) (bool, error) `perm:"default"`
+
+		Restart func(p0 context.Context) error `perm:"admin"`
 
 		UserNATPunch func(p0 context.Context, p1 string, p2 *types.NatPunchReq) error `perm:"admin"`
 
@@ -1131,17 +1131,6 @@ func (s *CommonStub) LogSetLevel(p0 context.Context, p1 string, p2 string) error
 	return ErrNotSupported
 }
 
-func (s *CommonStruct) Restart(p0 context.Context) error {
-	if s.Internal.Restart == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.Restart(p0)
-}
-
-func (s *CommonStub) Restart(p0 context.Context) error {
-	return ErrNotSupported
-}
-
 func (s *CommonStruct) Session(p0 context.Context) (uuid.UUID, error) {
 	if s.Internal.Session == nil {
 		return *new(uuid.UUID), ErrNotSupported
@@ -1228,6 +1217,17 @@ func (s *EdgeStruct) GetEdgeOnlineStateFromScheduler(p0 context.Context) (bool, 
 
 func (s *EdgeStub) GetEdgeOnlineStateFromScheduler(p0 context.Context) (bool, error) {
 	return false, ErrNotSupported
+}
+
+func (s *EdgeStruct) Restart(p0 context.Context) error {
+	if s.Internal.Restart == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.Restart(p0)
+}
+
+func (s *EdgeStub) Restart(p0 context.Context) error {
+	return ErrNotSupported
 }
 
 func (s *EdgeStruct) UserNATPunch(p0 context.Context, p1 string, p2 *types.NatPunchReq) error {

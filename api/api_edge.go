@@ -19,4 +19,6 @@ type Edge interface {
 	UserNATPunch(ctx context.Context, userServiceAddress string, req *types.NatPunchReq) error //perm:admin
 	// GetEdgeOnlineStateFromScheduler this online state is get from scheduler
 	GetEdgeOnlineStateFromScheduler(ctx context.Context) (bool, error) //perm:default
+	// Restart trigger graceful restart of edge node
+	Restart(ctx context.Context) error // perm:admin
 }

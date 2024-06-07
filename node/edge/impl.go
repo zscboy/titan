@@ -10,6 +10,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/asset"
 	"github.com/Filecoin-Titan/titan/node/common"
 	"github.com/Filecoin-Titan/titan/node/device"
+	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	datasync "github.com/Filecoin-Titan/titan/node/sync"
 	validate "github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/Filecoin-Titan/titan/node/workerd"
@@ -33,6 +34,8 @@ type Edge struct {
 	*workerd.Workerd
 	Transport    *quic.Transport
 	SchedulerAPI api.Scheduler
+
+	RestartChan dtypes.RestartChan
 }
 
 // WaitQuiet waits for the edge device to become idle.
@@ -71,4 +74,9 @@ func (edge *Edge) GetEdgeOnlineStateFromScheduler(ctx context.Context) (bool, er
 		return false, nil
 	}
 	return online, nil
+}
+
+func (edge *Edge) Restart(ctx context.Context) error {
+	edge.RestartChan <- struct{}{}
+	return nil
 }
