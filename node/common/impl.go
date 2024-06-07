@@ -27,6 +27,7 @@ type CommonAPI struct {
 	Alerting     *alerting.Alerting
 	APISecret    *jwt.HMACSHA
 	ShutdownChan dtypes.ShutdownChan
+	RestartChan  dtypes.RestartChan
 	Transport    *quic.Transport
 }
 
@@ -36,10 +37,11 @@ type SessionCallbackFunc func(string, string)
 // MethodGroup: Auth
 
 // NewCommonAPI initializes a new CommonAPI
-func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, shutdownChan dtypes.ShutdownChan, Transport *quic.Transport) (CommonAPI, error) {
+func NewCommonAPI(lr repo.LockedRepo, secret *jwt.HMACSHA, shutdownChan dtypes.ShutdownChan, restartChan dtypes.RestartChan, Transport *quic.Transport) (CommonAPI, error) {
 	commAPI := CommonAPI{
 		APISecret:    secret,
 		ShutdownChan: shutdownChan,
+		RestartChan:  restartChan,
 		Transport:    Transport,
 	}
 
@@ -106,6 +108,12 @@ func (a *CommonAPI) Discover(ctx context.Context) (types.OpenRPCDocument, error)
 // Shutdown trigger graceful shutdown
 func (a *CommonAPI) Shutdown(context.Context) error {
 	a.ShutdownChan <- struct{}{}
+	return nil
+}
+
+// Restart trigger graceful restart
+func (a *CommonAPI) Restart(ctx context.Context) error {
+	a.RestartChan <- struct{}{}
 	return nil
 }
 

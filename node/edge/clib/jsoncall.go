@@ -39,6 +39,7 @@ const (
 	methodDownloadCancel   = "downloadCancel"
 	methodReqFreeUpDisk    = "reqFreeUpDisk"
 	methodStateFreeUpDisk  = "stateFreeUpDisk"
+	methodRestart          = "restart"
 )
 
 type DaemonSwitch struct {
@@ -131,8 +132,7 @@ type (
 		repoPath    string
 		isInit      bool
 		dSwitch     DaemonSwitch
-
-		downloader *Downloader
+		downloader  *Downloader
 	}
 )
 
@@ -171,10 +171,11 @@ func (clib *CLib) JSONCall(jsonStr string) *JSONCallResult {
 		return clib.reqFreeUpDisk(args.JSONParams)
 	case methodStateFreeUpDisk:
 		return clib.stateFreeUpDisk()
+	case methodRestart:
+		return clib.restart()
 	default:
 		result.Code = -1
 		result.Msg = fmt.Sprintf("Method %s not found", args.Method)
-
 	}
 
 	return result
@@ -560,6 +561,20 @@ func (clib *CLib) stateFreeUpDisk() *JSONCallResult {
 		return &JSONCallResult{Code: 0, Msg: "ok", Data: jsonStr(respStr)}
 	}
 	return &JSONCallResult{Code: -1, Msg: "free up task is still in progress", Data: jsonStr(respStr)}
+}
+
+func (clib *CLib) restart() *JSONCallResult {
+	edgeApi, closer, err := newEdgeAPI(clib.repoPath)
+	if err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("get edge api error %s", err.Error())}
+	}
+	defer closer()
+
+	if err := edgeApi.Restart(context.Background()); err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("restart occurs with error: %s", err.Error())}
+	}
+
+	return &JSONCallResult{Msg: "ok"}
 }
 
 func jsonStr(v any) string {

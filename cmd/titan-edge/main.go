@@ -16,6 +16,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/node"
@@ -30,7 +31,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/client"
-	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/build"
 	lcli "github.com/Filecoin-Titan/titan/cli"
@@ -40,7 +40,6 @@ import (
 	"github.com/Filecoin-Titan/titan/node/repo"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/filecoin-project/go-jsonrpc"
-	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 
@@ -118,6 +117,7 @@ var daemonCmd = &cli.Command{
 	Subcommands: []*cli.Command{
 		daemonStartCmd,
 		daemonStopCmd,
+		daemonRestartCmd,
 		// daemonTestCmd,
 	},
 }
@@ -135,6 +135,21 @@ var daemonStopCmd = &cli.Command{
 		defer close()
 
 		return edgeAPI.Shutdown(cctx.Context)
+	},
+}
+
+var daemonRestartCmd = &cli.Command{
+	Name:  "restart",
+	Usage: "restart a running daemon from config",
+	Action: func(cctx *cli.Context) error {
+		edgeAPI, close, err := lcli.GetEdgeAPI(cctx)
+		if err != nil {
+			return err
+		}
+
+		defer close()
+
+		return edgeAPI.Restart(context.Background())
 	},
 }
 
@@ -290,46 +305,6 @@ func setEndpointAPI(lr repo.LockedRepo, address string) error {
 	return nil
 }
 
-func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *config.EdgeCfg) error {
-	var tlsConfig *tls.Config
-	if len(config.CertificatePath) == 0 && len(config.PrivateKeyPath) == 0 {
-		config, err := defaultTLSConfig()
-		if err != nil {
-			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
-			return err
-		}
-		tlsConfig = config
-	} else {
-		cert, err := tls.LoadX509KeyPair(config.CertificatePath, config.PrivateKeyPath)
-		if err != nil {
-			log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
-			return err
-		}
-
-		tlsConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			Certificates:       []tls.Certificate{cert},
-			NextProtos:         []string{"h2", "h3"},
-			InsecureSkipVerify: false,
-		}
-	}
-
-	ln, err := transport.ListenEarly(tlsConfig, nil)
-	if err != nil {
-		return err
-	}
-
-	srv := http3.Server{
-		TLSConfig: tlsConfig,
-		Handler:   handler,
-	}
-
-	if err = srv.ServeListener(ln); err != nil {
-		log.Warn("http3 server ", err.Error())
-	}
-	return err
-}
-
 func openRepoOrNew(repoPath string) (repo.Repo, error) {
 	r, err := repo.NewFS(repoPath)
 	if err != nil {
@@ -362,95 +337,7 @@ func waitQuietCh(edgeAPI api.Edge) chan struct{} {
 	return out
 }
 
-type heartbeatParams struct {
-	shutdownChan chan struct{}
-	edgeAPI      api.Edge
-	schedulerAPI api.Scheduler
-	nodeID       string
-	daemonSwitch *clib.DaemonSwitch
-}
-
-func heartbeat(ctx context.Context, hbp heartbeatParams) error {
-	schedulerSession, err := hbp.schedulerAPI.Session(ctx)
-	if err != nil {
-		return xerrors.Errorf("getting scheduler session: %w", err)
-	}
-
-	token, err := hbp.edgeAPI.AuthNew(ctx, &types.JWTPayload{Allow: []auth.Permission{api.RoleAdmin}, ID: hbp.nodeID})
-	if err != nil {
-		return xerrors.Errorf("generate token for scheduler error: %w", err)
-	}
-
-	heartbeats := time.NewTicker(HeartbeatInterval)
-	defer heartbeats.Stop()
-	// var isStop = false
-	var readyCh chan struct{}
-	for {
-		// TODO: we could get rid of this, but that requires tracking resources for restarted tasks correctly
-		if readyCh == nil {
-			log.Info("Making sure no local tasks are running")
-			readyCh = waitQuietCh(hbp.edgeAPI)
-		}
-
-		for {
-			select {
-			case <-readyCh:
-				opts := &types.ConnectOptions{Token: token}
-				if err := hbp.schedulerAPI.EdgeConnect(ctx, opts); err != nil {
-					log.Errorf("Registering edge failed: %s", err.Error())
-					hbp.shutdownChan <- struct{}{}
-					return err
-				}
-				hbp.daemonSwitch.IsOnline = true
-				log.Info("Edge registered successfully, waiting for tasks")
-				readyCh = nil
-			case <-heartbeats.C:
-			case <-ctx.Done():
-				return nil // graceful shutdown
-			case isStop := <-hbp.daemonSwitch.StopChan:
-				hbp.daemonSwitch.IsOnline = !isStop
-				hbp.daemonSwitch.IsStop = isStop
-				if isStop {
-					log.Info("stop daemon")
-				} else {
-					log.Info("start daemon")
-				}
-			}
-
-			if hbp.daemonSwitch.IsStop {
-				continue
-			}
-
-			curSession, err := keepalive(hbp.schedulerAPI, 10*time.Second)
-			if err != nil {
-				log.Errorf("heartbeat: keepalive failed: %+v", err)
-				errNode, ok := err.(*api.ErrNode)
-				if ok {
-					if errNode.Code == int(terrors.NodeDeactivate) {
-						hbp.shutdownChan <- struct{}{}
-						return nil
-					} else if errNode.Code == int(terrors.NodeIPInconsistent) {
-						break
-					} else if errNode.Code == int(terrors.NodeOffline) && readyCh == nil {
-						break
-					}
-				} else {
-					hbp.daemonSwitch.IsOnline = false
-				}
-			} else if curSession != schedulerSession {
-				log.Warn("change session id")
-				schedulerSession = curSession
-				break
-			} else {
-				hbp.daemonSwitch.IsOnline = true
-			}
-
-			// log.Infof("cur session id %s", curSession.String())
-		}
-
-		log.Errorf("TITAN-EDGE CONNECTION LOST")
-	}
-}
+var quitWg = &sync.WaitGroup{}
 
 func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath, locatorURL string) error {
 	log.Info("Starting titan edge node")
@@ -548,17 +435,23 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 	}
 	log.Infof("Remote version %s", v)
 
-	shutdownChan := make(chan struct{})
+	var (
+		shutdownChan = make(chan struct{}) // shutdown chan
+		restartChan  = make(chan struct{}) // cli restart
+	)
+
 	var lockRepo repo.LockedRepo
 	var httpServer *httpserver.HttpServer
 	var edgeAPI api.Edge
+
 	stop, err := node.New(ctx,
 		node.Edge(&edgeAPI),
 		node.Base(),
-		node.Repo(r),
+		node.RepoCtx(ctx, r),
 		node.Override(new(dtypes.NodeID), dtypes.NodeID(nodeID)),
 		node.Override(new(api.Scheduler), schedulerAPI),
 		node.Override(new(dtypes.ShutdownChan), shutdownChan),
+		node.Override(new(dtypes.RestartChan), restartChan),
 		node.Override(new(*quic.Transport), transport),
 		node.Override(new(*asset.Manager), modules.NewAssetsManager(ctx, &edgeCfg.Puller, edgeCfg.IPFSAPIURL)),
 
@@ -614,16 +507,65 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		node.Override(new(api.Scheduler), func() api.Scheduler { return schedulerAPI }),
 
 		node.Override(new(*tunnel.Services), func(scheduler api.Scheduler, nid dtypes.NodeID) *tunnel.Services {
-			return tunnel.NewServices(scheduler, string(nid))
+			return tunnel.NewServices(ctx, scheduler, string(nid))
 		}),
 	)
 	if err != nil {
 		return xerrors.Errorf("creating node: %w", err)
 	}
 
-	handler := EdgeHandler(edgeAPI.AuthVerify, edgeAPI, true)
+	handler, httpSrv := buildSrvHandler(httpServer, edgeAPI, edgeCfg, schedulerAPI, privateKey)
+
+	go startHTTP3Server(ctx, transport, handler, edgeCfg)
+
+	go startHTTPServer(ctx, httpSrv, edgeCfg.Network)
+
+	go heartbeat(ctx, heartbeatParams{shutdownChan: shutdownChan, edgeAPI: edgeAPI, schedulerAPI: schedulerAPI, nodeID: nodeID, daemonSwitch: daemonSwitch})
+
+	quitWg.Add(3)
+
+	for {
+		select {
+
+		case <-shutdownChan:
+			log.Warn("Shutting down...")
+			cancel()
+
+			if err := lockRepo.Close(); err != nil {
+				log.Errorf("LockRepo close: %s", err.Error())
+			}
+
+			stop(ctx) //nolint:errcheck
+			quitWg.Wait()
+
+			log.Warn("Graceful shutdown successful")
+
+			return nil
+
+		case <-restartChan:
+			log.Warn("Restaring ...")
+			cancel()
+
+			if err := lockRepo.Close(); err != nil {
+				log.Errorf("LockRepo close: %s", err.Error())
+			}
+
+			stop(ctx)
+			quitWg.Wait()
+
+			if err := udpPacketConn.Close(); err != nil {
+				log.Errorf("Close udpPacketConn: %s", err.Error())
+			}
+
+			return daemonStart(context.Background(), daemonSwitch, repoPath, locatorURL)
+		}
+	}
+}
+
+func buildSrvHandler(httpServer *httpserver.HttpServer, edgeApi api.Edge, cfg *config.EdgeCfg, schedulerApi api.Scheduler, privateKey *rsa.PrivateKey) (http.Handler, *http.Server) {
+	handler := EdgeHandler(edgeApi.AuthVerify, edgeApi, true)
 	handler = httpServer.NewHandler(handler)
-	handler = validation.AppendHandler(handler, schedulerAPI, privateKey, time.Duration(edgeCfg.ValidateDuration)*time.Second)
+	handler = validation.AppendHandler(handler, schedulerApi, privateKey, time.Duration(cfg.ValidateDuration)*time.Second)
 	handler = tunnel.NewTunserver(handler)
 
 	httpSrv := &http.Server{
@@ -635,50 +577,78 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		},
 	}
 
-	go startHTTP3Server(transport, handler, edgeCfg)
+	return handler, httpSrv
+}
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Warn("Shutting down...")
-
-				if err := transport.Close(); err != nil {
-					log.Errorf("shutting down http3Srv failed: %s", err)
-				}
-
-				if err := lockRepo.Close(); err != nil {
-					log.Errorf("LockRepo close: %s", err.Error())
-				}
-
-				stop(ctx) //nolint:errcheck
-
-				if err := httpSrv.Shutdown(context.TODO()); err != nil {
-					log.Errorf("shutting down RPC server failed: %s", err)
-				}
-				log.Warn("Graceful shutdown successful")
-				return
-			case <-shutdownChan:
-				cancel()
-			}
+func startHTTP3Server(ctx context.Context, transport *quic.Transport, handler http.Handler, config *config.EdgeCfg) error {
+	var tlsConfig *tls.Config
+	if len(config.CertificatePath) == 0 && len(config.PrivateKeyPath) == 0 {
+		config, err := defaultTLSConfig()
+		if err != nil {
+			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
+			return err
 		}
-	}()
+		tlsConfig = config
+	} else {
+		cert, err := tls.LoadX509KeyPair(config.CertificatePath, config.PrivateKeyPath)
+		if err != nil {
+			log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
+			return err
+		}
 
-	nl, err := net.Listen("tcp", edgeCfg.Network.ListenAddress)
+		tlsConfig = &tls.Config{
+			MinVersion:         tls.VersionTLS12,
+			Certificates:       []tls.Certificate{cert},
+			NextProtos:         []string{"h2", "h3"},
+			InsecureSkipVerify: false,
+		}
+	}
+
+	ln, err := transport.ListenEarly(tlsConfig, nil)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Edge listen on tcp/udp %s", edgeCfg.Network.ListenAddress)
-
-	hbp := heartbeatParams{
-		shutdownChan: shutdownChan,
-		edgeAPI:      edgeAPI,
-		schedulerAPI: schedulerAPI,
-		nodeID:       nodeID,
-		daemonSwitch: daemonSwitch,
+	srv := http3.Server{
+		TLSConfig: tlsConfig,
+		Handler:   handler,
 	}
-	go heartbeat(ctx, hbp)
 
-	return httpSrv.Serve(nl)
+	go func() {
+		<-ctx.Done()
+		quitWg.Done()
+		log.Warn("http3 server graceful shutting down...")
+		if err := srv.Close(); err != nil {
+			log.Warn("graceful shutting down http3 server with error: ", err.Error())
+		}
+	}()
+
+	if err = srv.ServeListener(ln); err != nil {
+		log.Warn("http3 server start with error: ", err.Error())
+	}
+	return err
+}
+
+func startHTTPServer(ctx context.Context, srv *http.Server, cfg config.Network) error {
+	nl, err := net.Listen("tcp", cfg.ListenAddress)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Edge listen on tcp/udp %s", cfg.ListenAddress)
+
+	go func() {
+		<-ctx.Done()
+		log.Warn("http server graceful shutting down...")
+		if err := srv.Close(); err != nil {
+			log.Warn("graceful shutting down http server with error: ", err.Error())
+		}
+	}()
+
+	if err = srv.Serve(nl); err != nil {
+		quitWg.Done()
+		log.Warn("http server start with error: ", err.Error())
+	}
+
+	return err
 }

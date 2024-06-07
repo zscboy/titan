@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"io/fs"
 	"net"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -50,7 +51,7 @@ type Workerd struct {
 	mu       sync.Mutex
 }
 
-func NewWorkerd(api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*Workerd, error) {
+func NewWorkerd(ctx context.Context, api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*Workerd, error) {
 	err := os.MkdirAll(path, 0o755)
 	if err != nil {
 		return nil, err
@@ -65,7 +66,7 @@ func NewWorkerd(api api.Scheduler, ts *tunnel.Services, nodeId, path string) (*W
 		startCh:  make(chan string, defaultQueueSize),
 	}
 
-	go w.run(context.Background())
+	go w.run(ctx)
 
 	return w, nil
 }

@@ -15,19 +15,25 @@ type Service struct {
 }
 
 type Services struct {
+	ctx       context.Context
 	scheduler api.Scheduler
 	nodeID    string
 	services  sync.Map
 }
 
-func NewServices(schedulerAPI api.Scheduler, nodeID string) *Services {
-	s := &Services{scheduler: schedulerAPI, nodeID: nodeID, services: sync.Map{}}
+func NewServices(ctx context.Context, schedulerAPI api.Scheduler, nodeID string) *Services {
+	s := &Services{ctx: ctx, scheduler: schedulerAPI, nodeID: nodeID, services: sync.Map{}}
 	go s.start()
 	return s
 }
 
 func (s *Services) start() {
 	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		default:
+		}
 		time.Sleep(3 * time.Second)
 
 		rsp, err := s.scheduler.AssignTunserverURL(context.Background())
