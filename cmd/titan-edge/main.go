@@ -14,9 +14,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/node"
@@ -514,6 +516,8 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		return xerrors.Errorf("creating node: %w", err)
 	}
 
+	registShutdownSignal(shutdownChan)
+
 	handler, httpSrv := buildSrvHandler(httpServer, edgeAPI, edgeCfg, schedulerAPI, privateKey)
 
 	go startHTTP3Server(ctx, transport, handler, edgeCfg)
@@ -526,7 +530,6 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 
 	for {
 		select {
-
 		case <-shutdownChan:
 			log.Warn("Shutting down...")
 			cancel()
@@ -651,4 +654,13 @@ func startHTTPServer(ctx context.Context, srv *http.Server, cfg config.Network) 
 	}
 
 	return err
+}
+
+func registShutdownSignal(shutdown chan struct{}) {
+	sigChan := make(chan os.Signal, 2)
+	go func() {
+		<-sigChan
+		shutdown <- struct{}{}
+	}()
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 }
