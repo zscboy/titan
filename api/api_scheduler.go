@@ -105,7 +105,7 @@ type NodeAPI interface {
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:web,admin
 	// GetNodesFromRegion retrieves a list of nodes with pagination using the specified cursor and count
-	GetNodesFromRegion(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
+	GetNodesFromRegion(ctx context.Context, areaID string) ([]*types.NodeInfo, error) //perm:web,admin
 	// GetCurrentRegionInfo retrieves a list of nodes with pagination using the specified cursor and count
 	GetCurrentRegionInfo(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
 	// GetCandidateURLsForDetectNat Get the rpc url of the specified number of candidate nodes
@@ -171,7 +171,7 @@ type NodeAPI interface {
 	// CandidateCodeExist
 	CandidateCodeExist(ctx context.Context, code string) (bool, error) //perm:admin,web,locator
 	// GetCandidateCodeInfos
-	GetCandidateCodeInfos(ctx context.Context, nodeID string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
+	GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
 	// ReDetermineNodeNATType
 	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
 	// AssignTunserverURL

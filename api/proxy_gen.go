@@ -295,7 +295,7 @@ type NodeAPIStruct struct {
 
 		GetAssetsInBucket func(p0 context.Context, p1 string, p2 int, p3 bool) ([]string, error) `perm:"admin"`
 
-		GetCandidateCodeInfos func(p0 context.Context, p1 string) ([]*types.CandidateCodeInfo, error) `perm:"admin,web,locator"`
+		GetCandidateCodeInfos func(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) `perm:"admin,web,locator"`
 
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"edge,candidate,web,locator"`
 
@@ -327,7 +327,7 @@ type NodeAPIStruct struct {
 
 		GetNodeToken func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
 
-		GetNodesFromRegion func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
+		GetNodesFromRegion func(p0 context.Context, p1 string) ([]*types.NodeInfo, error) `perm:"web,admin"`
 
 		GetOnlineNodeCount func(p0 context.Context, p1 types.NodeType) (int, error) `perm:"web,admin"`
 
@@ -1494,14 +1494,14 @@ func (s *NodeAPIStub) GetAssetsInBucket(p0 context.Context, p1 string, p2 int, p
 	return *new([]string), ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetCandidateCodeInfos(p0 context.Context, p1 string) ([]*types.CandidateCodeInfo, error) {
+func (s *NodeAPIStruct) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
 	if s.Internal.GetCandidateCodeInfos == nil {
 		return *new([]*types.CandidateCodeInfo), ErrNotSupported
 	}
-	return s.Internal.GetCandidateCodeInfos(p0, p1)
+	return s.Internal.GetCandidateCodeInfos(p0, p1, p2)
 }
 
-func (s *NodeAPIStub) GetCandidateCodeInfos(p0 context.Context, p1 string) ([]*types.CandidateCodeInfo, error) {
+func (s *NodeAPIStub) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
 	return *new([]*types.CandidateCodeInfo), ErrNotSupported
 }
 
@@ -1670,15 +1670,15 @@ func (s *NodeAPIStub) GetNodeToken(p0 context.Context, p1 string) (string, error
 	return "", ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetNodesFromRegion(p0 context.Context, p1 string) ([]string, error) {
+func (s *NodeAPIStruct) GetNodesFromRegion(p0 context.Context, p1 string) ([]*types.NodeInfo, error) {
 	if s.Internal.GetNodesFromRegion == nil {
-		return *new([]string), ErrNotSupported
+		return *new([]*types.NodeInfo), ErrNotSupported
 	}
 	return s.Internal.GetNodesFromRegion(p0, p1)
 }
 
-func (s *NodeAPIStub) GetNodesFromRegion(p0 context.Context, p1 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
+func (s *NodeAPIStub) GetNodesFromRegion(p0 context.Context, p1 string) ([]*types.NodeInfo, error) {
+	return *new([]*types.NodeInfo), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) GetOnlineNodeCount(p0 context.Context, p1 types.NodeType) (int, error) {

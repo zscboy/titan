@@ -42,7 +42,6 @@ type Node struct {
 	ExternalURL           string
 	IsPrivateMinioOnly    bool
 	IsStorageOnly         bool
-	BackProjectTime       int64
 	MeetCandidateStandard bool
 }
 

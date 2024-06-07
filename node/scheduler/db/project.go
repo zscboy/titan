@@ -250,6 +250,30 @@ func (n *SQLDB) DeleteUnfinishedProjectReplicas(id string) error {
 	return err
 }
 
+// UpdateProjectReplicaStatusToOffline
+func (n *SQLDB) UpdateProjectReplicaStatusToOffline(nodeID string, uuids []string) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("UpdateProjectReplicaStatusToOffline Rollback err:%s", err.Error())
+		}
+	}()
+
+	for _, uid := range uuids {
+		// update state table
+		query := fmt.Sprintf(
+			`UPDATE %s SET status=?,end_time=NOW() WHERE id=? AND node_id=?`, projectReplicasTable)
+		tx.Exec(query, types.ProjectReplicaStatusOffline, uid, nodeID)
+	}
+
+	return tx.Commit()
+}
+
 // UpdateProjectReplicaStatusToFailed
 func (n *SQLDB) UpdateProjectReplicaStatusToFailed(id string, nodes []string) error {
 	tx, err := n.db.Beginx()

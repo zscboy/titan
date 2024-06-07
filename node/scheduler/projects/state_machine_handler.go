@@ -32,9 +32,9 @@ func failedCoolDown(ctx statemachine.Context, info ProjectInfo, t time.Duration)
 	return nil
 }
 
-// handleCreate handles the selection nodes for project
-func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error {
-	log.Debugf("handle Create : %s", info.UUID)
+// handleNodeSelect handles the selection nodes for project
+func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) error {
+	log.Debugf("handle Select : %s", info.UUID)
 
 	curCount := int64(len(info.EdgeReplicaSucceeds))
 

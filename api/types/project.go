@@ -22,6 +22,7 @@ const (
 	ProjectReplicaStatusStarting ProjectReplicaStatus = iota
 	ProjectReplicaStatusStarted
 	ProjectReplicaStatusError
+	ProjectReplicaStatusOffline
 )
 
 // String status to string
@@ -33,6 +34,8 @@ func (ps ProjectReplicaStatus) String() string {
 		return "started"
 	case ProjectReplicaStatusError:
 		return "error"
+	case ProjectReplicaStatusOffline:
+		return "offline"
 	default:
 		return "invalidStatus"
 	}

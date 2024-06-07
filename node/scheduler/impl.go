@@ -223,7 +223,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	s.NodeManager.AddNodeGeo(nodeID, cNode.GeoInfo)
+	s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)

@@ -28,19 +28,20 @@ type NodeDynamicInfo struct {
 
 // NodeInfo contains information about a node.
 type NodeInfo struct {
-	IsTestNode    bool
-	Type          NodeType
-	ExternalIP    string
-	InternalIP    string
-	CPUUsage      float64
-	MemoryUsage   float64
-	Status        NodeStatus
-	NATType       string
-	IsPhone       bool
-	IncomeIncr    float64 // Base points increase every half hour (30 minute)
-	GeoInfo       *region.GeoInfo
-	AssetCount    int64 `db:"asset_count"`
-	RetrieveCount int64 `db:"retrieve_count"`
+	IsTestNode      bool
+	Type            NodeType
+	ExternalIP      string
+	InternalIP      string
+	CPUUsage        float64
+	MemoryUsage     float64
+	Status          NodeStatus
+	NATType         string
+	IsPhone         bool
+	BackProjectTime int64
+	IncomeIncr      float64 // Base points increase every half hour (30 minute)
+	GeoInfo         *region.GeoInfo
+	AssetCount      int64 `db:"asset_count"`
+	RetrieveCount   int64 `db:"retrieve_count"`
 
 	FirstTime      time.Time       `db:"first_login_time"`
 	NetFlowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`

@@ -1436,9 +1436,18 @@ func (s *Scheduler) GenerateCandidateCode(ctx context.Context, count int, nodeTy
 	return out, s.db.SaveCandidateCodeInfo(infos)
 }
 
-func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID string) ([]*types.CandidateCodeInfo, error) {
+func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) {
 	if nodeID != "" {
 		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
+		if err != nil {
+			return nil, err
+		}
+
+		return []*types.CandidateCodeInfo{info}, nil
+	}
+
+	if code != "" {
+		info, err := s.db.GetCandidateCodeInfo(code)
 		if err != nil {
 			return nil, err
 		}
@@ -1649,7 +1658,7 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 	return list, nil
 }
 
-func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]string, error) {
+func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]*types.NodeInfo, error) {
 	continent, country, province, city := region.DecodeAreaID(areaID)
 	if continent != "" {
 		return s.NodeManager.FindNodesFromGeo(continent, country, province, city), nil

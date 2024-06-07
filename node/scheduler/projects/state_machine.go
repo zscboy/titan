@@ -77,7 +77,7 @@ func (m *Manager) plan(events []statemachine.Event, state *ProjectInfo) (func(st
 	switch state.State {
 	// Happy path
 	case NodeSelect:
-		return m.handleCreate, processed, nil
+		return m.handleNodeSelect, processed, nil
 	case Update:
 		return m.handleUpdate, processed, nil
 	case Deploying:

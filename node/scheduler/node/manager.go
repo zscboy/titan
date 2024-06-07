@@ -81,15 +81,15 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	return nodeManager
 }
 
-func (m *Manager) AddNodeGeo(nodeID string, geo *region.GeoInfo) {
-	m.geoMgr.AddNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+func (m *Manager) AddNodeGeo(nodeInfo *types.NodeInfo, geo *region.GeoInfo) {
+	m.geoMgr.AddNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
 }
 
 func (m *Manager) RemoveNodeGeo(nodeID string, geo *region.GeoInfo) {
 	m.geoMgr.RemoveNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
 }
 
-func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []string {
+func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []*types.NodeInfo {
 	return m.geoMgr.FindNodes(continent, country, province, city)
 }
 

@@ -509,8 +509,8 @@ var nodeFromGeoCmd = &cli.Command{
 		}
 
 		if show {
-			for _, nodeID := range list {
-				fmt.Println(nodeID)
+			for _, nodeInfo := range list {
+				fmt.Println(nodeInfo.NodeID)
 			}
 		}
 

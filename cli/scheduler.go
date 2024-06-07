@@ -143,9 +143,15 @@ var loadCandidateCodeCmd = &cli.Command{
 	Usage: "load candidate code info",
 	Flags: []cli.Flag{
 		nodeIDFlag,
+		&cli.StringFlag{
+			Name:  "code",
+			Usage: "code id",
+			Value: "",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		nodeID := cctx.String("node-id")
+		code := cctx.String("code")
 
 		ctx := ReqContext(cctx)
 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
@@ -154,7 +160,7 @@ var loadCandidateCodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		infos, err := schedulerAPI.GetCandidateCodeInfos(ctx, nodeID)
+		infos, err := schedulerAPI.GetCandidateCodeInfos(ctx, nodeID, code)
 		if err != nil {
 			return err
 		}

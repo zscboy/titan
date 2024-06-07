@@ -3,6 +3,7 @@ package projects
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -25,7 +26,7 @@ const (
 	progressInterval = 60 * time.Second
 
 	checkFailedProjectInterval    = 5 * time.Minute
-	checkServicingProjectInterval = 30 * time.Minute
+	checkServicingProjectInterval = 10 * time.Minute
 
 	maxNodeOfflineTime = 24 * time.Hour
 
@@ -352,107 +353,6 @@ func (m *Manager) startCheckServicingProjectTimer() {
 	}
 }
 
-func (m *Manager) checkProjectReplicas2(limit, offset int) int {
-	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
-	if err != nil {
-		log.Errorf("checkProjectReplicas projects :%s", err.Error())
-		return offset
-	}
-	defer rows.Close()
-
-	projectDeleteReplicas := make(map[string]int, 0)
-
-	projectLen := 0
-	// loading projects to local
-	for rows.Next() {
-		projectLen++
-
-		cInfo := &types.ProjectInfo{}
-		err = rows.StructScan(cInfo)
-		if err != nil {
-			log.Errorf("checkProjectReplicas StructScan err: %s", err.Error())
-			continue
-		}
-
-		uuid := cInfo.UUID
-
-		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(uuid)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s load replicas err: %s", uuid, err.Error())
-			continue
-		}
-
-		count := 0
-		for _, details := range cInfo.DetailsList {
-			if details.Status != types.ProjectReplicaStatusStarted {
-				continue
-			}
-
-			nodeID := details.NodeID
-
-			lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
-			if err != nil {
-				log.Errorf("checkProjectReplicas LoadLastSeenOfNode err: %s", err.Error())
-				continue
-			}
-
-			if lastSeen.Add(maxNodeOfflineTime).Before(time.Now()) {
-				projectDeleteReplicas[uuid] += 0
-				// delete replicas
-				m.removeReplica(uuid, nodeID, types.ProjectEventNodeOffline)
-				continue
-			}
-
-			results, err := m.requestNodeDeployProgresses(nodeID, []string{uuid})
-			if err != nil || results == nil || len(results) == 0 {
-				log.Errorf("checkProjectReplicas requestNodeDeployProgresses err: %v", err)
-				continue
-			}
-
-			result := results[0]
-			if result.ID == uuid && result.Status == types.ProjectReplicaStatusStarted {
-				count++
-			} else {
-				// delete replicas
-				projectDeleteReplicas[uuid] += 0
-				m.removeReplica(uuid, nodeID, types.ProjectEventStatusChange)
-			}
-
-		}
-
-		if count == 0 {
-			projectDeleteReplicas[uuid] += 1
-		}
-	}
-
-	for uuid, count := range projectDeleteReplicas {
-		err = m.UpdateProjectStateInfo(uuid, NodeSelect.String(), 0, int64(count), m.nodeMgr.ServerID)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s UpdateProjectStateInfo err: %s", uuid, err.Error())
-			continue
-		}
-
-		rInfo := ProjectForceState{
-			State: NodeSelect,
-		}
-
-		// create project task
-		err = m.projectStateMachines.Send(ProjectID(uuid), rInfo)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s Send err: %s", uuid, err.Error())
-			continue
-		}
-	}
-
-	if projectLen == limit {
-		offset += projectLen
-	} else {
-		offset = 0
-	}
-
-	return offset
-}
-
 func (m *Manager) checkProjectReplicas(limit, offset int) int {
 	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
 	if err != nil {
@@ -483,7 +383,7 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 		}
 
 		for _, details := range cInfo.DetailsList {
-			if details.Status != types.ProjectReplicaStatusStarted {
+			if details.Status != types.ProjectReplicaStatusStarted && details.Status != types.ProjectReplicaStatusOffline {
 				continue
 			}
 			nodeProjects[details.NodeID] = append(nodeProjects[details.NodeID], details.Id)
@@ -510,7 +410,10 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 
 		results, err := m.requestNodeDeployProgresses(nodeID, projectIDs)
 		if err != nil {
-			log.Errorf("checkProjectReplicas requestNodeDeployProgresses err: %v", err)
+			err = m.UpdateProjectReplicaStatusToOffline(nodeID, projectIDs)
+			if err != nil {
+				log.Errorf("checkProjectReplicas UpdateProjectReplicaStatusToOffline err: %v", err)
+			}
 			continue
 		}
 
@@ -585,12 +488,15 @@ func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info
 	continent, country, province, city := region.DecodeAreaID(info.AreaID)
 	if continent != "" {
 		list := m.nodeMgr.FindNodesFromGeo(continent, country, province, city)
-		for _, nodeID := range list {
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].BackProjectTime < list[j].BackProjectTime
+		})
+		for _, nodeInfo := range list {
 			if len(out) >= needCount {
 				break
 			}
 
-			node := m.checkNode(nodeID, filterMap, info)
+			node := m.checkNode(nodeInfo.NodeID, filterMap, info)
 			if node == nil {
 				continue
 			}

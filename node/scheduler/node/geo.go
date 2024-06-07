@@ -3,6 +3,8 @@ package node
 import (
 	"strings"
 	"sync"
+
+	"github.com/Filecoin-Titan/titan/api/types"
 )
 
 const (
@@ -10,30 +12,30 @@ const (
 )
 
 type GeoMgr struct {
-	geoMap map[string]map[string]map[string]map[string][]string
+	geoMap map[string]map[string]map[string]map[string][]*types.NodeInfo
 	mu     sync.Mutex
 }
 
 func newMgr() *GeoMgr {
 	return &GeoMgr{
-		geoMap: make(map[string]map[string]map[string]map[string][]string),
+		geoMap: make(map[string]map[string]map[string]map[string][]*types.NodeInfo),
 	}
 }
 
-func (g *GeoMgr) AddNode(continent, country, province, city, nodeID string) {
+func (g *GeoMgr) AddNode(continent, country, province, city string, nodeInfo *types.NodeInfo) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	if g.geoMap[continent] == nil {
-		g.geoMap[continent] = make(map[string]map[string]map[string][]string)
+		g.geoMap[continent] = make(map[string]map[string]map[string][]*types.NodeInfo)
 	}
 	if g.geoMap[continent][country] == nil {
-		g.geoMap[continent][country] = make(map[string]map[string][]string)
+		g.geoMap[continent][country] = make(map[string]map[string][]*types.NodeInfo)
 	}
 	if g.geoMap[continent][country][province] == nil {
-		g.geoMap[continent][country][province] = make(map[string][]string, 0)
+		g.geoMap[continent][country][province] = make(map[string][]*types.NodeInfo, 0)
 	}
-	g.geoMap[continent][country][province][city] = append(g.geoMap[continent][country][province][city], nodeID)
+	g.geoMap[continent][country][province][city] = append(g.geoMap[continent][country][province][city], nodeInfo)
 }
 
 func (g *GeoMgr) RemoveNode(continent, country, province, city, nodeID string) {
@@ -41,15 +43,15 @@ func (g *GeoMgr) RemoveNode(continent, country, province, city, nodeID string) {
 	defer g.mu.Unlock()
 
 	nodes := g.geoMap[continent][country][province][city]
-	for i, id := range nodes {
-		if id == nodeID {
+	for i, nodeInfo := range nodes {
+		if nodeInfo.NodeID == nodeID {
 			g.geoMap[continent][country][province][city] = append(nodes[:i], nodes[i+1:]...)
 			break
 		}
 	}
 }
 
-func (g *GeoMgr) FindNodes(continent, country, province, city string) []string {
+func (g *GeoMgr) FindNodes(continent, country, province, city string) []*types.NodeInfo {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -61,13 +63,13 @@ func (g *GeoMgr) FindNodes(continent, country, province, city string) []string {
 	if continent != "" && country != "" && province != "" && city != "" {
 		return g.geoMap[continent][country][province][city]
 	} else if continent != "" && country != "" && province != "" {
-		var result []string
+		var result []*types.NodeInfo
 		for _, cities := range g.geoMap[continent][country][province] {
 			result = append(result, cities...)
 		}
 		return result
 	} else if continent != "" && country != "" {
-		var result []string
+		var result []*types.NodeInfo
 		for _, provinces := range g.geoMap[continent][country] {
 			for _, cities := range provinces {
 				result = append(result, cities...)
@@ -75,7 +77,7 @@ func (g *GeoMgr) FindNodes(continent, country, province, city string) []string {
 		}
 		return result
 	} else if continent != "" {
-		var result []string
+		var result []*types.NodeInfo
 		for _, countries := range g.geoMap[continent] {
 			for _, provinces := range countries {
 				for _, cities := range provinces {
