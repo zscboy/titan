@@ -297,7 +297,7 @@ func (m *Manager) retryEdgeDetectNatType(rInfo *retryNode) {
 		return
 	}
 
-	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount, false)
+	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount)
 
 	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
 
@@ -367,7 +367,7 @@ func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 		return
 	}
 
-	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount, false)
+	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount)
 
 	eNode.NATType = determineNodeNATType(ctx, eNode, cNodes, m.http3Client)
 
@@ -381,7 +381,7 @@ func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 func (m *Manager) GetCandidateURLsForDetectNat(ctx context.Context) ([]string, error) {
 	// minimum of 3 candidates is required for user detect nat
 	needCandidateCount := miniCandidateCount + 1
-	candidates := m.nodeManager.GetCandidateNodes(needCandidateCount, true)
+	candidates := m.nodeManager.GetCandidateNodes(needCandidateCount)
 	if len(candidates) < needCandidateCount {
 		return nil, fmt.Errorf("minimum of %d candidates is required", needCandidateCount)
 	}

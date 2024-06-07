@@ -79,7 +79,7 @@ func (m *Manager) startProjectTimeoutCounting(id string, count int) {
 	if infoI != nil {
 		info = infoI.(*deployingProjectsInfo)
 	} else {
-		needTime := int64(60 * 5)
+		needTime := int64(60 * 30)
 		info.expiration = time.Now().Add(time.Second * time.Duration(needTime))
 	}
 	info.count = count
@@ -240,8 +240,6 @@ func (m *Manager) retrieveNodeDeployProgresses() {
 
 // updateProjectDeployResults updates project results
 func (m *Manager) updateProjectDeployResults(nodeID string, result []*types.Project) {
-	// doneCount := 0
-
 	for _, progress := range result {
 		log.Infof("updateProjectDeployResults node_id: %s, status: %d, id: %s msg:%s", nodeID, progress.Status, progress.ID, progress.Msg)
 
@@ -270,14 +268,6 @@ func (m *Manager) updateProjectDeployResults(nodeID string, result []*types.Proj
 			log.Errorf("updateProjectDeployResults %s SaveProjectReplicasInfo err:%s", nodeID, err.Error())
 			continue
 		}
-
-		// if progress.Status == types.ProjectReplicaStatusStarted {
-		// 	doneCount++
-		// }
-
-		// if progress.Status == types.ProjectReplicaStatusError {
-		// 	doneCount++
-		// }
 
 		err = m.projectStateMachines.Send(ProjectID(progress.ID), DeployResult{})
 		if err != nil {
@@ -344,7 +334,7 @@ func (m *Manager) startCheckFailedProjectTimer() {
 	for {
 		<-ticker.C
 
-		m.restartProjects()
+		m.checkUnDoneProjects()
 	}
 }
 
@@ -353,16 +343,117 @@ func (m *Manager) startCheckServicingProjectTimer() {
 	ticker := time.NewTicker(checkServicingProjectInterval)
 	defer ticker.Stop()
 
+	limit := 10
 	offset := 0
 	for {
 		<-ticker.C
 
-		offset = m.checkProjectReplicas(offset)
+		offset = m.checkProjectReplicas(limit, offset)
 	}
 }
 
-func (m *Manager) checkProjectReplicas(offset int) int {
-	limit := 10
+func (m *Manager) checkProjectReplicas2(limit, offset int) int {
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
+	if err != nil {
+		log.Errorf("checkProjectReplicas projects :%s", err.Error())
+		return offset
+	}
+	defer rows.Close()
+
+	projectDeleteReplicas := make(map[string]int, 0)
+
+	projectLen := 0
+	// loading projects to local
+	for rows.Next() {
+		projectLen++
+
+		cInfo := &types.ProjectInfo{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("checkProjectReplicas StructScan err: %s", err.Error())
+			continue
+		}
+
+		uuid := cInfo.UUID
+
+		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(uuid)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s load replicas err: %s", uuid, err.Error())
+			continue
+		}
+
+		count := 0
+		for _, details := range cInfo.DetailsList {
+			if details.Status != types.ProjectReplicaStatusStarted {
+				continue
+			}
+
+			nodeID := details.NodeID
+
+			lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
+			if err != nil {
+				log.Errorf("checkProjectReplicas LoadLastSeenOfNode err: %s", err.Error())
+				continue
+			}
+
+			if lastSeen.Add(maxNodeOfflineTime).Before(time.Now()) {
+				projectDeleteReplicas[uuid] += 0
+				// delete replicas
+				m.removeReplica(uuid, nodeID, types.ProjectEventNodeOffline)
+				continue
+			}
+
+			results, err := m.requestNodeDeployProgresses(nodeID, []string{uuid})
+			if err != nil || results == nil || len(results) == 0 {
+				log.Errorf("checkProjectReplicas requestNodeDeployProgresses err: %v", err)
+				continue
+			}
+
+			result := results[0]
+			if result.ID == uuid && result.Status == types.ProjectReplicaStatusStarted {
+				count++
+			} else {
+				// delete replicas
+				projectDeleteReplicas[uuid] += 0
+				m.removeReplica(uuid, nodeID, types.ProjectEventStatusChange)
+			}
+
+		}
+
+		if count == 0 {
+			projectDeleteReplicas[uuid] += 1
+		}
+	}
+
+	for uuid, count := range projectDeleteReplicas {
+		err = m.UpdateProjectStateInfo(uuid, NodeSelect.String(), 0, int64(count), m.nodeMgr.ServerID)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s UpdateProjectStateInfo err: %s", uuid, err.Error())
+			continue
+		}
+
+		rInfo := ProjectForceState{
+			State: NodeSelect,
+		}
+
+		// create project task
+		err = m.projectStateMachines.Send(ProjectID(uuid), rInfo)
+		if err != nil {
+			log.Errorf("checkProjectReplicas %s Send err: %s", uuid, err.Error())
+			continue
+		}
+	}
+
+	if projectLen == limit {
+		offset += projectLen
+	} else {
+		offset = 0
+	}
+
+	return offset
+}
+
+func (m *Manager) checkProjectReplicas(limit, offset int) int {
 	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Servicing.String()})
 	if err != nil {
 		log.Errorf("checkProjectReplicas projects :%s", err.Error())
@@ -371,11 +462,12 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 	defer rows.Close()
 
 	nodeProjects := make(map[string][]string, 0)
+	projectDeleteReplicas := make(map[string]int, 0)
 
-	count := 0
+	projectLen := 0
 	// loading projects to local
 	for rows.Next() {
-		count++
+		projectLen++
 
 		cInfo := &types.ProjectInfo{}
 		err = rows.StructScan(cInfo)
@@ -394,12 +486,10 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 			if details.Status != types.ProjectReplicaStatusStarted {
 				continue
 			}
-
 			nodeProjects[details.NodeID] = append(nodeProjects[details.NodeID], details.Id)
 		}
 	}
 
-	projectDeleteReplicas := make(map[string][]string, 0)
 	// check project status from node
 	for nodeID, projectIDs := range nodeProjects {
 		lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
@@ -411,7 +501,7 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 		if lastSeen.Add(maxNodeOfflineTime).Before(time.Now()) {
 			// delete replicas
 			for _, id := range projectIDs {
-				projectDeleteReplicas[id] = append(projectDeleteReplicas[id], nodeID)
+				projectDeleteReplicas[id] += 0
 
 				m.removeReplica(id, nodeID, types.ProjectEventNodeOffline)
 			}
@@ -427,48 +517,41 @@ func (m *Manager) checkProjectReplicas(offset int) int {
 		for _, result := range results {
 			if result.Status != types.ProjectReplicaStatusStarted {
 				// delete replicas
-				projectDeleteReplicas[result.ID] = append(projectDeleteReplicas[result.ID], nodeID)
+				projectDeleteReplicas[result.ID] += 0
 
 				m.removeReplica(result.ID, nodeID, types.ProjectEventStatusChange)
 			}
 		}
 	}
 
-	for id := range projectDeleteReplicas {
-		// err := m.UpdateProjectReplicaStatusToFailed(id, nodes)
-		// if err != nil {
-		// 	log.Errorf("checkProjectReplicas %s UpdateProjectReplicaStatusToFailed err: %s", id, err.Error())
-		// 	continue
-		// }
+	m.restartProjects(projectDeleteReplicas)
 
-		err = m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, 0, m.nodeMgr.ServerID)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s UpdateProjectStateInfo err: %s", id, err.Error())
-			continue
-		}
-
-		rInfo := ProjectForceState{
-			State: NodeSelect,
-		}
-
-		// create project task
-		err = m.projectStateMachines.Send(ProjectID(id), rInfo)
-		if err != nil {
-			log.Errorf("checkProjectReplicas %s Send err: %s", id, err.Error())
-			continue
-		}
-	}
-
-	if count == limit {
-		offset += count
-	} else {
+	offset += projectLen
+	if projectLen < limit {
 		offset = 0
 	}
 
 	return offset
 }
 
-func (m *Manager) restartProjects() error {
+func (m *Manager) restartProjects(projectDeleteReplicas map[string]int) {
+	for id := range projectDeleteReplicas {
+		err := m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, 0, m.nodeMgr.ServerID)
+		if err != nil {
+			log.Errorf("restartProject %s UpdateProjectStateInfo err: %s", id, err.Error())
+			continue
+		}
+
+		// create project task
+		err = m.projectStateMachines.Send(ProjectID(id), ProjectForceState{State: NodeSelect})
+		if err != nil {
+			log.Errorf("restartProject %s Send err: %s", id, err.Error())
+			continue
+		}
+	}
+}
+
+func (m *Manager) checkUnDoneProjects() error {
 	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 10, 0, []string{Failed.String(), NodeSelect.String(), Update.String()})
 	if err != nil {
 		log.Errorf("Load projects :%s", err.Error())
@@ -507,20 +590,8 @@ func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info
 				break
 			}
 
-			node := m.nodeMgr.GetEdgeNode(nodeID)
+			node := m.checkNode(nodeID, filterMap, info)
 			if node == nil {
-				continue
-			}
-
-			if _, exist := filterMap[node.NodeID]; exist {
-				continue
-			}
-
-			if node.CPUCores < int(info.CPUCores) {
-				continue
-			}
-
-			if node.Memory < float64(info.Memory) {
 				continue
 			}
 
@@ -534,20 +605,8 @@ func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info
 		// 	return list[i].BackProjectTime < list[j].BackProjectTime
 		// })
 		for nodeID := range list {
-			node := m.nodeMgr.GetEdgeNode(nodeID)
+			node := m.checkNode(nodeID, filterMap, info)
 			if node == nil {
-				continue
-			}
-
-			if _, exist := filterMap[node.NodeID]; exist {
-				continue
-			}
-
-			if node.CPUCores < int(info.CPUCores) {
-				continue
-			}
-
-			if node.Memory < float64(info.Memory) {
 				continue
 			}
 
@@ -556,4 +615,25 @@ func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info
 	}
 
 	return out
+}
+
+func (m *Manager) checkNode(nodeID string, filterMap map[string]struct{}, info ProjectInfo) *node.Node {
+	node := m.nodeMgr.GetEdgeNode(nodeID)
+	if node == nil {
+		return nil
+	}
+
+	if _, exist := filterMap[node.NodeID]; exist {
+		return nil
+	}
+
+	if node.CPUCores < int(info.CPUCores) {
+		return nil
+	}
+
+	if node.Memory < float64(info.Memory) {
+		return nil
+	}
+
+	return node
 }

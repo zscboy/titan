@@ -80,6 +80,9 @@ func (m *Manager) handleCreate(ctx statemachine.Context, info ProjectInfo) error
 	} else {
 		// select nodes
 		needCount := int(info.Replicas) - len(info.EdgeReplicaSucceeds)
+		if needCount <= 0 {
+			return ctx.Send(SkipStep{})
+		}
 
 		list := m.chooseNodes(needCount, filterMap, info)
 		for _, node := range list {
