@@ -35,7 +35,7 @@ type Tunnel struct {
 }
 
 func newTunnel(id string, conn *websocket.Conn) *Tunnel {
-	return &Tunnel{conn: conn, ID: id, reqq: newReqq(maxCap), writeLock: sync.Mutex{}}
+	return &Tunnel{conn: conn, ID: id, reqq: newReqq(maxCap), writeLock: sync.Mutex{}, lastActivitTime: time.Now()}
 }
 
 func (t *Tunnel) onPing(data string) error {
