@@ -459,13 +459,13 @@ func (w *Workerd) RestartProjects(ctx context.Context) {
 		w.mu.Lock()
 		_, ok := w.projects[project.Id]
 		if !ok {
-			w.projects[project.Id] = &types.Project{ID: project.Id, Status: project.Status, BundleURL: project.BundleURL}
+			w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
 		}
 		w.projects[project.Id].BundleURL = project.BundleURL
 		w.mu.Unlock()
 
 		switch project.Status {
-		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting:
+		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusOffline:
 			if running, _ := w.queryProject(ctx, project.Id); !running {
 				w.startCh <- project.Id
 			}
