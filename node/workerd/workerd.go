@@ -263,8 +263,12 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 	defer w.ts.Regiseter(service)
 
 	socketAddr := fmt.Sprintf("%s:%d", service.Address, service.Port)
-	if err := cgo.CreateWorkerd(project.ID, w.getProjectPath(project.ID), defaultConfigFilename, socketAddr); err != nil {
+	if err = cgo.CreateWorkerd(project.ID, w.getProjectPath(project.ID), defaultConfigFilename, socketAddr); err != nil {
 		log.Errorf("error in CGo while creating project %s: %v", project.ID, err)
+		return err
+	}
+
+	if err = testWebSocketConnection(service.Port); err != nil {
 		return err
 	}
 
@@ -511,7 +515,7 @@ func (w *Workerd) checkConnectivity(ctx context.Context, projects []*types.Proje
 				return
 			}
 
-			err := testWebSocketConnection(fmt.Sprintf("http://127.0.0.1:%d/tun", project.Port))
+			err := testWebSocketConnection(project.Port)
 			if err == nil {
 				return
 			}
@@ -532,12 +536,13 @@ func (w *Workerd) checkConnectivity(ctx context.Context, projects []*types.Proje
 	wg.Wait()
 }
 
-func testWebSocketConnection(url string) error {
+func testWebSocketConnection(port int) error {
+	testingUrl := fmt.Sprintf("http://127.0.0.1:%d/tun", port)
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(testingUrl)
 	if err != nil {
 		return fmt.Errorf("error making GET request: %v", err)
 	}
