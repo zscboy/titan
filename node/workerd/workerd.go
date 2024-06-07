@@ -518,10 +518,15 @@ func (w *Workerd) checkConnectivity(ctx context.Context, projects []*types.Proje
 
 			log.Errorf("project %s unconnectable: %v", project.ID, err)
 
+			project.Status = types.ProjectReplicaStatusError
+			project.Msg = err.Error()
+			w.reportProjectStatus(ctx, project)
+
 			err = w.destroyProject(ctx, project.ID)
 			if err != nil {
 				log.Errorf("failed to destory project %s, %v", project.ID, err)
 			}
+
 		}(p)
 	}
 	wg.Wait()
