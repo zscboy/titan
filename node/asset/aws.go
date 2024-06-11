@@ -24,6 +24,7 @@ import (
 )
 
 const defaultRegion = "us-east-1"
+const tmpAwsAsset = "tmp-aws-asset"
 
 type AWS interface {
 	// PullAssetWithURL download the file locally from the url and save it as car file
@@ -138,7 +139,12 @@ func (ac *awsClient) pullAssetFromAWS(ctx context.Context, bucket, key string) (
 		return cid.Cid{}, 0, err
 	}
 
-	assetTempDirPath := path.Join(assetDir, uuid.NewString())
+	assetTempDirPath := path.Join(assetDir, tmpAwsAsset)
+	// remove old temp file if exist
+	if err = os.RemoveAll(assetTempDirPath); err != nil {
+		return cid.Cid{}, 0, err
+	}
+
 	if err = os.Mkdir(assetTempDirPath, 0755); err != nil {
 		return cid.Cid{}, 0, err
 	}
