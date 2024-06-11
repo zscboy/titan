@@ -168,7 +168,7 @@ type SchedulerCfg struct {
 	ValidationProfit float64
 	// Increased profit after node workload passes
 	WorkloadProfit float64
-	// ElectionCycle cycle (Unit:Hour)
+	// ElectionCycle cycle (Unit:Day)
 	ElectionCycle int
 	// Node score level scale
 	// The key of map is the rank name, and the value of map is a int array containing two elements,

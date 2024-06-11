@@ -113,7 +113,7 @@ var listProjectCmd = &cli.Command{
 				dInfo := info.DetailsList[j]
 
 				status := projectColorState(dInfo.Status.String())
-				processes += fmt.Sprintf("\t%s(%s): %s\n", dInfo.NodeID, status, dInfo.WsURL)
+				processes += fmt.Sprintf("\t(%s) %s/project/%s/%s/tun \n", status, dInfo.WsURL, dInfo.NodeID, info.UUID)
 			}
 			m["Processes"] = processes
 			tw.Write(m)

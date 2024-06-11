@@ -307,9 +307,9 @@ func (m *Manager) DistributeNodeWeight(node *Node) {
 		return
 	}
 
-	if node.Type == types.NodeValidator {
-		return
-	}
+	// if node.Type == types.NodeValidator {
+	// 	return
+	// }
 
 	score := m.getNodeScoreLevel(node.NodeID)
 	wNum := m.weightMgr.getWeightNum(score)
@@ -486,9 +486,9 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			return true
 		}
 
-		if node.Type == types.NodeValidator {
-			return true
-		}
+		// if node.Type == types.NodeValidator {
+		// 	return true
+		// }
 
 		score := m.getNodeScoreLevel(node.NodeID)
 		wNum := m.weightMgr.getWeightNum(score)

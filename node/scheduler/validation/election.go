@@ -9,9 +9,8 @@ import (
 )
 
 var (
-	firstElectionInterval = 10 * time.Minute   // Time of the first election
+	firstElectionInterval = 5 * time.Minute    // Time of the first election
 	electionCycle         = 1 * 24 * time.Hour // Election cycle
-
 )
 
 func getTimeAfter(t time.Duration) time.Time {
@@ -20,28 +19,25 @@ func getTimeAfter(t time.Duration) time.Time {
 
 // triggers the election process at a regular interval.
 func (m *Manager) startElectionTicker() {
-	// validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
-	// if err != nil {
-	// 	log.Errorf("electionTicker LoadValidators err: %v", err)
-	// 	return
-	// }
+	validators, err := m.nodeMgr.LoadValidators(m.nodeMgr.ServerID)
+	if err != nil {
+		log.Errorf("electionTicker LoadValidators err: %v", err)
+		return
+	}
 
 	expiration := m.electionCycle
+	if len(validators) <= 0 {
+		expiration = firstElectionInterval
+	}
 
-	// expiration := m.getElectionCycle()
-	// if len(validators) <= 0 {
-	// 	expiration = firstElectionInterval
-	// }
-
-	m.nextElectionTime = getTimeAfter(firstElectionInterval)
-
-	ticker := time.NewTicker(firstElectionInterval)
+	m.nextElectionTime = getTimeAfter(expiration)
+	ticker := time.NewTicker(expiration)
 	defer ticker.Stop()
 
 	doElect := func() {
-		m.nextElectionTime = getTimeAfter(expiration)
+		m.nextElectionTime = getTimeAfter(m.electionCycle)
+		ticker.Reset(m.electionCycle)
 
-		ticker.Reset(expiration)
 		err := m.elect()
 		if err != nil {
 			log.Errorf("elect err:%s", err.Error())
@@ -62,15 +58,8 @@ func (m *Manager) startElectionTicker() {
 func (m *Manager) elect() error {
 	log.Debugln("start elect ")
 
-	m.electValidatorsFromEdge()
-	// validators, _ := m.electValidators()
-	// for _, nodeID := range validators {
-	// 	node := m.nodeMgr.GetCandidateNode(nodeID)
-	// 	if node != nil {
-	// 		node.Type = types.NodeValidator
-	// 	}
-	// }
-	// return m.nodeMgr.UpdateValidators(validators, m.nodeMgr.ServerID, true)
+	// m.electValidatorsFromEdge()
+	m.electValidators()
 	return nil
 }
 
@@ -118,12 +107,24 @@ func (m *Manager) StartElection() {
 }
 
 // performs the election process and returns the list of elected validators.
-func (m *Manager) electValidators() ([]string, []string) {
-	list, _ := m.nodeMgr.GetAllCandidateNodes()
+func (m *Manager) electValidators() {
+	list := make([]string, 0)
+	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+	for _, node := range nodes {
+		if node.IsStorageOnly {
+			continue
+		}
+
+		if node.NATType != types.NatTypeNo.String() && !node.IsTestNode {
+			continue
+		}
+
+		list = append(list, node.NodeID)
+	}
 
 	needValidatorCount := int(math.Ceil(float64(len(list)) * m.validatorRatio))
 	if needValidatorCount <= 0 {
-		return nil, list
+		return
 	}
 
 	rand.Shuffle(len(list), func(i, j int) {
@@ -135,9 +136,8 @@ func (m *Manager) electValidators() ([]string, []string) {
 	}
 
 	validators := list[:needValidatorCount]
-	validatables := list[needValidatorCount:]
 
-	return validators, validatables
+	m.CompulsoryElection(validators, true)
 }
 
 func (m *Manager) electValidatorsFromEdge() {

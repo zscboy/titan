@@ -59,7 +59,7 @@ func (m *Manager) autoRefillAssetReplicas() bool {
 		return false
 	}
 
-	if info == nil {
+	if info == nil || info.Source == int64(types.AssetSourceAWS) {
 		return false
 	}
 
@@ -229,20 +229,24 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 }
 
 func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64, size float64) {
-	_, cNodes := m.nodeMgr.GetAllCandidateNodes()
-	sort.Slice(cNodes, func(i, j int) bool {
-		return cNodes[i].TitanDiskUsage < cNodes[j].TitanDiskUsage
+	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+	sort.Slice(nodes, func(i, j int) bool {
+		if nodes[i].Type == nodes[j].Type {
+			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+		}
+
+		return nodes[i].Type == types.NodeCandidate
 	})
 
 	cCount := 0
-	for _, node := range cNodes {
+	for _, node := range nodes {
 		if cCount >= int(candidateCount) {
 			break
 		}
 
-		if node.Type == types.NodeValidator {
-			continue
-		}
+		// if node.Type == types.NodeValidator {
+		// 	continue
+		// }
 
 		// if node.IsStorageOnly {
 		// 	continue

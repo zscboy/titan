@@ -165,7 +165,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		ValidatorBaseBwDn:       100,
 		ValidationProfit:        0,
 		WorkloadProfit:          0,
-		ElectionCycle:           5,
+		ElectionCycle:           1,
 		LotusRPCAddress:         "http://api.node.glif.io/rpc/v0",
 		LotusToken:              "",
 		EdgeDownloadRatio:       0.7,

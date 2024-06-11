@@ -138,7 +138,7 @@ func (m *Manager) initCfg() {
 	m.lotusRPCAddress = cfg.LotusRPCAddress
 	m.enableValidation = cfg.EnableValidation
 	m.l2ValidatorCount = cfg.L2ValidatorCount
-	m.electionCycle = time.Duration(cfg.ElectionCycle) * time.Hour
+	m.electionCycle = time.Duration(cfg.ElectionCycle) * time.Hour * 24
 	m.validatorRatio = cfg.ValidatorRatio
 }
 

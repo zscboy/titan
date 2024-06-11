@@ -123,7 +123,7 @@ func (m *Manager) Start(ctx context.Context) {
 
 // Terminate stops the asset state machine
 func (m *Manager) Terminate(ctx context.Context) error {
-	log.Infof("Terminate stop")
+	log.Infoln("Terminate stop")
 	return m.assetStateMachines.Stop(ctx)
 }
 
@@ -816,7 +816,6 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 		// update node Disk Use
 		m.nodeMgr.UpdateNodeDiskUsage(nodeID, result.DiskUsage)
 
-		// TODO next version
 		node := m.nodeMgr.GetNode(nodeID)
 		if node != nil {
 			err := node.AddAssetView(context.Background(), cids)
@@ -1116,7 +1115,11 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 
 	_, nodes := m.nodeMgr.GetAllCandidateNodes()
 	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+		if nodes[i].Type == nodes[j].Type {
+			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+		}
+
+		return nodes[i].Type == types.NodeCandidate
 	})
 
 	// num := count * selectNodeRetryLimit
@@ -1127,9 +1130,9 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 			continue
 		}
 
-		if node.Type == types.NodeValidator {
-			continue
-		}
+		// if node.Type == types.NodeValidator {
+		// 	continue
+		// }
 
 		// if node.IsStorageOnly {
 		// 	continue
@@ -1199,9 +1202,9 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 			return false
 		}
 
-		if node.Type == types.NodeValidator {
-			return false
-		}
+		// if node.Type == types.NodeValidator {
+		// 	return false
+		// }
 
 		nodeID := node.NodeID
 
