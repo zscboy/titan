@@ -546,7 +546,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 			return nil
 
 		case <-restartChan:
-			log.Warn("Restaring ...")
+			log.Warn("Restarting ...")
 			cancel()
 
 			if err := lockRepo.Close(); err != nil {
@@ -619,7 +619,6 @@ func startHTTP3Server(ctx context.Context, transport *quic.Transport, handler ht
 
 	go func() {
 		<-ctx.Done()
-		quitWg.Done()
 		log.Warn("http3 server graceful shutting down...")
 		if err := srv.Close(); err != nil {
 			log.Warn("graceful shutting down http3 server with error: ", err.Error())
@@ -627,6 +626,7 @@ func startHTTP3Server(ctx context.Context, transport *quic.Transport, handler ht
 	}()
 
 	if err = srv.ServeListener(ln); err != nil {
+		quitWg.Done()
 		log.Warn("http3 server start with error: ", err.Error())
 	}
 	return err
