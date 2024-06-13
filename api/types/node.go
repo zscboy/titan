@@ -38,6 +38,7 @@ type NodeInfo struct {
 	NATType         string
 	IsPhone         bool
 	BackProjectTime int64
+	RemoteAddr      string
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	GeoInfo         *region.GeoInfo
 	AssetCount      int64 `db:"asset_count"`

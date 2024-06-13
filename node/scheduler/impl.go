@@ -121,7 +121,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}()
 
 	cNode.SetToken(opts.Token)
-	cNode.RemoteAddr = remoteAddr
 	cNode.ExternalURL = opts.ExternalURL
 	cNode.TCPPort = opts.TcpServerPort
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
@@ -169,6 +168,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("Node %s does not meet the standard", nodeID)
 	}
 
+	nodeInfo.RemoteAddr = remoteAddr
 	nodeInfo.SchedulerID = s.ServerID
 	nodeInfo.ExternalIP = externalIP
 	nodeInfo.BandwidthUp = units.KiB

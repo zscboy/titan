@@ -37,7 +37,6 @@ type Node struct {
 
 	// node info
 	PublicKey             *rsa.PublicKey
-	RemoteAddr            string
 	TCPPort               int
 	ExternalURL           string
 	IsPrivateMinioOnly    bool

@@ -258,6 +258,7 @@ var listNodeCmd = &cli.Command{
 				"Status":         colorOnline(info.Status),
 				"Nat":            info.NATType,
 				"IP":             info.ExternalIP,
+				"Addr":           info.RemoteAddr,
 				"Profit":         fmt.Sprintf("%.4f", info.Profit),
 				"OnlineDuration": fmt.Sprintf("%d", info.OnlineDuration),
 				"Geo":            fmt.Sprintf("%s", geo),
@@ -538,7 +539,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("status: %v \n", info.Status.String())
 		fmt.Printf("name: %s \n", info.NodeName)
 		fmt.Printf("external_ip: %s \n", info.ExternalIP)
-		fmt.Printf("internal_ip: %s \n", info.InternalIP)
+		fmt.Printf("addr: %s \n", info.RemoteAddr)
 		fmt.Printf("system version: %s \n", info.SystemVersion)
 		fmt.Printf("disk usage: %.4f %s\n", info.DiskUsage, "%")
 		fmt.Printf("disk space: %s \n", units.BytesSize(info.DiskSpace))

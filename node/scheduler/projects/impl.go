@@ -93,7 +93,24 @@ func (m *Manager) Update(req *types.ProjectReq) error {
 		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", req.Replicas, edgeReplicasLimit)
 	}
 
-	err := m.UpdateProjectInfo(&types.ProjectInfo{
+	info, err := m.LoadProjectInfo(req.UUID)
+	if err != nil {
+		return err
+	}
+
+	if req.Replicas == 0 {
+		req.Replicas = info.Replicas
+	}
+
+	if req.Name == "" {
+		req.Name = info.Name
+	}
+
+	if req.BundleURL == "" {
+		req.BundleURL = info.BundleURL
+	}
+
+	err = m.UpdateProjectInfo(&types.ProjectInfo{
 		UUID:      req.UUID,
 		Name:      req.Name,
 		BundleURL: req.BundleURL,

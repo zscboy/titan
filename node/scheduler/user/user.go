@@ -267,25 +267,25 @@ func (u *User) ShareAssets(ctx context.Context, assetCIDs []string, schedulerAPI
 	for _, assetCID := range assetCIDs {
 		rsp, err := schedulerAPI.GetAssetSourceDownloadInfo(ctx, assetCID)
 		if err != nil {
-			return nil, err
+			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 		}
 
 		if len(rsp.SourceList) == 0 {
-			return nil, fmt.Errorf("asset %s not exist", assetCID)
+			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 		}
 
 		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: u.ID, AssetCID: assetCID}, schedulerAPI.(api.Common))
 		if err != nil {
-			return nil, err
+			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 		}
 
 		hash, err := cidutil.CIDToHash(assetCID)
 		if err != nil {
-			return nil, err
+			return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int()}
 		}
 		assetName, err := u.GetAssetName(hash, u.ID)
 		if err != nil {
-			return nil, err
+			return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
 		}
 
 		var node *node.Node

@@ -421,6 +421,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.IncomeIncr = node.IncomeIncr
 		nodeInfo.IsTestNode = node.IsTestNode
 		nodeInfo.GeoInfo = node.GeoInfo
+		nodeInfo.RemoteAddr = node.RemoteAddr
 		// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
 		// nodeInfo.NetFlowUp = node.NetFlowUp
 		// nodeInfo.NetFlowDown = node.NetFlowDown
@@ -463,6 +464,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.IncomeIncr = node.IncomeIncr
 			nodeInfo.IsTestNode = node.IsTestNode
 			nodeInfo.GeoInfo = node.GeoInfo
+			nodeInfo.RemoteAddr = node.RemoteAddr
 			// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
 			// nodeInfo.NetFlowUp = node.NetFlowUp
 			// nodeInfo.NetFlowDown = node.NetFlowDown
