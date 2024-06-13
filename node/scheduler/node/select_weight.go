@@ -177,5 +177,5 @@ func (wm *weightManager) getWeightNum(scoreLevel string) int {
 		return num
 	}
 
-	return 0
+	return 1
 }

@@ -37,6 +37,7 @@ var assetCmds = &cli.Command{
 		removeAssetRecordCmd,
 		stopAssetRecordCmd,
 		removeAssetReplicaCmd,
+		removeAllRecordCmd,
 		resetExpirationCmd,
 		restartAssetCmd,
 		addAWSDataCmd,
@@ -456,6 +457,47 @@ var listAWSDataCmd = &cli.Command{
 		}
 
 		tw.Flush(os.Stdout)
+		return nil
+	},
+}
+
+var removeAllRecordCmd = &cli.Command{
+	Name:  "removes",
+	Usage: "remove all asset of this Scheduler",
+	Flags: []cli.Flag{},
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		limit := 2
+		offset := 0
+
+		states := assets.ActiveStates
+
+		for {
+			list, err := schedulerAPI.GetAssetRecords(ctx, limit, offset, states, "")
+			if err != nil {
+				return err
+			}
+
+			if len(list) == 0 {
+				break
+			}
+
+			for _, info := range list {
+				err := schedulerAPI.RemoveAssetRecord(ctx, info.CID)
+				if err != nil {
+					fmt.Printf("RemoveAssetRecord %s err: %s \n", info.CID, err.Error())
+				} else {
+					fmt.Printf("RemoveAssetRecord %s success \n", info.CID)
+				}
+			}
+		}
+
 		return nil
 	},
 }

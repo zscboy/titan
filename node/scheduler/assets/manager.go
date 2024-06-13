@@ -36,7 +36,7 @@ const (
 	// The number of pull replica in the first stage
 	seedReplicaCount = 1
 	// Interval to get asset pull progress from node (Unit:Second)
-	pullProgressInterval = 60 * time.Second
+	pullProgressInterval = 30 * time.Second
 	// Interval to check candidate backup of asset (Unit:Minute)
 	checkCandidateBackupInterval = 10 * time.Minute
 	// Maximum number of replicas per asset
@@ -1041,18 +1041,11 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
-		// if cNode.Type == types.NodeValidator {
-		// 	continue
-		// }
-
 		if cNode.NetFlowUpExcess(float64(replica.DoneSize)) {
 			continue
 		}
 
 		if cNode.Type == types.NodeCandidate {
-			// if assetSource == AssetSourceStorage && !cNode.IsStorageOnly {
-			// 	continue
-			// }
 
 			source := &types.CandidateDownloadInfo{
 				NodeID:    nodeID,
@@ -1130,13 +1123,10 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 			continue
 		}
 
-		// if node.Type == types.NodeValidator {
-		// 	continue
-		// }
-
-		// if node.IsStorageOnly {
-		// 	continue
-		// }
+		// Merge L1 nodes
+		if node.Type == types.NodeValidator {
+			continue
+		}
 
 		if !node.MeetCandidateStandard {
 			continue

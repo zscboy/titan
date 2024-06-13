@@ -525,10 +525,6 @@ func (s *Scheduler) ElectValidators(ctx context.Context, nodeIDs []string, clean
 	return s.ValidationMgr.CompulsoryElection(nodeIDs, cleanOld)
 }
 
-func (s *Scheduler) AddProfits(ctx context.Context, nodes []string, profit float64) error {
-	return s.db.UpdateNodeProfit(nodes, profit)
-}
-
 // UpdateNetFlows update node net flow total,up,down usage
 func (s *Scheduler) UpdateNetFlows(ctx context.Context, total, up, down int64) error {
 	return nil

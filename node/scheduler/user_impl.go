@@ -439,13 +439,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 	_, nodes := s.NodeManager.GetAllCandidateNodes()
 
 	cNodes := make([]*node.Node, 0)
-	// sort.Slice(nodes, func(i, j int) bool {
-	// 	return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-	// })
 	for _, node := range nodes {
-		// if node.Type == types.NodeValidator {
-		// 	continue
-		// }
 		if node.IsStorageOnly {
 			cNodes = append(cNodes, node)
 		}

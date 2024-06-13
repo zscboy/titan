@@ -28,7 +28,7 @@ const (
 	checkFailedProjectInterval    = 5 * time.Minute
 	checkServicingProjectInterval = 10 * time.Minute
 
-	maxNodeOfflineTime = 24 * time.Hour
+	maxNodeOfflineTime = 12 * time.Hour
 
 	edgeReplicasLimit = 1000
 )
@@ -365,7 +365,7 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 	defer rows.Close()
 
 	nodeProjects := make(map[string][]string, 0)
-	projectDeleteReplicas := make(map[string]int, 0)
+	projectDeleteReplicas := make(map[string]int64, 0)
 
 	projectLen := 0
 	// loading projects to local
@@ -440,9 +440,9 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 	return offset
 }
 
-func (m *Manager) restartProjects(projectDeleteReplicas map[string]int) {
-	for id := range projectDeleteReplicas {
-		err := m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, 0, m.nodeMgr.ServerID)
+func (m *Manager) restartProjects(projectDeleteReplicas map[string]int64) {
+	for id, count := range projectDeleteReplicas {
+		err := m.UpdateProjectStateInfo(id, NodeSelect.String(), 0, count, m.nodeMgr.ServerID)
 		if err != nil {
 			log.Errorf("restartProject %s UpdateProjectStateInfo err: %s", id, err.Error())
 			continue

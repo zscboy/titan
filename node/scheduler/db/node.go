@@ -879,18 +879,6 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 	return out, nil
 }
 
-func (n *SQLDB) UpdateNodeProfit(sIDs []string, profit float64) error {
-	rQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id in (?)`, nodeInfoTable)
-	srQuery, args, err := sqlx.In(rQuery, profit, sIDs)
-	if err != nil {
-		return err
-	}
-
-	srQuery = n.db.Rebind(srQuery)
-	_, err = n.db.Exec(srQuery, args...)
-	return err
-}
-
 // func(n *SQLDB)
 
 // CleanData delete events

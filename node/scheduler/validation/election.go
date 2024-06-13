@@ -59,7 +59,9 @@ func (m *Manager) elect() error {
 	log.Debugln("start elect ")
 
 	// m.electValidatorsFromEdge()
-	m.electValidators()
+
+	// Merge L1 nodes
+	// m.electValidators()
 	return nil
 }
 

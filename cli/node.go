@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/tablewriter"
@@ -30,7 +29,6 @@ var nodeCmds = &cli.Command{
 		listReplicaCmd,
 		nodeCleanReplicasCmd,
 		listValidationResultsCmd,
-		addProfitCmd,
 		listProfitDetailsCmd,
 		freeUpDiskSpaceCmd,
 		updateNodeDynamicInfoCmd,
@@ -139,51 +137,6 @@ var generateCandidateCodeCmd = &cli.Command{
 		}
 
 		return nil
-	},
-}
-
-var addProfitCmd = &cli.Command{
-	Name:  "ap",
-	Usage: "add nodes profit",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "path",
-			Usage: "nodes list",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		path := cctx.String("path")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		list := make([]string, 0)
-		replacer := strings.NewReplacer("\n", "", "\r\n", "", "\r", "", " ", "")
-
-		if path != "" {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			contentStr := string(content)
-			stringsList := strings.Split(contentStr, ";")
-
-			for _, str := range stringsList {
-				if str == "" {
-					continue
-				}
-				str = replacer.Replace(str)
-
-				list = append(list, str)
-			}
-		}
-
-		return schedulerAPI.AddProfits(ctx, list, 1000)
 	},
 }
 
@@ -541,13 +494,13 @@ var getRegionInfosCmd = &cli.Command{
 		}
 		defer closer()
 
-		list, err := schedulerAPI.GetCurrentRegionInfo(ctx, areaID)
+		list, err := schedulerAPI.GetCurrentRegionInfos(ctx, areaID)
 		if err != nil {
 			return err
 		}
 
-		for _, nodeID := range list {
-			fmt.Println(nodeID)
+		for _, geoKey := range list {
+			fmt.Println(geoKey)
 		}
 
 		fmt.Println("size:", len(list))

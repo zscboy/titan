@@ -47,7 +47,8 @@ type Manager struct {
 	ipLimit int
 	// TotalNetworkEdges int // Number of edge nodes in the entire network (including those on other schedulers)
 
-	nodeIPs sync.Map
+	nodeIPs   map[string][]string
+	ipMapLock *sync.RWMutex
 
 	nodeScoreLevel map[string][]int
 	geoMgr         *GeoMgr
@@ -64,6 +65,8 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 		etcdcli:    ec,
 		weightMgr:  newWeightManager(config),
 		geoMgr:     newMgr(),
+		ipMapLock:  new(sync.RWMutex),
+		nodeIPs:    make(map[string][]string),
 	}
 
 	nodeManager.ipLimit = nodeManager.getIPLimit()
@@ -76,7 +79,7 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	// go nodeManager.startSyncEdgeCountTimer()
 	// go nodeManager.startCalculatePointsTimer()
 
-	go nodeManager.startMxTimer()
+	// go nodeManager.startMxTimer()
 
 	return nodeManager
 }
@@ -108,61 +111,55 @@ func (m *Manager) getIPLimit() int {
 }
 
 func (m *Manager) StoreNodeIP(nodeID, ip string) bool {
-	listI, exist := m.nodeIPs.Load(ip)
-	if exist && listI != nil {
-		nodes := listI.([]string)
+	m.ipMapLock.Lock()
+	defer m.ipMapLock.Unlock()
 
-		for _, nID := range nodes {
+	list, exist := m.nodeIPs[ip]
+	if exist {
+		for _, nID := range list {
 			if nID == nodeID {
 				return true
 			}
 		}
 
-		if len(nodes) < m.ipLimit {
-			nodes = append(nodes, nodeID)
-			m.nodeIPs.Store(ip, nodes)
+		if len(list) < m.ipLimit {
+			list = append(list, nodeID)
+			m.nodeIPs[ip] = list
 			return true
 		}
 
 		return false
 	} else {
-		nodes := []string{nodeID}
-		m.nodeIPs.Store(ip, nodes)
+		m.nodeIPs[ip] = []string{nodeID}
 
 		return true
 	}
 }
 
 func (m *Manager) RemoveNodeIP(nodeID, ip string) {
-	listI, exist := m.nodeIPs.Load(ip)
-	if exist && listI != nil {
-		nodes := listI.([]string)
+	m.ipMapLock.Lock()
+	defer m.ipMapLock.Unlock()
 
-		list := []string{}
+	list, exist := m.nodeIPs[ip]
+	if exist {
+		nList := []string{}
 
-		for _, nID := range nodes {
+		for _, nID := range list {
 			if nID != nodeID {
-				list = append(list, nID)
+				nList = append(nList, nID)
 			}
 		}
 
-		m.nodeIPs.Store(ip, list)
+		m.nodeIPs[ip] = nList
 	}
 }
 
 func (m *Manager) GetNodeOfIP(ip string) []string {
-	listI, exist := m.nodeIPs.Load(ip)
-	if exist && listI != nil {
-		nodes := listI.([]string)
-
-		return nodes
-	}
-
-	return nil
+	return m.nodeIPs[ip]
 }
 
 func (m *Manager) CheckIPExist(ip string) bool {
-	_, exist := m.nodeIPs.Load(ip)
+	_, exist := m.nodeIPs[ip]
 
 	return exist
 }
@@ -307,9 +304,10 @@ func (m *Manager) DistributeNodeWeight(node *Node) {
 		return
 	}
 
-	// if node.Type == types.NodeValidator {
-	// 	return
-	// }
+	// Merge L1 nodes
+	if node.Type == types.NodeValidator {
+		return
+	}
 
 	score := m.getNodeScoreLevel(node.NodeID)
 	wNum := m.weightMgr.getWeightNum(score)
@@ -322,10 +320,6 @@ func (m *Manager) DistributeNodeWeight(node *Node) {
 
 // RepayNodeWeight Repay Node Weight
 func (m *Manager) RepayNodeWeight(node *Node) {
-	// if node.Type == types.NodeValidator {
-	// 	return
-	// }
-
 	if node.Type == types.NodeCandidate {
 		m.weightMgr.repayCandidateWeight(node.selectWeights)
 		node.selectWeights = nil
@@ -352,7 +346,7 @@ func (m *Manager) nodeKeepalive(node *Node, t time.Time) bool {
 			m.deleteEdgeNode(node)
 		}
 
-		log.Infof("node offline %s", node.NodeID)
+		log.Infof("node offline %s, %s", node.NodeID, node.ExternalIP)
 
 		return false
 	}
@@ -486,9 +480,10 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			return true
 		}
 
-		// if node.Type == types.NodeValidator {
-		// 	return true
-		// }
+		// Merge L1 nodes
+		if node.Type == types.NodeValidator {
+			return true
+		}
 
 		score := m.getNodeScoreLevel(node.NodeID)
 		wNum := m.weightMgr.getWeightNum(score)

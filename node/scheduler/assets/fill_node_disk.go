@@ -230,6 +230,7 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 
 func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64, size float64) {
 	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+
 	sort.Slice(nodes, func(i, j int) bool {
 		if nodes[i].Type == nodes[j].Type {
 			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
@@ -244,9 +245,10 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64,
 			break
 		}
 
-		// if node.Type == types.NodeValidator {
-		// 	continue
-		// }
+		// Merge L1 nodes
+		if node.Type == types.NodeValidator {
+			continue
+		}
 
 		// if node.IsStorageOnly {
 		// 	continue

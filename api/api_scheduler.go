@@ -106,8 +106,8 @@ type NodeAPI interface {
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:web,admin
 	// GetNodesFromRegion retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodesFromRegion(ctx context.Context, areaID string) ([]*types.NodeInfo, error) //perm:web,admin
-	// GetCurrentRegionInfo retrieves a list of nodes with pagination using the specified cursor and count
-	GetCurrentRegionInfo(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
+	// GetCurrentRegionInfos retrieves a list of nodes with pagination using the specified cursor and count
+	GetCurrentRegionInfos(ctx context.Context, areaID string) ([]string, error) //perm:web,admin
 	// GetCandidateURLsForDetectNat Get the rpc url of the specified number of candidate nodes
 	GetCandidateURLsForDetectNat(ctx context.Context) ([]string, error) //perm:default
 	// GetEdgeExternalServiceAddress nat travel, get edge external addr with different candidate
@@ -156,8 +156,6 @@ type NodeAPI interface {
 	GetNodeOfIP(ctx context.Context, ip string) ([]string, error) //perm:admin,web,locator
 	// PerformSyncData sync the assetView of scheduler and node
 	PerformSyncData(ctx context.Context, nodeID string) error //perm:admin
-	// AddProfits
-	AddProfits(ctx context.Context, nodes []string, profit float64) error //perm:admin
 	// GetProfitDetailsForNode retrieves a profit list of node
 	GetProfitDetailsForNode(ctx context.Context, nodeID string, limit, offset int, ts []int) (*types.ListNodeProfitDetailsRsp, error) //perm:web,admin
 	// FreeUpDiskSpace  Request to free up disk space, returns free hashes and next time
