@@ -44,6 +44,7 @@ func (t *Tunnel) onPing(data string) error {
 }
 
 func (t *Tunnel) onClose() {
+	log.Debugf("tunnel close %s", t.ID)
 	t.reqq.cleanup()
 }
 

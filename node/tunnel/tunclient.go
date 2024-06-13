@@ -91,7 +91,7 @@ func (tc *Tunclient) keepalive() error {
 
 func (tc *Tunclient) writePing() error {
 	tc.writeLock.Lock()
-	tc.writeLock.Unlock()
+	defer tc.writeLock.Unlock()
 
 	if tc.conn == nil {
 		return fmt.Errorf("writePing conn == nil")
