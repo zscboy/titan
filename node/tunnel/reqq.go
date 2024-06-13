@@ -13,7 +13,7 @@ type Reqq struct {
 func newReqq(cap int) *Reqq {
 	requests := make([]*Request, 0, cap)
 	for i := 0; i < cap; i++ {
-		requests = append(requests, &Request{idx: uint16(i)})
+		requests = append(requests, newRequest(uint16(i)))
 	}
 
 	return &Reqq{requests: requests, lock: sync.Mutex{}}

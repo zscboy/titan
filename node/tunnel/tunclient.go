@@ -150,6 +150,13 @@ func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) erro
 		return fmt.Errorf("service %s not exist", projectID)
 	}
 
+	req := tc.reqq.allocReq()
+	if req == nil {
+		return fmt.Errorf("can not alloc, idx %d tag %d", idx, tag)
+	}
+	req.idx = idx
+	req.tag = tag
+
 	addr := fmt.Sprintf("%s:%d", service.Address, service.Port)
 
 	log.Debugf("handlRequestCreated connet to %s", addr)
@@ -161,10 +168,6 @@ func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) erro
 		tc.onRequestTerminate(idx, tag)
 		return err
 	}
-
-	req := tc.reqq.allocReq()
-	req.idx = idx
-	req.tag = tag
 	req.conn = conn
 
 	go req.proxy(tc)
