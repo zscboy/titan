@@ -342,7 +342,7 @@ type NodeAPIStruct struct {
 
 		GetCandidateURLsForDetectNat func(p0 context.Context) ([]string, error) `perm:"default"`
 
-		GetCurrentRegionInfos func(p0 context.Context, p1 string) ([]string, error) `perm:"web,admin"`
+		GetCurrentRegionInfos func(p0 context.Context, p1 string) (map[string]int, error) `perm:"web,admin"`
 
 		GetEdgeDownloadInfos func(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) `perm:"default"`
 
@@ -1626,15 +1626,15 @@ func (s *NodeAPIStub) GetCandidateURLsForDetectNat(p0 context.Context) ([]string
 	return *new([]string), ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetCurrentRegionInfos(p0 context.Context, p1 string) ([]string, error) {
+func (s *NodeAPIStruct) GetCurrentRegionInfos(p0 context.Context, p1 string) (map[string]int, error) {
 	if s.Internal.GetCurrentRegionInfos == nil {
-		return *new([]string), ErrNotSupported
+		return *new(map[string]int), ErrNotSupported
 	}
 	return s.Internal.GetCurrentRegionInfos(p0, p1)
 }
 
-func (s *NodeAPIStub) GetCurrentRegionInfos(p0 context.Context, p1 string) ([]string, error) {
-	return *new([]string), ErrNotSupported
+func (s *NodeAPIStub) GetCurrentRegionInfos(p0 context.Context, p1 string) (map[string]int, error) {
+	return *new(map[string]int), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) GetEdgeDownloadInfos(p0 context.Context, p1 string) (*types.EdgeDownloadInfoList, error) {

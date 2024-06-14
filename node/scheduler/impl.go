@@ -225,9 +225,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		s.ProjectManager.CheckProjectReplicasFromNode(nodeID)
 	}
 
-	s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
-
 	if nodeType == types.NodeEdge {
+		s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
 	} else {
 		go s.NatManager.DetermineCandidateNATType(context.Background(), nodeID)

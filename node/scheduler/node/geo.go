@@ -91,7 +91,7 @@ func (g *GeoMgr) FindNodes(continent, country, province, city string) []*types.N
 	return nil
 }
 
-func (g *GeoMgr) GetGeoKey(continent, country, province string) []string {
+func (g *GeoMgr) GetGeoKey(continent, country, province string) map[string]int {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -99,26 +99,38 @@ func (g *GeoMgr) GetGeoKey(continent, country, province string) []string {
 	country = strings.ToLower(country)
 	province = strings.ToLower(province)
 
-	var result []string
+	result := make(map[string]int)
 	if continent != "" && country != "" && province != "" {
-		for city := range g.geoMap[continent][country][province] {
-			result = append(result, city)
+		for city, list := range g.geoMap[continent][country][province] {
+			result[city] = len(list)
 		}
 		return result
 	} else if continent != "" && country != "" {
-		for province := range g.geoMap[continent][country] {
-			result = append(result, province)
+		for province, cities := range g.geoMap[continent][country] {
+			for _, list := range cities {
+				result[province] += len(list)
+			}
 		}
 		return result
 	} else if continent != "" {
-		for country := range g.geoMap[continent] {
-			result = append(result, country)
+		for country, provinces := range g.geoMap[continent] {
+			for _, cities := range provinces {
+				for _, list := range cities {
+					result[country] += len(list)
+				}
+			}
 		}
 		return result
 	}
 
 	for continent := range g.geoMap {
-		result = append(result, continent)
+		for _, provinces := range g.geoMap[continent] {
+			for _, cities := range provinces {
+				for _, list := range cities {
+					result[continent] += len(list)
+				}
+			}
+		}
 	}
 
 	return result

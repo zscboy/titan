@@ -265,6 +265,16 @@ func (u *User) DeleteAsset(ctx context.Context, cid string) error {
 func (u *User) ShareAssets(ctx context.Context, assetCIDs []string, schedulerAPI api.Scheduler, nodeManager *node.Manager) (map[string]string, error) {
 	urls := make(map[string]string)
 	for _, assetCID := range assetCIDs {
+		hash, err := cidutil.CIDToHash(assetCID)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int()}
+		}
+
+		assetName, err := u.GetAssetName(hash, u.ID)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+		}
+
 		rsp, err := schedulerAPI.GetAssetSourceDownloadInfo(ctx, assetCID)
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
@@ -277,15 +287,6 @@ func (u *User) ShareAssets(ctx context.Context, assetCIDs []string, schedulerAPI
 		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: u.ID, AssetCID: assetCID}, schedulerAPI.(api.Common))
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
-		}
-
-		hash, err := cidutil.CIDToHash(assetCID)
-		if err != nil {
-			return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int()}
-		}
-		assetName, err := u.GetAssetName(hash, u.ID)
-		if err != nil {
-			return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
 		}
 
 		var node *node.Node

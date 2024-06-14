@@ -3,8 +3,6 @@ package projects
 import (
 	"time"
 
-	"github.com/Filecoin-Titan/titan/api"
-	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	xerrors "golang.org/x/xerrors"
 )
@@ -80,12 +78,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	}
 
 	// create project task
-	err = m.projectStateMachines.Send(ProjectID(info.UUID), rInfo)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return m.projectStateMachines.Send(ProjectID(info.UUID), rInfo)
 }
 
 func (m *Manager) Update(req *types.ProjectReq) error {
@@ -126,12 +119,7 @@ func (m *Manager) Update(req *types.ProjectReq) error {
 	}
 
 	// create project task
-	err = m.projectStateMachines.Send(ProjectID(req.UUID), rInfo)
-	if err != nil {
-		return &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
-	}
-
-	return nil
+	return m.projectStateMachines.Send(ProjectID(req.UUID), rInfo)
 }
 
 func (m *Manager) Delete(req *types.ProjectReq) error {

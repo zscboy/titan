@@ -96,7 +96,7 @@ func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []
 	return m.geoMgr.FindNodes(continent, country, province, city)
 }
 
-func (m *Manager) GetGeoKey(continent, country, province string) []string {
+func (m *Manager) GetGeoKey(continent, country, province string) map[string]int {
 	return m.geoMgr.GetGeoKey(continent, country, province)
 }
 

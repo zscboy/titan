@@ -1669,7 +1669,7 @@ func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]*t
 	return nil, xerrors.Errorf("continent is nil ; %s", areaID)
 }
 
-func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) ([]string, error) {
+func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) (map[string]int, error) {
 	continent, country, province, _ := region.DecodeAreaID(areaID)
 	return s.NodeManager.GetGeoKey(continent, country, province), nil
 }

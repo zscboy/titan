@@ -23,7 +23,7 @@ const (
 	// If the node does not reply more than once, the project timeout is determined.
 	projectTimeoutLimit = 3
 	// Interval to get asset pull progress from node (Unit:Second)
-	progressInterval = 60 * time.Second
+	progressInterval = 30 * time.Second
 
 	checkFailedProjectInterval    = 5 * time.Minute
 	checkServicingProjectInterval = 10 * time.Minute

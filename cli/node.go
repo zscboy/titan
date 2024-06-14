@@ -500,8 +500,8 @@ var getRegionInfosCmd = &cli.Command{
 			return err
 		}
 
-		for _, geoKey := range list {
-			fmt.Println(geoKey)
+		for geoKey, num := range list {
+			fmt.Println(geoKey, ":", num)
 		}
 
 		fmt.Println("size:", len(list))
