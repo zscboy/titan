@@ -66,13 +66,15 @@ func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 				hbp.daemonSwitch.IsStop = isStop
 				if isStop {
 					log.Info("stop daemon")
+					return nil
 				} else {
 					log.Info("start daemon")
 				}
 			}
 
 			if hbp.daemonSwitch.IsStop {
-				continue
+				// continue
+				return nil
 			}
 
 			curSession, err := keepalive(hbp.schedulerAPI, 10*time.Second)

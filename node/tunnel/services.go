@@ -31,6 +31,7 @@ func (s *Services) start() {
 	for {
 		select {
 		case <-s.ctx.Done():
+			log.Info("tunnel service stopped")
 			return
 		default:
 		}

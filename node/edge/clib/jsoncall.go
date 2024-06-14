@@ -202,12 +202,16 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 		return fmt.Errorf("Args RepoPath can not emtpy")
 	}
 
-	if clib.isInit {
-		if clib.dSwitch.IsStop {
-			clib.dSwitch.StopChan <- false
-		} else {
-			log.Infof("daemon already start")
-		}
+	// if clib.isInit {
+	// 	if clib.dSwitch.IsStop {
+	// 		// clib.dSwitch.StopChan <- false
+	// 	} else {
+	// 		log.Infof("daemon already start")
+	// 	}
+	// 	return nil
+	// }
+	if clib.isInit && !clib.dSwitch.IsStop {
+		log.Infof("daemon already start")
 		return nil
 	}
 	clib.isInit = true
@@ -243,7 +247,16 @@ func (clib *CLib) stopDaemon() error {
 		return fmt.Errorf("Daemon already stop")
 	}
 
-	clib.dSwitch.StopChan <- true
+	// clib.dSwitch.StopChan <- true
+	edgeApi, closer, err := newEdgeAPI(clib.repoPath)
+	if err != nil {
+		return fmt.Errorf("get edge api error %s", err.Error())
+	}
+	defer closer()
+
+	if err := edgeApi.Shutdown(context.Background()); err != nil {
+		return fmt.Errorf("restart occurs with error: %s", err.Error())
+	}
 
 	return nil
 }
