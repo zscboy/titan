@@ -23,17 +23,21 @@ type heartbeatParams struct {
 func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 	schedulerSession, err := hbp.schedulerAPI.Session(ctx)
 	if err != nil {
-		return xerrors.Errorf("getting scheduler session: %w", err)
+		err = xerrors.Errorf("getting scheduler session: %w", err)
+		hbp.daemonSwitch.ErrMsg = err.Error()
+		return err
 	}
 
 	token, err := hbp.edgeAPI.AuthNew(ctx, &types.JWTPayload{Allow: []auth.Permission{api.RoleAdmin}, ID: hbp.nodeID})
 	if err != nil {
-		return xerrors.Errorf("generate token for scheduler error: %w", err)
+		err = xerrors.Errorf("generate token for scheduler error: %w", err)
+		hbp.daemonSwitch.ErrMsg = err.Error()
+		return err
 	}
 
 	heartbeats := time.NewTicker(HeartbeatInterval)
 	defer heartbeats.Stop()
-	// var isStop = false
+
 	var readyCh chan struct{}
 	for {
 		// TODO: we could get rid of this, but that requires tracking resources for restarted tasks correctly
@@ -48,6 +52,7 @@ func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 				opts := &types.ConnectOptions{Token: token}
 				if err := hbp.schedulerAPI.EdgeConnect(ctx, opts); err != nil {
 					log.Errorf("Registering edge failed: %s", err.Error())
+					hbp.daemonSwitch.ErrMsg = err.Error()
 					hbp.shutdownChan <- struct{}{}
 					return err
 				}

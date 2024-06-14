@@ -46,6 +46,7 @@ type DaemonSwitch struct {
 	StopChan chan bool
 	IsStop   bool
 	IsOnline bool
+	ErrMsg   string
 }
 
 type StartDaemonReq struct {
@@ -73,8 +74,9 @@ type SignResult struct {
 }
 
 type StateResult struct {
-	Runing bool `json:"running"`
-	Online bool `json:"online"`
+	Runing bool   `json:"running"`
+	Online bool   `json:"online"`
+	ErrMsg string `json:"errMsg"`
 }
 
 type DownloadFileReq struct {
@@ -266,7 +268,9 @@ func (clib *CLib) state() *JSONCallResult {
 		return &JSONCallResult{Code: -1, Msg: "daemon not start"}
 	}
 
-	result := StateResult{Runing: !clib.dSwitch.IsStop, Online: clib.dSwitch.IsOnline}
+	result := StateResult{Runing: !clib.dSwitch.IsStop, Online: clib.dSwitch.IsOnline, ErrMsg: clib.dSwitch.ErrMsg}
+
+	clib.dSwitch.ErrMsg = ""
 
 	resultJSON, err := json.Marshal(result)
 	if err != nil {
