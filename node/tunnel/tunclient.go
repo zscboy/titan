@@ -146,8 +146,8 @@ func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) erro
 	service := tc.services.get(projectID)
 	if service == nil {
 		// TODO　send server close
-		tc.onRequestTerminate(idx, tag)
-		return fmt.Errorf("service %s not exist", projectID)
+		err := tc.onRequestTerminate(idx, tag)
+		return fmt.Errorf("service %s not exist, onRequestTerminate %#v", projectID, err)
 	}
 
 	req := tc.reqq.allocReq()
@@ -165,8 +165,8 @@ func (tc *Tunclient) handlRequestCreated(idx, tag uint16, projectID string) erro
 	conn, err := net.DialTimeout("tcp", addr, ts)
 	if err != nil {
 		log.Errorf("connet to %s failed: ", addr, err)
-		tc.onRequestTerminate(idx, tag)
-		return err
+		err2 := tc.onRequestTerminate(idx, tag)
+		return fmt.Errorf("connet to %s failed: %s, onRequestTerminate %#v", addr, err, err2)
 	}
 	req.conn = conn
 

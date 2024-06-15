@@ -34,11 +34,13 @@ func (r *Reqq) reqValid(idx, tag uint16) bool {
 
 func (r *Reqq) getReq(idx, tag uint16) *Request {
 	if idx < 0 || int(idx) > len(r.requests) {
+		log.Errorf("getReq idx %d, requests len %d", idx, len(r.requests))
 		return nil
 	}
 
 	req := r.requests[idx]
 	if req.tag != tag {
+		log.Errorf("getReq idx %d req.tag %d != %d", idx, req.tag, tag)
 		return nil
 	}
 

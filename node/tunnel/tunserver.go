@@ -105,7 +105,7 @@ func (ts *Tunserver) handleProject(w http.ResponseWriter, r *http.Request) {
 
 	tunnel := ts.tunMgr.getTunnel(nodeID)
 	if tunnel == nil {
-		http.Error(w, fmt.Sprintf("can not allocate tunnel for node %s", nodeID), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("can not allocate tunnel for request %s", r.URL.Path), http.StatusBadRequest)
 		return
 	}
 
