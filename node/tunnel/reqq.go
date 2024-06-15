@@ -19,18 +19,18 @@ func newReqq(cap int) *Reqq {
 	return &Reqq{requests: requests, lock: sync.Mutex{}}
 }
 
-func (r *Reqq) reqValid(idx, tag uint16) bool {
-	if idx < 0 || idx >= uint16(len(r.requests)) {
-		return false
-	}
+// func (r *Reqq) reqValid(idx, tag uint16) bool {
+// 	if idx < 0 || idx >= uint16(len(r.requests)) {
+// 		return false
+// 	}
 
-	req := r.requests[idx]
-	if req.tag != tag {
-		return false
-	}
+// 	req := r.requests[idx]
+// 	if req.tag != tag {
+// 		return false
+// 	}
 
-	return true
-}
+// 	return true
+// }
 
 func (r *Reqq) getReq(idx, tag uint16) *Request {
 	if idx < 0 || int(idx) > len(r.requests) {
@@ -39,6 +39,11 @@ func (r *Reqq) getReq(idx, tag uint16) *Request {
 	}
 
 	req := r.requests[idx]
+	if !req.inused {
+		log.Errorf("getReq idx %d unuse")
+		return nil
+	}
+
 	if req.tag != tag {
 		log.Errorf("getReq idx %d req.tag %d != %d", idx, req.tag, tag)
 		return nil
