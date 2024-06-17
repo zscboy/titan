@@ -40,7 +40,7 @@ func (r *Reqq) getReq(idx, tag uint16) *Request {
 
 	req := r.requests[idx]
 	if !req.inused {
-		log.Errorf("getReq idx %d unuse")
+		log.Errorf("getReq idx %d tag %d unuse", idx, tag)
 		return nil
 	}
 
