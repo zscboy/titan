@@ -438,8 +438,9 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 	log.Infof("Remote version %s", v)
 
 	var (
-		shutdownChan = make(chan struct{}) // shutdown chan
-		restartChan  = make(chan struct{}) // cli restart
+		shutdownChan    = make(chan struct{}) // shutdown chan
+		restartChan     = make(chan struct{}) // cli restart
+		restartDoneChan = make(chan struct{}) // make sure all modules are ready to start
 	)
 
 	var lockRepo repo.LockedRepo
@@ -454,6 +455,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		node.Override(new(api.Scheduler), schedulerAPI),
 		node.Override(new(dtypes.ShutdownChan), shutdownChan),
 		node.Override(new(dtypes.RestartChan), restartChan),
+		node.Override(new(dtypes.RestartDoneChan), restartDoneChan),
 		node.Override(new(*quic.Transport), transport),
 		node.Override(new(*asset.Manager), modules.NewAssetsManager(ctx, &edgeCfg.Puller, edgeCfg.IPFSAPIURL)),
 
@@ -539,6 +541,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 			}
 
 			stop(ctx) //nolint:errcheck
+
 			quitWg.Wait()
 
 			log.Warn("Graceful shutdown successful")
@@ -560,6 +563,7 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 				log.Errorf("Close udpPacketConn: %s", err.Error())
 			}
 
+			restartDoneChan <- struct{}{} // node/edge/impl.go
 			return daemonStart(context.Background(), daemonSwitch, repoPath, locatorURL)
 		}
 	}

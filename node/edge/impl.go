@@ -35,7 +35,8 @@ type Edge struct {
 	Transport    *quic.Transport
 	SchedulerAPI api.Scheduler
 
-	RestartChan dtypes.RestartChan
+	RestartChan     dtypes.RestartChan
+	RestartDoneChan dtypes.RestartDoneChan
 }
 
 // WaitQuiet waits for the edge device to become idle.
@@ -78,5 +79,6 @@ func (edge *Edge) GetEdgeOnlineStateFromScheduler(ctx context.Context) (bool, er
 
 func (edge *Edge) Restart(ctx context.Context) error {
 	edge.RestartChan <- struct{}{}
+	<-edge.RestartDoneChan // make sure all modules are ready to start
 	return nil
 }

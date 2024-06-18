@@ -57,6 +57,7 @@ func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 					return err
 				}
 				hbp.daemonSwitch.IsOnline = true
+				hbp.daemonSwitch.IsStop = false
 				log.Info("Edge registered successfully, waiting for tasks")
 				readyCh = nil
 			case <-heartbeats.C:

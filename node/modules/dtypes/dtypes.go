@@ -49,3 +49,5 @@ type GetSchedulerConfigFunc func() (config.SchedulerCfg, error)
 type ShutdownChan chan struct{}
 
 type RestartChan chan struct{}
+
+type RestartDoneChan chan struct{}
