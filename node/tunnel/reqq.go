@@ -92,7 +92,9 @@ func (r *Reqq) free(idx uint16, tag uint16) error {
 func (r *Reqq) cleanup() {
 	for _, request := range r.requests {
 		if request.inused {
-			r.free(request.idx, request.tag)
+			if err := r.free(request.idx, request.tag); err != nil {
+				log.Errorf("cleanup free request idx %d tag %d %s", request.idx, request.tag, err.Error())
+			}
 		}
 	}
 }

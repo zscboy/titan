@@ -242,7 +242,7 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 
 func (clib *CLib) stopDaemon() error {
 	if !clib.isInit {
-		return fmt.Errorf("Daemon not running")
+		return fmt.Errorf("Daemon not init")
 	}
 
 	if clib.dSwitch.IsStop {
