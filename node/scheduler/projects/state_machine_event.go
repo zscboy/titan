@@ -35,12 +35,14 @@ type ProjectForceState struct {
 	State   ProjectState
 	Details string
 	NodeIDs []string
+	Event   int64
 }
 
 func (evt ProjectForceState) applyGlobal(state *ProjectInfo) bool {
 	state.State = evt.State
 	state.RetryCount = 0
 	state.NodeIDs = evt.NodeIDs
+	state.Event = evt.Event
 	return true
 }
 

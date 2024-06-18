@@ -50,12 +50,10 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	m.stateMachineWait.Wait()
 	log.Infof("project event: %s, add project ", req.Name)
 
-	expiration := time.Now().Add(150 * 24 * time.Hour)
-
 	info := &types.ProjectInfo{
 		UUID:        req.UUID,
 		ServerID:    m.nodeMgr.ServerID,
-		Expiration:  expiration,
+		Expiration:  req.Expiration,
 		State:       NodeSelect.String(),
 		CreatedTime: time.Now(),
 		Name:        req.Name,
@@ -135,7 +133,7 @@ func (m *Manager) Delete(req *types.ProjectReq) error {
 		return xerrors.Errorf("not found project %s", req.UUID)
 	}
 
-	return m.projectStateMachines.Send(ProjectID(req.UUID), ProjectForceState{State: Remove})
+	return m.projectStateMachines.Send(ProjectID(req.UUID), ProjectForceState{State: Remove, Event: int64(types.ProjectEventRemove)})
 }
 
 func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {

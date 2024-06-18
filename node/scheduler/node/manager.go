@@ -360,17 +360,17 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 
 	nodes := make([]*types.NodeDynamicInfo, 0)
 	// detailsList := make([]*types.ProfitDetails, 0)
-	mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
+	// mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
 
 	onlineDuration := int((saveInfoInterval * keepaliveTime) / time.Minute)
 
-	mcP := m.NodeCalculateMCx(true)
-	profitP := mcP * mcCount
-	incomeIncrP := (mcP * 360)
+	// mcP := m.NodeCalculateMCx(true)
+	// profitP := mcP * mcCount
+	// incomeIncrP := (mcP * 360)
 
-	mcW := m.NodeCalculateMCx(false)
-	profitW := mcW * mcCount
-	incomeIncrW := (mcW * 360)
+	// mcW := m.NodeCalculateMCx(false)
+	// profitW := mcW * mcCount
+	// incomeIncrW := (mcW * 360)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -379,25 +379,25 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
-			incomeIncr := incomeIncrW
-			profit := profitW
-			if node.IsPhone {
-				incomeIncr = incomeIncrP
-				profit = profitP
-			}
+			// incomeIncr := incomeIncrW
+			// profit := profitW
+			// if node.IsPhone {
+			// 	incomeIncr = incomeIncrP
+			// 	profit = profitP
+			// }
 
 			// add node mc
-			node.IncomeIncr = incomeIncr
+			// node.IncomeIncr = incomeIncr
 
 			if isSave {
 				nodes = append(nodes, &types.NodeDynamicInfo{
-					NodeID:             node.NodeID,
-					OnlineDuration:     onlineDuration,
-					DiskUsage:          node.DiskUsage,
-					LastSeen:           time.Now(),
-					BandwidthDown:      node.BandwidthDown,
-					BandwidthUp:        node.BandwidthUp,
-					Profit:             profit,
+					NodeID:         node.NodeID,
+					OnlineDuration: onlineDuration,
+					DiskUsage:      node.DiskUsage,
+					LastSeen:       time.Now(),
+					BandwidthDown:  node.BandwidthDown,
+					BandwidthUp:    node.BandwidthUp,
+					// Profit:             profit,
 					TitanDiskUsage:     node.TitanDiskUsage,
 					AvailableDiskSpace: node.AvailableDiskSpace,
 					DownloadTraffic:    node.DownloadTraffic,
@@ -416,11 +416,11 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 		}
 
 		if m.nodeKeepalive(node, t) {
-			incomeIncr := incomeIncrW
-			profit := profitW
+			// incomeIncr := incomeIncrW
+			// profit := profitW
 
 			// add node mc
-			node.IncomeIncr = incomeIncr
+			// node.IncomeIncr = incomeIncr
 
 			if isSave {
 				nodes = append(nodes, &types.NodeDynamicInfo{
@@ -432,9 +432,9 @@ func (m *Manager) nodesKeepalive(isSave bool) {
 					BandwidthUp:        node.BandwidthUp,
 					TitanDiskUsage:     node.TitanDiskUsage,
 					AvailableDiskSpace: node.AvailableDiskSpace,
-					Profit:             profit,
-					DownloadTraffic:    node.DownloadTraffic,
-					UploadTraffic:      node.UploadTraffic,
+					// Profit:             profit,
+					DownloadTraffic: node.DownloadTraffic,
+					UploadTraffic:   node.UploadTraffic,
 				})
 			}
 		}

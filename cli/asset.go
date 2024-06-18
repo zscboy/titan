@@ -473,7 +473,7 @@ var removeAllRecordCmd = &cli.Command{
 		}
 		defer closer()
 
-		limit := 2
+		limit := 200
 		offset := 0
 
 		states := assets.ActiveStates
@@ -489,9 +489,15 @@ var removeAllRecordCmd = &cli.Command{
 			}
 
 			for _, info := range list {
+				if info.Source == int64(types.AssetSourceStorage) {
+					offset++
+					continue
+				}
+
 				err := schedulerAPI.RemoveAssetRecord(ctx, info.CID)
 				if err != nil {
 					fmt.Printf("RemoveAssetRecord %s err: %s \n", info.CID, err.Error())
+					offset++
 				} else {
 					fmt.Printf("RemoveAssetRecord %s success \n", info.CID)
 				}

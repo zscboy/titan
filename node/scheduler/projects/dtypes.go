@@ -51,6 +51,7 @@ type ProjectInfo struct {
 	ReplenishReplicas   int64
 
 	NodeIDs []string
+	Event   int64
 }
 
 // ToProjectInfo converts ProjectInfo to types.ProjectInfo

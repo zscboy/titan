@@ -46,8 +46,8 @@ func (n *SQLDB) SaveProjectInfo(info *types.ProjectInfo) error {
 	}()
 
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, name, bundle_url, user_id, replicas, scheduler_sid, cpu_cores, memory, area_id)
-				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid, :cpu_cores, :memory, :area_id)				
+		`INSERT INTO %s (id, name, bundle_url, user_id, replicas, scheduler_sid, cpu_cores, memory, area_id, expiration)
+				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid, :cpu_cores, :memory, :area_id, :expiration)				
 				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, replicas=:replicas, user_id=:user_id,
 				bundle_url=:bundle_url, expiration=:expiration, name=:name`, projectInfoTable)
 

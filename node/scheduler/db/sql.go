@@ -123,10 +123,10 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 }
 
 func doExec(d *SQLDB) {
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD ws_server_id  VARCHAR(128)    DEFAULT '';", nodeInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+	_, err := d.db.Exec(fmt.Sprintf("update %s set expiration='2025-06-15 16:24:31';", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

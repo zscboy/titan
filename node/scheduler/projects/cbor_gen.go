@@ -26,7 +26,7 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{175}); err != nil {
+	if _, err := cw.Write([]byte{176}); err != nil {
 		return err
 	}
 
@@ -74,6 +74,28 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := io.WriteString(w, string(t.UUID)); err != nil {
 		return err
+	}
+
+	// t.Event (int64) (int64)
+	if len("Event") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Event\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Event"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Event")); err != nil {
+		return err
+	}
+
+	if t.Event >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Event)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Event-1)); err != nil {
+			return err
+		}
 	}
 
 	// t.State (projects.ProjectState) (string)
@@ -457,6 +479,32 @@ func (t *ProjectInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.UUID = ProjectID(sval)
+			}
+			// t.Event (int64) (int64)
+		case "Event":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative overflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Event = int64(extraI)
 			}
 			// t.State (projects.ProjectState) (string)
 		case "State":

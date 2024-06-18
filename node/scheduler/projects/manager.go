@@ -287,10 +287,12 @@ func (m *Manager) startCheckFailedProjectTimer() {
 	ticker := time.NewTicker(checkFailedProjectInterval)
 	defer ticker.Stop()
 
+	limit := 10
+	offset := 0
 	for {
 		<-ticker.C
 
-		m.checkUnDoneProjects()
+		offset = m.checkUnDoneProjects(limit, offset)
 	}
 }
 
@@ -379,6 +381,16 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 			continue
 		}
 
+		if cInfo.Expiration.Before(time.Now()) {
+			log.Infof("remove %s Send Expiration: %s, now: %s", cInfo.UUID, cInfo.Expiration.String(), time.Now().String())
+			// Expiration
+			err = m.projectStateMachines.Send(ProjectID(cInfo.UUID), ProjectForceState{State: Remove, Event: int64(types.ProjectEventExpiration)})
+			if err != nil {
+				log.Errorf("remove %s Send err: %s", cInfo.UUID, err.Error())
+			}
+			continue
+		}
+
 		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(cInfo.UUID)
 		if err != nil {
 			log.Errorf("checkProjectReplicas %s load replicas err: %s", cInfo.UUID, err.Error())
@@ -457,22 +469,35 @@ func (m *Manager) restartProjects(projectDeleteReplicas map[string]int64) {
 	}
 }
 
-func (m *Manager) checkUnDoneProjects() error {
-	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, 10, 0, []string{Failed.String(), NodeSelect.String(), Update.String()})
+func (m *Manager) checkUnDoneProjects(limit, offset int) int {
+	rows, err := m.LoadAllProjectInfos(m.nodeMgr.ServerID, limit, offset, []string{Failed.String(), NodeSelect.String(), Update.String()})
 	if err != nil {
 		log.Errorf("Load projects :%s", err.Error())
-		return err
+		return offset
 	}
 	defer rows.Close()
 
 	ids := make([]string, 0)
 
+	projectLen := 0
 	// loading projects to local
 	for rows.Next() {
+		projectLen++
+
 		cInfo := &types.ProjectInfo{}
 		err = rows.StructScan(cInfo)
 		if err != nil {
 			log.Errorf("project StructScan err: %s", err.Error())
+			continue
+		}
+
+		if cInfo.Expiration.Before(time.Now()) {
+			log.Infof("remove %s Send Expiration: %s, now: %s", cInfo.UUID, cInfo.Expiration.String(), time.Now().String())
+			// Expiration
+			err = m.projectStateMachines.Send(ProjectID(cInfo.UUID), ProjectForceState{State: Remove, Event: int64(types.ProjectEventExpiration)})
+			if err != nil {
+				log.Errorf("remove %s Send err: %s", cInfo.UUID, err.Error())
+			}
 			continue
 		}
 
@@ -483,7 +508,14 @@ func (m *Manager) checkUnDoneProjects() error {
 		ids = append(ids, cInfo.UUID)
 	}
 
-	return m.RestartDeployProjects(ids)
+	m.RestartDeployProjects(ids)
+
+	offset += projectLen
+	if projectLen < limit {
+		offset = 0
+	}
+
+	return offset
 }
 
 func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info ProjectInfo) []*node.Node {

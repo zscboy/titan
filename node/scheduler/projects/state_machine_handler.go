@@ -225,11 +225,11 @@ func (m *Manager) handleRemove(ctx statemachine.Context, info ProjectInfo) error
 		return err
 	}
 
-	for _, info := range list {
+	for _, replica := range list {
 		// request nodes
-		err = m.removeReplica(info.Id, info.NodeID, types.ProjectEventRemove)
+		err = m.removeReplica(replica.Id, replica.NodeID, types.ProjectEvent(info.Event))
 		if err != nil {
-			log.Errorf("handleRemove %s , %s removeReplica err:%s", info.Id, info.NodeID, err.Error())
+			log.Errorf("handleRemove %s , %s removeReplica err:%s", replica.Id, replica.NodeID, err.Error())
 		}
 	}
 

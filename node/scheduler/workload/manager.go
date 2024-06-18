@@ -3,7 +3,6 @@ package workload
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -130,7 +129,7 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 	}
 
 	eventList := make([]*types.RetrieveEvent, 0)
-	detailsList := make([]*types.ProfitDetails, 0)
+	// detailsList := make([]*types.ProfitDetails, 0)
 
 	limit := int64(float64(record.AssetSize) * 1.3)
 	if downloadTotalSize > limit {
@@ -159,13 +158,13 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 
 		node := m.nodeMgr.GetNode(dw.SourceID)
 		if node != nil {
-			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-			if dInfo != nil {
-				dInfo.CID = retrieveEvent.CID
-				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+			// dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+			// if dInfo != nil {
+			// 	dInfo.CID = retrieveEvent.CID
+			// 	dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
-				detailsList = append(detailsList, dInfo)
-			}
+			// 	detailsList = append(detailsList, dInfo)
+			// }
 
 			node.UploadTraffic += dw.DownloadSize
 		}
@@ -185,12 +184,12 @@ func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
 		}
 	}
 
-	for _, data := range detailsList {
-		err = m.nodeMgr.AddNodeProfit(data)
-		if err != nil {
-			log.Errorf("handleUserWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-		}
-	}
+	// for _, data := range detailsList {
+	// 	err = m.nodeMgr.AddNodeProfit(data)
+	// 	if err != nil {
+	// 		log.Errorf("handleUserWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+	// 	}
+	// }
 
 	return nil
 }
@@ -270,19 +269,19 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	}
 
 	eventList := make([]*types.RetrieveEvent, 0)
-	detailsList := make([]*types.ProfitDetails, 0)
+	// detailsList := make([]*types.ProfitDetails, 0)
 
 	limit := int64(float64(record.AssetSize) * 1.3)
 	if downloadTotalSize > limit {
 		downloadTotalSize = limit
 	}
 
-	if record.Event == types.WorkloadEventPull {
-		node := m.nodeMgr.GetNode(nodeID)
-		if node != nil {
-			detailsList = append(detailsList, m.nodeMgr.GetNodePullProfitDetails(node, float64(downloadTotalSize), ""))
-		}
-	}
+	// if record.Event == types.WorkloadEventPull {
+	// 	node := m.nodeMgr.GetNode(nodeID)
+	// 	if node != nil {
+	// 		detailsList = append(detailsList, m.nodeMgr.GetNodePullProfitDetails(node, float64(downloadTotalSize), ""))
+	// 	}
+	// }
 
 	for _, dw := range data.Workloads {
 		if dw.SourceID == types.DownloadSourceAWS.String() || dw.SourceID == types.DownloadSourceIPFS.String() || dw.SourceID == types.DownloadSourceSDK.String() {
@@ -306,13 +305,13 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 
 		node := m.nodeMgr.GetNode(dw.SourceID)
 		if node != nil {
-			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-			if dInfo != nil {
-				dInfo.CID = retrieveEvent.CID
-				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+			// dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+			// if dInfo != nil {
+			// 	dInfo.CID = retrieveEvent.CID
+			// 	dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
-				detailsList = append(detailsList, dInfo)
-			}
+			// 	detailsList = append(detailsList, dInfo)
+			// }
 
 			node.UploadTraffic += dw.DownloadSize
 		}
@@ -332,12 +331,12 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 		}
 	}
 
-	for _, data := range detailsList {
-		err = m.nodeMgr.AddNodeProfit(data)
-		if err != nil {
-			log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-		}
-	}
+	// for _, data := range detailsList {
+	// 	err = m.nodeMgr.AddNodeProfit(data)
+	// 	if err != nil {
+	// 		log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+	// 	}
+	// }
 
 	return nil
 }

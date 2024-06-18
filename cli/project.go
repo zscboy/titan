@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/tablewriter"
 	"github.com/fatih/color"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 )
 
 var projectCmds = &cli.Command{
@@ -87,6 +89,7 @@ var listProjectCmd = &cli.Command{
 			tablewriter.Col("BundleURL"),
 			tablewriter.Col("Replicas"),
 			tablewriter.Col("CreatedTime"),
+			tablewriter.Col("ExpirationTime"),
 			tablewriter.NewLineCol("Processes"),
 		)
 
@@ -99,15 +102,16 @@ var listProjectCmd = &cli.Command{
 			info := list[w]
 
 			m := map[string]interface{}{
-				"Num":         w + 1,
-				"UUID":        info.UUID,
-				"State":       projectColorState(info.State),
-				"Name":        info.Name,
-				"Area":        info.AreaID,
-				"UserID":      info.UserID,
-				"BundleURL":   info.BundleURL,
-				"Replicas":    info.Replicas,
-				"CreatedTime": info.CreatedTime.Format(defaultDateTimeLayout),
+				"Num":            w + 1,
+				"UUID":           info.UUID,
+				"State":          projectColorState(info.State),
+				"Name":           info.Name,
+				"Area":           info.AreaID,
+				"UserID":         info.UserID,
+				"BundleURL":      info.BundleURL,
+				"Replicas":       info.Replicas,
+				"CreatedTime":    info.CreatedTime.Format(defaultDateTimeLayout),
+				"ExpirationTime": info.Expiration.Format(defaultDateTimeLayout),
 			}
 
 			processes := "\n"
@@ -156,6 +160,7 @@ var deployProjectCmd = &cli.Command{
 			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
 			Value: "",
 		},
+		expirationDateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		name := cctx.String("name")
@@ -164,6 +169,7 @@ var deployProjectCmd = &cli.Command{
 		count := cctx.Int("replica-count")
 		nodeIDs := cctx.StringSlice("nodes")
 		areaID := cctx.String("area")
+		date := cctx.String("expiration-date")
 
 		ctx := ReqContext(cctx)
 
@@ -175,20 +181,30 @@ var deployProjectCmd = &cli.Command{
 
 		pid := uuid.NewString()
 
+		if date == "" {
+			date = time.Now().Add(defaultExpiration).Format(defaultDateTimeLayout)
+		}
+
+		expiration, err := time.ParseInLocation(defaultDateTimeLayout, date, time.Local)
+		if err != nil {
+			return xerrors.Errorf("parse expiration err:%s", err.Error())
+		}
+
 		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{
-			UUID:      pid,
-			Name:      name,
-			BundleURL: url,
-			UserID:    uid,
-			Replicas:  int64(count),
-			NodeIDs:   nodeIDs,
-			AreaID:    areaID,
+			UUID:       pid,
+			Name:       name,
+			BundleURL:  url,
+			UserID:     uid,
+			Replicas:   int64(count),
+			NodeIDs:    nodeIDs,
+			AreaID:     areaID,
+			Expiration: expiration,
 		})
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("pid:", pid)
+		fmt.Println("pid:", pid, " ; expiration:", expiration.String())
 
 		return nil
 	},

@@ -248,7 +248,7 @@ func (m *Manager) updateTimeoutResultInfo() {
 		return
 	}
 
-	detailsList := make([]*types.ProfitDetails, 0)
+	// detailsList := make([]*types.ProfitDetails, 0)
 
 	for _, resultInfo := range list {
 		bandwidth := int64(resultInfo.Bandwidth) * resultInfo.Duration
@@ -257,13 +257,13 @@ func (m *Manager) updateTimeoutResultInfo() {
 		node := m.nodeMgr.GetNode(resultInfo.NodeID)
 		if node != nil {
 			if m.curRoundID == "" {
-				dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp))
-				if dInfo != nil {
-					dInfo.CID = resultInfo.Cid
+				// dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp))
+				// if dInfo != nil {
+				// 	dInfo.CID = resultInfo.Cid
 
-					resultInfo.Profit = dInfo.Profit
-					detailsList = append(detailsList, dInfo)
-				}
+				// 	resultInfo.Profit = dInfo.Profit
+				// 	detailsList = append(detailsList, dInfo)
+				// }
 			} else {
 				resultInfo.Status = types.ValidationStatusNodeTimeOut
 			}
@@ -279,12 +279,12 @@ func (m *Manager) updateTimeoutResultInfo() {
 		}
 	}
 
-	for _, data := range detailsList {
-		err = m.nodeMgr.AddNodeProfit(data)
-		if err != nil {
-			log.Errorf("updateTimeoutResultInfo AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-		}
-	}
+	// for _, data := range detailsList {
+	// 	err = m.nodeMgr.AddNodeProfit(data)
+	// 	if err != nil {
+	// 		log.Errorf("updateTimeoutResultInfo AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+	// 	}
+	// }
 }
 
 // updateResultInfo updates the validation result information for a given node.
@@ -310,15 +310,15 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 				node.BandwidthUp = int64(vr.Bandwidth)
 			}
 
-			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
-			if dInfo != nil {
-				profit = dInfo.Profit
+			// dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
+			// if dInfo != nil {
+			// 	profit = dInfo.Profit
 
-				err := m.nodeMgr.AddNodeProfit(dInfo)
-				if err != nil {
-					log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
-				}
-			}
+			// 	err := m.nodeMgr.AddNodeProfit(dInfo)
+			// 	if err != nil {
+			// 		log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
+			// 	}
+			// }
 
 			node.UploadTraffic += int64(size)
 		}
@@ -386,15 +386,15 @@ func (m *Manager) addValidatorProfitsAndInitMap() {
 
 			nDowns[nodeID] += size
 
-			dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
-			if dInfo == nil {
-				continue
-			}
+			// dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
+			// if dInfo == nil {
+			// 	continue
+			// }
 
-			err := m.nodeMgr.AddNodeProfit(dInfo)
-			if err != nil {
-				log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
-			}
+			// err := m.nodeMgr.AddNodeProfit(dInfo)
+			// if err != nil {
+			// 	log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
+			// }
 		}
 
 		// Update node BandwidthUps

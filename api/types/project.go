@@ -52,11 +52,12 @@ type ProjectReq struct {
 }
 
 type DeployProjectReq struct {
-	UUID      string
-	Name      string
-	BundleURL string
-	UserID    string
-	Replicas  int64
+	UUID       string
+	Name       string
+	BundleURL  string
+	UserID     string
+	Replicas   int64
+	Expiration time.Time
 
 	CPUCores int64
 	Memory   float64
@@ -110,5 +111,7 @@ const (
 	ProjectEventRemove ProjectEvent = iota
 	ProjectEventAdd
 	ProjectEventNodeOffline
+
 	ProjectEventStatusChange
+	ProjectEventExpiration
 )

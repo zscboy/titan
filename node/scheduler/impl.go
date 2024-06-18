@@ -201,7 +201,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	cNode.NodeInfo = nodeInfo
-	cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
+	// cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
 	cNode.MeetCandidateStandard = meetCandidateStandard
 
 	if !alreadyConnect {

@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/handler"
@@ -34,6 +35,10 @@ func (s *Scheduler) DeployProject(ctx context.Context, req *types.DeployProjectR
 
 	if req.Replicas <= 0 {
 		return xerrors.New("Replicas is 0")
+	}
+
+	if req.Expiration.Before(time.Now()) {
+		return xerrors.Errorf("Expiration %s is before now", req.Expiration.String())
 	}
 
 	uID := handler.GetUserID(ctx)

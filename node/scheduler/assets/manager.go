@@ -115,9 +115,9 @@ func (m *Manager) Start(ctx context.Context) {
 		log.Errorf("restartStateMachines err: %s", err.Error())
 	}
 
-	go m.startCheckAssetsTimer()
+	// go m.startCheckAssetsTimer()
 	go m.startCheckPullProgressesTimer()
-	go m.startCheckCandidateBackupTimer()
+	// go m.startCheckCandidateBackupTimer()
 	go m.initFillDiskTimer()
 }
 

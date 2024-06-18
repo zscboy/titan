@@ -201,17 +201,17 @@ func (m *Manager) pullAssetFromAWSs(edgeCount, candidateCount int64) bool {
 }
 
 func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
-	pullList := m.getPullingAssetList()
-	limitCount := m.assetPullTaskLimit
-	if len(pullList) >= limitCount {
-		log.Infof("awsTask , The asset in the pulling exceeds the limit %d, please wait", limitCount)
-		for _, p := range pullList {
-			log.Debugf("awsTask , pull hash %s", p)
-		}
-		return
-	}
+	// pullList := m.getPullingAssetList()
+	// limitCount := m.assetPullTaskLimit
+	// if len(pullList) >= limitCount {
+	// 	log.Infof("awsTask , The asset in the pulling exceeds the limit %d, please wait", limitCount)
+	// 	for _, p := range pullList {
+	// 		log.Debugf("awsTask , pull hash %s", p)
+	// 	}
+	// 	return
+	// }
 
-	log.Infof("awsTask, edge count : %d , limit count : %d pullCount : %d limitCount : %d", m.nodeMgr.Edges, edgeCount, len(pullList), limitCount)
+	// log.Infof("awsTask, edge count : %d , limit count : %d pullCount : %d limitCount : %d", m.nodeMgr.Edges, edgeCount, len(pullList), limitCount)
 
 	m.autoRestartAssetReplicas(true)
 
@@ -219,11 +219,11 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 		return
 	}
 
-	m.pullAssetFromAWSs(edgeCount, candidateCount)
+	// m.pullAssetFromAWSs(edgeCount, candidateCount)
 
-	if m.autoRestartAssetReplicas(false) {
-		return
-	}
+	// if m.autoRestartAssetReplicas(false) {
+	// 	return
+	// }
 
 	return
 }
