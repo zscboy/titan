@@ -5,7 +5,8 @@ OUT_PATH=./android-jni/titan-go-so
 
 TARGET=libgol2.so
 LDFLAGS='-extldflags -Wl,-soname,'"$TARGET"''
-VERSION='-X github.com/Filecoin-Titan/titan/build.CurrentCommit=+android'
+COMMIT_HASH=$(git rev-parse HEAD | cut -c 1-7)
+VERSION='-X github.com/Filecoin-Titan/titan/build.CurrentCommit=+git.'"$COMMIT_HASH"'+android'
 
 WORKERD_LIB_ARM64="-L/root/riguang-titan/android-build/arm64-v8a -lgoworkerd"
 WORKERD_LIB_ARM32="-L/root/riguang-titan/android-build/armeabi-v7a -lgoworkerd"
