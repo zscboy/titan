@@ -170,12 +170,11 @@ var daemonStartCmd = &cli.Command{
 		repoPath := cctx.String(FlagEdgeRepo)
 		locatorURL := cctx.String("url")
 		ds := clib.DaemonSwitch{StopChan: make(chan bool)}
-		ctx := lcli.ReqContext(cctx)
-		node, err := newNode(ctx, repoPath, locatorURL)
+		node, err := newNode(lcli.ReqContext(cctx), repoPath, locatorURL)
 		if err != nil {
 			return err
 		}
-		return node.startServer(ctx, &ds)
+		return node.startServer(&ds)
 	},
 }
 
@@ -357,6 +356,8 @@ func buildSrvHandler(httpServer *httpserver.HttpServer, edgeApi api.Edge, cfg *c
 }
 
 func startHTTP3Server(ctx context.Context, transport *quic.Transport, handler http.Handler, config *config.EdgeCfg) error {
+	defer transport.Conn.Close()
+
 	var tlsConfig *tls.Config
 	if len(config.CertificatePath) == 0 && len(config.PrivateKeyPath) == 0 {
 		config, err := defaultTLSConfig()

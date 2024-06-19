@@ -48,6 +48,6 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		return err
 	}
 
-	go node.startServer(ctx, daemonSwitch)
+	go node.startServer(daemonSwitch)
 	return nil
 }

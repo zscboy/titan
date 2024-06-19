@@ -45,13 +45,18 @@ type edgeNode struct {
 	stop           node.StopFunc
 	closeScheduler jsonrpc.ClientCloser
 
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+
 	shutdownChan    chan struct{} // shutdown chan
 	restartChan     chan struct{} // cli restart
 	restartDoneChan chan struct{} // make sure all modules are ready to start
 }
 
 func newNode(ctx context.Context, repoPath, locatorURL string) (*edgeNode, error) {
-	log.Info("Starting titan edge node")
+	log.Info("new titan edge node")
+
+	ctx, cancel := context.WithCancel(ctx)
 
 	// Register all metric views
 	if err := view.Register(
@@ -113,7 +118,7 @@ func newNode(ctx context.Context, repoPath, locatorURL string) (*edgeNode, error
 
 	udpPacketConn, err := net.ListenPacket("udp", edgeCfg.Network.ListenAddress)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ListenPacket %w", err)
 	}
 
 	transport := &quic.Transport{
@@ -129,10 +134,6 @@ func newNode(ctx context.Context, repoPath, locatorURL string) (*edgeNode, error
 	if err != nil {
 		return nil, xerrors.Errorf("new scheduler api: %w", err)
 	}
-
-	// ctx := lcli.ReqContext(cctx)
-	// ctx, cancel := context.WithCancel(ctx)
-	// defer cancel()
 
 	v, err := getSchedulerVersion(schedulerAPI, connectTimeout)
 	if err != nil {
@@ -238,6 +239,9 @@ func newNode(ctx context.Context, repoPath, locatorURL string) (*edgeNode, error
 		stop:           stop,
 		closeScheduler: closeScheduler,
 
+		ctx:       ctx,
+		ctxCancel: cancel,
+
 		shutdownChan:    shutdownChan,
 		restartChan:     restartChan,
 		restartDoneChan: restartDoneChan,
@@ -245,17 +249,14 @@ func newNode(ctx context.Context, repoPath, locatorURL string) (*edgeNode, error
 	return eNode, nil
 }
 
-func (node *edgeNode) startServer(ctx context.Context, daemonSwitch *clib.DaemonSwitch) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+func (node *edgeNode) startServer(daemonSwitch *clib.DaemonSwitch) error {
 	registShutdownSignal(node.shutdownChan)
 
 	handler, httpSrv := buildSrvHandler(node.httpServer, node.edgeAPI, node.edgeConfig, node.schedulerAPI, node.privateKey)
 
-	go startHTTP3Server(ctx, node.transport, handler, node.edgeConfig)
+	go startHTTP3Server(node.ctx, node.transport, handler, node.edgeConfig)
 
-	go startHTTPServer(ctx, httpSrv, node.edgeConfig.Network)
+	go startHTTPServer(node.ctx, httpSrv, node.edgeConfig.Network)
 
 	hbeatParams := heartbeatParams{
 		shutdownChan: node.shutdownChan,
@@ -264,7 +265,7 @@ func (node *edgeNode) startServer(ctx context.Context, daemonSwitch *clib.Daemon
 		nodeID:       node.ID,
 		daemonSwitch: daemonSwitch,
 	}
-	go heartbeat(ctx, hbeatParams)
+	go heartbeat(node.ctx, hbeatParams)
 
 	quitWg.Add(3)
 
@@ -272,7 +273,7 @@ func (node *edgeNode) startServer(ctx context.Context, daemonSwitch *clib.Daemon
 		select {
 		case <-node.shutdownChan:
 			log.Warn("Shutting down...")
-			cancel()
+			node.ctxCancel()
 
 			err := node.stop(context.TODO()) //nolint:errcheck
 			if err != nil {
@@ -291,7 +292,7 @@ func (node *edgeNode) startServer(ctx context.Context, daemonSwitch *clib.Daemon
 
 		case <-node.restartChan:
 			log.Warn("Restarting ...")
-			cancel()
+			node.ctxCancel()
 
 			err := node.stop(context.TODO())
 			if err != nil {
@@ -300,17 +301,13 @@ func (node *edgeNode) startServer(ctx context.Context, daemonSwitch *clib.Daemon
 
 			quitWg.Wait()
 
-			if err := node.transport.Conn.Close(); err != nil {
-				log.Errorf("Close udpPacketConn: %s", err.Error())
-			}
-
 			node.restartDoneChan <- struct{}{} // node/edge/impl.go
-			ctx := context.Background()
-			node, err = newNode(ctx, node.repoPath, node.locatorURL)
+
+			node, err = newNode(context.Background(), node.repoPath, node.locatorURL)
 			if err != nil {
 				return err
 			}
-			return node.startServer(ctx, daemonSwitch)
+			return node.startServer(daemonSwitch)
 			// return daemonStart(context.Background(), daemonSwitch, node.repoPath, node.locatorURL)
 		}
 	}
