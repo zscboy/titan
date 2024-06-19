@@ -443,7 +443,6 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		restartDoneChan = make(chan struct{}) // make sure all modules are ready to start
 	)
 
-	var lockRepo repo.LockedRepo
 	var httpServer *httpserver.HttpServer
 	var edgeAPI api.Edge
 
@@ -505,7 +504,6 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 		}),
 
 		node.Override(node.SetApiEndpointKey, func(lr repo.LockedRepo) error {
-			lockRepo = lr
 			return setEndpointAPI(lr, edgeCfg.Network.ListenAddress)
 		}),
 		node.Override(new(api.Scheduler), func() api.Scheduler { return schedulerAPI }),
@@ -536,11 +534,10 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 			log.Warn("Shutting down...")
 			cancel()
 
-			if err := lockRepo.Close(); err != nil {
-				log.Errorf("LockRepo close: %s", err.Error())
+			err = stop(context.TODO()) //nolint:errcheck
+			if err != nil {
+				log.Errorf("stop err: %v", err)
 			}
-
-			stop(ctx) //nolint:errcheck
 
 			quitWg.Wait()
 
@@ -552,11 +549,11 @@ func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath,
 			log.Warn("Restarting ...")
 			cancel()
 
-			if err := lockRepo.Close(); err != nil {
-				log.Errorf("LockRepo close: %s", err.Error())
+			err = stop(context.TODO())
+			if err != nil {
+				log.Errorf("stop err: %v", err)
 			}
 
-			stop(ctx)
 			quitWg.Wait()
 
 			if err := udpPacketConn.Close(); err != nil {

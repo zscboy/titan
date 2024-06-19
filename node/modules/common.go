@@ -150,12 +150,13 @@ func WorkerdPath(lr repo.LockedRepo) dtypes.WorkerdPath {
 
 // NewWorkerd creates a new workerd object at the given path.
 func NewWorkerd(mctx helpers.MetricsCtx, l fx.Lifecycle, schedulerAPI api.Scheduler, ts *tunnel.Services, nodeId dtypes.NodeID, path dtypes.WorkerdPath) (*workerd.Workerd, error) {
-	w, err := workerd.NewWorkerd(mctx, schedulerAPI, ts, string(nodeId), string(path))
+	ctx := helpers.LifecycleCtx(mctx, l)
+
+	w, err := workerd.NewWorkerd(ctx, schedulerAPI, ts, string(nodeId), string(path))
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := helpers.LifecycleCtx(mctx, l)
 	l.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			go w.RestartProjects(ctx)
