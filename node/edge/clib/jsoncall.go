@@ -227,16 +227,14 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 
 	clib.repoPath = req.RepoPath
 
-	go func() {
-		if err = clib.daemonStart(context.Background(), &clib.dSwitch, req.RepoPath, req.LocatorURL); err != nil {
-			log.Warnf("daemonStart %s", err.Error())
-		}
+	if err = clib.daemonStart(context.Background(), &clib.dSwitch, req.RepoPath, req.LocatorURL); err != nil {
+		return err
+	}
 
-		clib.isInit = false
-		clib.dSwitch.IsStop = true
+	clib.isInit = true
+	clib.dSwitch.IsStop = false
 
-		log.Info("deamon stop")
-	}()
+	log.Info("deamon stop")
 	return nil
 }
 

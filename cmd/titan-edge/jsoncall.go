@@ -5,6 +5,7 @@ package main
 */
 import "C"
 import (
+	"context"
 	"encoding/json"
 	"unsafe"
 
@@ -39,4 +40,14 @@ func JSONCall(jsonStrPtr *C.char) *C.char {
 	}
 
 	return C.CString(string(resultJson))
+}
+
+func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath, locatorURL string) error {
+	node, err := newNode(ctx, repoPath, locatorURL)
+	if err != nil {
+		return err
+	}
+
+	go node.startServer(ctx, daemonSwitch)
+	return nil
 }
