@@ -43,11 +43,11 @@ func JSONCall(jsonStrPtr *C.char) *C.char {
 }
 
 func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath, locatorURL string) error {
-	node, err := newNode(ctx, repoPath, locatorURL)
+	d, err := newDaemon(ctx, repoPath, locatorURL)
 	if err != nil {
 		return err
 	}
 
-	go node.startServer(daemonSwitch)
+	go d.startServer(daemonSwitch)
 	return nil
 }

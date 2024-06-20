@@ -169,12 +169,14 @@ var daemonStartCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		repoPath := cctx.String(FlagEdgeRepo)
 		locatorURL := cctx.String("url")
-		ds := clib.DaemonSwitch{StopChan: make(chan bool)}
-		node, err := newNode(lcli.ReqContext(cctx), repoPath, locatorURL)
+
+		d, err := newDaemon(lcli.ReqContext(cctx), repoPath, locatorURL)
 		if err != nil {
 			return err
 		}
-		return node.startServer(&ds)
+
+		ds := clib.DaemonSwitch{StopChan: make(chan bool)}
+		return d.startServer(&ds)
 	},
 }
 

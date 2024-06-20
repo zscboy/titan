@@ -234,7 +234,7 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	clib.isInit = true
 	clib.dSwitch.IsStop = false
 
-	log.Info("deamon stop")
+	log.Info("deamon start")
 	return nil
 }
 
