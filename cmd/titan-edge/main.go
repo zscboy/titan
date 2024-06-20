@@ -449,15 +449,9 @@ func waitServerStart(listenAddress string) {
 		return
 	}
 
-	url := fmt.Sprintf("https://127.0.0.1:%s/rpc/v0", port)
-	edgeAPI, closer, err := client.NewEdge(context.Background(), url, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
-	if err != nil {
-		log.Errorf("waitServerStart %s", err.Error())
-		return
-	}
-	defer closer()
+	url := fmt.Sprintf("https://127.0.0.1:%d/abc", port)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	edgeAPI.Version(ctx)
+	httpclient := client.NewHTTP3Client()
+	httpclient.Timeout = 3 * time.Second
+	httpclient.Get(url)
 }

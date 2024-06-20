@@ -38,6 +38,14 @@ func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 	heartbeats := time.NewTicker(HeartbeatInterval)
 	defer heartbeats.Stop()
 
+	// Set daemonSwitch on heartbeat exit
+	// Avoid missing set stop at return
+	defer func() {
+		hbp.daemonSwitch.IsOnline = false
+		hbp.daemonSwitch.IsStop = true
+		quitWg.Done()
+	}()
+
 	var readyCh chan struct{}
 	for {
 		// TODO: we could get rid of this, but that requires tracking resources for restarted tasks correctly
@@ -62,7 +70,6 @@ func heartbeat(ctx context.Context, hbp heartbeatParams) error {
 				readyCh = nil
 			case <-heartbeats.C:
 			case <-ctx.Done():
-				quitWg.Done()
 				log.Warn("heartbeat stopped")
 				hbp.daemonSwitch.IsOnline = false
 				hbp.daemonSwitch.IsStop = true

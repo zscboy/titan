@@ -228,6 +228,7 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	clib.repoPath = req.RepoPath
 
 	if err = clib.daemonStart(context.Background(), &clib.dSwitch, req.RepoPath, req.LocatorURL); err != nil {
+		clib.isInit = false
 		return err
 	}
 
