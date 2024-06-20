@@ -86,7 +86,9 @@ type NodeAPI interface {
 	// - hours: The deactivation countdown time in hours. It specifies the duration
 	// before the deactivation is executed. If the deactivation is canceled within
 	// this period, the node will remain active.
-	DeactivateNode(ctx context.Context, nodeID string, hours int) error //perm:web,admin
+	DeactivateNode(ctx context.Context, nodeID string, hours int) error //perm:web,admin,candidate
+	// CalculateExitProfit
+	CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) //perm:web,admin,candidate
 	// UndoNodeDeactivation is used to undo the deactivation of a node in the titan server.
 	// It allows the previously deactivated node to start serving requests again.
 	UndoNodeDeactivation(ctx context.Context, nodeID string) error //perm:web,admin
@@ -259,12 +261,6 @@ type Scheduler interface {
 	SubmitWorkloadReport(ctx context.Context, workload *types.WorkloadRecordReq) error //perm:default
 	// SubmitWorkloadReportV2
 	SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error //perm:default
-	// SubmitUserWorkloadReport submits report of workload for User Download asset
-	// r is buffer of []*types.WorkloadReport encode by gob
-	// SubmitUserWorkloadReport(ctx context.Context, r io.Reader) error //perm:default
-	// SubmitNodeWorkloadReport submits report of workload for node provide Asset Download
-	// r is buffer of types.NodeWorkloadReport encode by gob
-	// SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error //perm:edge,candidate
 	// GetWorkloadRecords retrieves a list of workload results with pagination using the specified limit, offset, and node
 	GetWorkloadRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListWorkloadRecordRsp, error) //perm:web,admin
 	// GetWorkloadRecord retrieves a list of workload results with pagination using the specified limit, offset, and node

@@ -219,6 +219,11 @@ func (s *Scheduler) RegisterEdgeNode(ctx context.Context, nodeID, publicKey stri
 // before the deactivation is executed. If the deactivation is canceled within
 // this period, the node will remain active.
 func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int) error {
+	nID := handler.GetNodeID(ctx)
+	if len(nID) > 0 {
+		nodeID = nID
+	}
+
 	deactivateTime, err := s.db.LoadDeactivateNodeTime(nodeID)
 	if err != nil {
 		return xerrors.Errorf("LoadDeactivateNodeTime %s err : %s", nodeID, err.Error())
@@ -228,8 +233,27 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 		return xerrors.Errorf("node %s is waiting to deactivate", nodeID)
 	}
 
+	if hours <= 0 {
+		hours = 24
+	}
+
+	penaltyPoint := 0.0
+
+	err = s.db.NodeExists(nodeID, types.NodeCandidate)
+	if err == nil {
+		info, err := s.db.LoadNodeInfo(nodeID)
+		if err != nil {
+			return err
+		}
+		// if node is candidate , need to backup asset
+		s.AssetManager.CandidateDeactivate(nodeID)
+
+		pe, _ := s.NodeManager.CalculateExitProfit(info.Profit)
+		penaltyPoint = info.Profit - pe
+	}
+
 	deactivateTime = time.Now().Add(time.Duration(hours) * time.Hour).Unix()
-	err = s.db.SaveDeactivateNode(nodeID, deactivateTime)
+	err = s.db.SaveDeactivateNode(nodeID, deactivateTime, penaltyPoint)
 	if err != nil {
 		return xerrors.Errorf("SaveDeactivateNode %s err : %s", nodeID, err.Error())
 	}
@@ -242,13 +266,31 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 		// remove from validation
 	}
 
-	err = s.db.NodeExists(nodeID, types.NodeCandidate)
-	if err == nil {
-		// if node is candidate , need to backup asset
-		return s.AssetManager.CandidateDeactivate(nodeID)
+	return nil
+}
+
+func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) {
+	nID := handler.GetNodeID(ctx)
+	if len(nID) > 0 {
+		nodeID = nID
 	}
 
-	return nil
+	err := s.db.NodeExists(nodeID, types.NodeCandidate)
+	if err != nil {
+		return types.ExitProfitRsp{}, nil
+	}
+
+	info, err := s.db.LoadNodeInfo(nodeID)
+	if err != nil {
+		return types.ExitProfitRsp{}, err
+	}
+
+	pe, exitRate := s.NodeManager.CalculateExitProfit(info.Profit)
+	return types.ExitProfitRsp{
+		CurrentPoint:   info.Profit,
+		RemainingPoint: pe,
+		PenaltyRate:    exitRate,
+	}, err
 }
 
 // UndoNodeDeactivation is used to undo the deactivation of a node in the titan server.
@@ -263,7 +305,7 @@ func (s *Scheduler) UndoNodeDeactivation(ctx context.Context, nodeID string) err
 		return xerrors.New("Node has been deactivation")
 	}
 
-	err = s.db.SaveDeactivateNode(nodeID, 0)
+	err = s.db.SaveDeactivateNode(nodeID, 0, 0)
 	if err != nil {
 		return xerrors.Errorf("DeleteDeactivateNode %s err : %s", nodeID, err.Error())
 	}
@@ -422,11 +464,6 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.IsTestNode = node.IsTestNode
 		nodeInfo.GeoInfo = node.GeoInfo
 		nodeInfo.RemoteAddr = node.RemoteAddr
-		// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
-		// nodeInfo.NetFlowUp = node.NetFlowUp
-		// nodeInfo.NetFlowDown = node.NetFlowDown
-		// nodeInfo.BandwidthDown = node.BandwidthDown
-		// nodeInfo.BandwidthUp = node.BandwidthUp
 
 		log.Debugf("%s node select codes:%v , url:%s", nodeID, node.SelectWeights(), node.ExternalURL)
 	}
@@ -465,17 +502,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.IsTestNode = node.IsTestNode
 			nodeInfo.GeoInfo = node.GeoInfo
 			nodeInfo.RemoteAddr = node.RemoteAddr
-			// nodeInfo.TitanDiskUsage = node.TitanDiskUsage
-			// nodeInfo.NetFlowUp = node.NetFlowUp
-			// nodeInfo.NetFlowDown = node.NetFlowDown
-			// nodeInfo.BandwidthDown = node.BandwidthDown
-			// nodeInfo.BandwidthUp = node.BandwidthUp
 		}
-
-		// _, exist := validator[nodeInfo.NodeID]
-		// if exist {
-		// 	nodeInfo.Type = types.NodeValidator
-		// }
 
 		nodeInfos = append(nodeInfos, *nodeInfo)
 	}
@@ -988,14 +1015,10 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 		node := s.NodeManager.GetNode(nodeID)
 		if node != nil {
 			if remoteAddr != node.RemoteAddr {
-				// if node.ClientCloser != nil {
-				// 	node.ClientCloser()
-				// }
 				count, lastTime := node.GetNumberOfIPChanges()
 				duration := time.Now().Sub(lastTime)
 				seconds := duration.Seconds()
 
-				// log.Debugf("node %s remoteAddr inconsistent, new addr %s ,old addr %s ,  count : %d ", nodeID, remoteAddr, node.RemoteAddr, count)
 				if seconds > 10*6*20 {
 					node.SetNumberOfIPChanges(0)
 
@@ -1011,9 +1034,6 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 			}
 
 			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
-				// if node.ClientCloser != nil {
-				// 	node.ClientCloser()
-				// }
 				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
 			}
 

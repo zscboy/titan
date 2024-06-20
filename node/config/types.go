@@ -214,4 +214,6 @@ type SchedulerCfg struct {
 
 	AndroidSymbol string
 	IOSSymbol     string
+	WindowsSymbol string
+	MacosSymbol   string
 }

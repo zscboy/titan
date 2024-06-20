@@ -50,6 +50,7 @@ const (
 	projectInfoTable      = "project_info"
 	projectReplicasTable  = "project_replicas"
 	projectEventTable     = "project_event"
+	onlineCountTable      = "online_count"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
@@ -118,12 +119,17 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cProjectInfosTable, projectInfoTable))
 	tx.MustExec(fmt.Sprintf(cProjectReplicasTable, projectReplicasTable))
 	tx.MustExec(fmt.Sprintf(cProjectEventTable, projectEventTable))
+	tx.MustExec(fmt.Sprintf(cOnlineCountTable, onlineCountTable))
 
 	return tx.Commit()
 }
 
 func doExec(d *SQLDB) {
 	_, err := d.db.Exec(fmt.Sprintf("update %s set expiration='2025-06-15 16:24:31';", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD offline_duration INT DEFAULT 0;", nodeInfoTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}

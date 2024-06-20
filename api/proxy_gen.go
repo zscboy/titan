@@ -310,13 +310,15 @@ type NodeAPIStruct struct {
 
 		AssignTunserverURL func(p0 context.Context) (*types.TunserverRsp, error) `perm:"edge"`
 
+		CalculateExitProfit func(p0 context.Context, p1 string) (types.ExitProfitRsp, error) `perm:"web,admin,candidate"`
+
 		CandidateCodeExist func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
 
 		CandidateConnect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"candidate"`
 
 		CheckIpUsage func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
 
-		DeactivateNode func(p0 context.Context, p1 string, p2 int) (error) `perm:"web,admin"`
+		DeactivateNode func(p0 context.Context, p1 string, p2 int) (error) `perm:"web,admin,candidate"`
 
 		DownloadDataResult func(p0 context.Context, p1 string, p2 string, p3 int64) (error) `perm:"edge,candidate"`
 
@@ -1448,6 +1450,17 @@ func (s *NodeAPIStruct) AssignTunserverURL(p0 context.Context) (*types.Tunserver
 
 func (s *NodeAPIStub) AssignTunserverURL(p0 context.Context) (*types.TunserverRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *NodeAPIStruct) CalculateExitProfit(p0 context.Context, p1 string) (types.ExitProfitRsp, error) {
+	if s.Internal.CalculateExitProfit == nil {
+		return *new(types.ExitProfitRsp), ErrNotSupported
+	}
+	return s.Internal.CalculateExitProfit(p0, p1)
+}
+
+func (s *NodeAPIStub) CalculateExitProfit(p0 context.Context, p1 string) (types.ExitProfitRsp, error) {
+	return *new(types.ExitProfitRsp), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {

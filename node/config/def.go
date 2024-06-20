@@ -198,6 +198,8 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		MaxNumberOfRegistrations: 50,
 		AndroidSymbol:            "Android",
 		IOSSymbol:                "IOS",
+		WindowsSymbol:            "Windows",
+		MacosSymbol:              "Macos",
 	}
 }
 

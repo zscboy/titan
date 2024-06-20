@@ -29,9 +29,9 @@ type Node struct {
 	*API
 	jsonrpc.ClientCloser
 	*types.NodeInfo
-	token                      string
-	lastRequestTime            time.Time // Node last keepalive time
-	selectWeights              []int     // The select weights assigned by the scheduler to each online node
+	token string
+
+	selectWeights              []int // The select weights assigned by the scheduler to each online node
 	numberOfIPChanges          int64
 	resetNumberOfIPChangesTime time.Time
 
@@ -42,6 +42,8 @@ type Node struct {
 	IsPrivateMinioOnly    bool
 	IsStorageOnly         bool
 	MeetCandidateStandard bool
+
+	OnlineRate float64
 }
 
 // API represents the node API
@@ -242,12 +244,12 @@ func (n *Node) DownloadAddr() string {
 
 // LastRequestTime returns the last request time of the node
 func (n *Node) LastRequestTime() time.Time {
-	return n.lastRequestTime
+	return n.LastSeen
 }
 
 // SetLastRequestTime sets the last request time of the node
 func (n *Node) SetLastRequestTime(t time.Time) {
-	n.lastRequestTime = t
+	n.LastSeen = t
 }
 
 // Token returns the token of the node

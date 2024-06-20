@@ -243,9 +243,9 @@ func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) ([]string,
 	}()
 
 	for _, info := range infos {
-		query := fmt.Sprintf(`UPDATE %s SET last_seen=?,online_duration=online_duration+?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,profit=profit+?,
+		query := fmt.Sprintf(`UPDATE %s SET last_seen=?,online_duration=?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,
 		    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`, nodeInfoTable)
-		_, err = tx.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.Profit, info.TitanDiskUsage,
+		_, err = tx.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage,
 			info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID)
 		if err != nil {
 			errorList = append(errorList, fmt.Sprintf("UpdateOnlineDuration %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error()))
@@ -356,7 +356,7 @@ func (n *SQLDB) RegisterCount(ip string) (int, error) {
 
 // LoadNodeInfos load nodes information.
 func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
-	t := time.Now().Add(-(time.Hour * 6))
+	t := time.Now().Add(-(time.Hour * 24 * 7))
 
 	var total int64
 	cQuery := fmt.Sprintf(`SELECT count(node_id) FROM %s  where last_seen>?`, nodeInfoTable)
@@ -372,6 +372,18 @@ func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	sQuery := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where a.last_seen>? order by node_id asc LIMIT ? OFFSET ?`, nodeInfoTable, nodeRegisterTable)
 	rows, err := n.db.QueryxContext(context.Background(), sQuery, t, limit, offset)
 	return rows, total, err
+}
+
+// LoadNodeInfosOfType load node infos
+func (n *SQLDB) LoadNodeInfosOfType(nodeType int) ([]*types.NodeInfo, error) {
+	query := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where b.node_type=?;`, nodeInfoTable, nodeRegisterTable)
+
+	var out []*types.NodeInfo
+	if err := n.db.Select(&out, query, nodeType); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // LoadNodeInfo load node information.
@@ -814,9 +826,9 @@ func (n *SQLDB) LoadNodeProfits(nodeID string, limit, offset int, ts []int) (*ty
 }
 
 // SaveDeactivateNode save deactivate node time
-func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64) error {
-	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=? WHERE node_id=?`, nodeInfoTable)
-	_, err := n.db.Exec(query, time, nodeID)
+func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64, penaltyPoint float64) error {
+	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, point=point-? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, time, penaltyPoint, nodeID)
 	return err
 }
 
@@ -1004,4 +1016,71 @@ func (n *SQLDB) DeleteCandidateCodeInfo(code string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE code=?`, candidateCodeTable)
 	_, err := n.db.Exec(query, code)
 	return err
+}
+
+func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	for _, nodeID := range nodes {
+		query := fmt.Sprintf(
+			`INSERT INTO %s (node_id, create_time, online_count)
+			    VALUES (?, ?, ?)
+				ON DUPLICATE KEY UPDATE online_count=online_count+?`, onlineCountTable)
+
+		_, err := tx.Exec(query, nodeID, date, countIncr, countIncr)
+		if err != nil {
+			log.Errorf("UpdateOnlineCount %s err:%s", nodeID, err.Error())
+		}
+	}
+
+	return tx.Commit()
+}
+
+// GetOnlineCount
+func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {
+	count := 0
+	query := fmt.Sprintf("SELECT online_count FROM %s WHERE node_id=? AND create_time=? ", onlineCountTable)
+
+	err := n.db.Get(&count, query, node, date)
+	if err != nil {
+		return count, err
+	}
+
+	return count, nil
+}
+
+// UpdateNodePenalty
+func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	for nodeID, pn := range nodePns {
+		uQuery := fmt.Sprintf(`UPDATE %s SET offline_duration=offline_duration+1,profit=profit-? WHERE node_id=?`, nodeInfoTable)
+		_, err := tx.Exec(uQuery, pn, nodeID)
+		if err != nil {
+			log.Errorf("UpdateNodePenalty %s, %.4f err:%s", nodeID, pn, err.Error())
+		}
+	}
+
+	// Commit
+	return tx.Commit()
 }

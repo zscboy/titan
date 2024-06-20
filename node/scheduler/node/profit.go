@@ -15,6 +15,15 @@ const (
 	mo = 1.0
 
 	phoneWeighting = 5.0
+
+	l1Rate      = 200000.0 / 288.0 // every 5 minutes
+	penaltyRate = 0.0001
+
+	exitRate = 0.6
+
+	l2PhoneRate = 500 / 17280 // every 5s
+	l2PCRate    = 200 / 17280 // every 5s
+	l2OtherRate = 50 / 17280  // every 5s
 )
 
 var (
@@ -77,173 +86,212 @@ func (m *Manager) startMxTimer() {
 // 	}
 // }
 
-func (m *Manager) GetNodePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
-	w := 1.0
-	if node.IsPhone {
-		w = phoneWeighting
-	}
+// func (m *Manager) GetNodePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
+// 	w := 1.0
+// 	if node.IsPhone {
+// 		w = phoneWeighting
+// 	}
 
-	d := bToGB(size)
-	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
-	mn := calculateMn(lip)
+// 	d := bToGB(size)
+// 	mip := calculateMip(node.NATType)
+// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
+// 	mn := calculateMn(lip)
 
-	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
+// 	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
 
-	if mbnd < 0.000001 {
-		return nil
-	}
+// 	if mbnd < 0.000001 {
+// 		return nil
+// 	}
+
+// 	return &types.ProfitDetails{
+// 		NodeID: node.NodeID,
+// 		Profit: mbnd,
+// 		PType:  types.ProfitTypePull,
+// 		Size:   int64(size),
+// 		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f] ,w:[%.1f] ", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
+// 	}
+// }
+
+// func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
+// 	w := 1.0
+// 	if node.IsPhone {
+// 		w = phoneWeighting
+// 	}
+
+// 	u := bToGB(size)
+// 	b := calculateB(node.BandwidthUp)
+// 	mip := calculateMip(node.NATType)
+// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
+// 	mn := calculateMn(lip)
+
+// 	mbnu := mr * mx * mo * u * b * uploadTrafficProfit * mip * mn * w
+
+// 	if mbnu < 0.000001 {
+// 		return nil
+// 	}
+
+// 	return &types.ProfitDetails{
+// 		NodeID: node.NodeID,
+// 		Profit: mbnu,
+// 		PType:  types.ProfitTypeBePull,
+// 		Size:   int64(size),
+// 		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, node.BandwidthUp, mr, mx, mo, u, b, uploadTrafficProfit, mip, mn, w),
+// 	}
+// }
+
+// func (m *Manager) GetNodeValidatorProfitDetails(node *Node, size float64) *types.ProfitDetails {
+// 	w := 1.0
+// 	if node.IsPhone {
+// 		w = phoneWeighting
+// 	}
+
+// 	d := bToGB(size)
+
+// 	mip := calculateMip(node.NATType)
+// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
+// 	mn := calculateMn(lip)
+
+// 	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
+
+// 	if mbnd < 0.000001 {
+// 		return nil
+// 	}
+
+// 	return &types.ProfitDetails{
+// 		NodeID: node.NodeID,
+// 		Profit: mbnd,
+// 		PType:  types.ProfitTypeValidator,
+// 		Size:   int64(size),
+// 		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
+// 	}
+// }
+
+// func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *types.ProfitDetails {
+// 	w := 1.0
+// 	if node.IsPhone {
+// 		w = phoneWeighting
+// 	}
+
+// 	ds := float64(node.TitanDiskUsage)
+// 	s := bToGB(ds)
+// 	u := bToGB(size)
+// 	b := calculateB(node.BandwidthUp)
+
+// 	mt := 1.0
+
+// 	mip := calculateMip(node.NATType)
+// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
+// 	mn := calculateMn(lip)
+
+// 	ms := mr * mx * mo * ((min(s, 2000) * 0.211148679 * mt) + (u * b * uploadTrafficProfit * mip * mn)) * w
+
+// 	if ms < 0.000001 {
+// 		return nil
+// 	}
+
+// 	return &types.ProfitDetails{
+// 		NodeID: node.NodeID,
+// 		Profit: ms,
+// 		PType:  types.ProfitTypeValidatable,
+// 		Size:   int64(size),
+// 		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, node.BandwidthUp, mr, mx, mo, s, u, b, uploadTrafficProfit, mip, mn, w),
+// 	}
+// }
+
+// // NodeCalculateMCx
+// func (m *Manager) NodeCalculateMCx(isPhone bool) float64 {
+// 	w := 1.0
+// 	if isPhone {
+// 		w = phoneWeighting
+// 	}
+
+// 	b := 20.0 / 17280.0
+
+// 	mcx := mr * mx * mo * b * w
+
+// 	return mcx
+// }
+
+func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails {
+	// Every 5 minutes
+	arR := rateOfAR(node.OnlineRate)
+	mcx := l1Rate * node.OnlineRate * arR
 
 	return &types.ProfitDetails{
 		NodeID: node.NodeID,
-		Profit: mbnd,
-		PType:  types.ProfitTypePull,
-		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f] ,w:[%.1f] ", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
+		Profit: mcx,
+		PType:  types.ProfitTypeBase,
+		Note:   fmt.Sprintf("rbase:[%.4f],node rate:[%.4f] ar rate:[%.4f]", l1Rate, node.OnlineRate, arR),
 	}
 }
 
-func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
-	w := 1.0
-	if node.IsPhone {
-		w = phoneWeighting
-	}
+func (m *Manager) CalculatePenalty(profit float64, offlineDuration int) float64 {
+	pn := profit * (penaltyRate + penaltyRate*float64(offlineDuration/200))
 
-	u := bToGB(size)
-	b := calculateB(node.BandwidthUp)
-	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
-	mn := calculateMn(lip)
-
-	mbnu := mr * mx * mo * u * b * uploadTrafficProfit * mip * mn * w
-
-	if mbnu < 0.000001 {
-		return nil
-	}
-
-	return &types.ProfitDetails{
-		NodeID: node.NodeID,
-		Profit: mbnu,
-		PType:  types.ProfitTypeBePull,
-		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, node.BandwidthUp, mr, mx, mo, u, b, uploadTrafficProfit, mip, mn, w),
-	}
+	return pn
 }
 
-func (m *Manager) GetNodeValidatorProfitDetails(node *Node, size float64) *types.ProfitDetails {
-	w := 1.0
-	if node.IsPhone {
-		w = phoneWeighting
-	}
+func (m *Manager) CalculateExitProfit(profit float64) (float64, float64) {
+	rExit := profit * (1 - exitRate)
 
-	d := bToGB(size)
-
-	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
-	mn := calculateMn(lip)
-
-	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
-
-	if mbnd < 0.000001 {
-		return nil
-	}
-
-	return &types.ProfitDetails{
-		NodeID: node.NodeID,
-		Profit: mbnd,
-		PType:  types.ProfitTypeValidator,
-		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
-	}
+	return rExit, exitRate
 }
 
-func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *types.ProfitDetails {
-	w := 1.0
-	if node.IsPhone {
-		w = phoneWeighting
-	}
+// func calculateMip(n string) float64 {
+// 	switch n {
+// 	case types.NatTypeNo.String():
+// 		return 2
+// 	case types.NatTypeFullCone.String():
+// 		return 1.5
+// 	case types.NatTypeRestricted.String():
+// 		return 1.3
+// 	case types.NatTypePortRestricted.String():
+// 		return 1.1
+// 	case types.NatTypeSymmetric.String():
+// 		return 0.8
+// 	}
 
-	ds := float64(node.TitanDiskUsage)
-	s := bToGB(ds)
-	u := bToGB(size)
-	b := calculateB(node.BandwidthUp)
+// 	return 0.8
+// }
 
-	mt := 1.0
+// func calculateMn(ipNum int) float64 {
+// 	switch ipNum {
+// 	case 1:
+// 		return 1.1
+// 	case 2:
+// 		return 0.5
+// 	case 3:
+// 		return 0.333333333
+// 	case 4:
+// 		return 0.25
+// 	}
 
-	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
-	mn := calculateMn(lip)
+// 	return 0.2
+// }
 
-	ms := mr * mx * mo * ((min(s, 2000) * 0.211148679 * mt) + (u * b * uploadTrafficProfit * mip * mn)) * w
+// func calculateB(upload int64) float64 {
+// 	mb := bToMB(float64(upload))
+// 	if mb >= 30 {
+// 		return 1.2
+// 	}
 
-	if ms < 0.000001 {
-		return nil
-	}
+// 	if mb >= 5 {
+// 		return 1
+// 	}
 
-	return &types.ProfitDetails{
-		NodeID: node.NodeID,
-		Profit: ms,
-		PType:  types.ProfitTypeValidatable,
-		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, node.BandwidthUp, mr, mx, mo, s, u, b, uploadTrafficProfit, mip, mn, w),
-	}
-}
+// 	return 0.8
+// }
 
-// NodeCalculateMCx
-func (m *Manager) NodeCalculateMCx(isPhone bool) float64 {
-	w := 1.0
-	if isPhone {
-		w = phoneWeighting
-	}
-
-	b := 20.0 / 17280.0
-
-	mcx := mr * mx * mo * b * w
-
-	return mcx
-}
-
-func calculateMip(n string) float64 {
-	switch n {
-	case types.NatTypeNo.String():
-		return 2
-	case types.NatTypeFullCone.String():
-		return 1.5
-	case types.NatTypeRestricted.String():
-		return 1.3
-	case types.NatTypePortRestricted.String():
+func rateOfAR(ar float64) float64 {
+	if ar >= 0.98 {
 		return 1.1
-	case types.NatTypeSymmetric.String():
-		return 0.8
-	}
-
-	return 0.8
-}
-
-func calculateMn(ipNum int) float64 {
-	switch ipNum {
-	case 1:
-		return 1.1
-	case 2:
-		return 0.5
-	case 3:
-		return 0.333333333
-	case 4:
-		return 0.25
-	}
-
-	return 0.2
-}
-
-func calculateB(upload int64) float64 {
-	mb := bToMB(float64(upload))
-	if mb >= 30 {
-		return 1.2
-	}
-
-	if mb >= 5 {
+	} else if ar >= 0.95 {
 		return 1
+	} else if ar >= 0.85 {
+		return 0.8
+	} else if ar >= 0.3 {
+		return 0.5
 	}
 
-	return 0.8
+	return 0
 }

@@ -194,6 +194,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
 		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
 		nodeInfo.WSServerID = oldInfo.WSServerID
+		nodeInfo.Profit = oldInfo.Profit
+		nodeInfo.FirstTime = oldInfo.FirstTime
 
 		if oldInfo.DeactivateTime > 0 && oldInfo.DeactivateTime < time.Now().Unix() {
 			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)
@@ -205,6 +207,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.MeetCandidateStandard = meetCandidateStandard
 
 	if !alreadyConnect {
+		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, oldInfo.FirstTime)
+
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
 			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
@@ -236,17 +240,24 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	return nil
 }
 
-func isPhone(systemVersion, cpuInfo, androidSymbol, iosSymbol string) bool {
-	if strings.Contains(systemVersion, androidSymbol) || strings.Contains(systemVersion, iosSymbol) {
-		return true
+func checkNodeClientType(systemVersion, androidSymbol, iosSymbol, windowsSymbol, macosSymbol string) types.NodeClientType {
+	if strings.Contains(systemVersion, androidSymbol) {
+		return types.NodeAndroid
 	}
 
-	notAllowedCPU := strings.Contains(cpuInfo, "Intel") || strings.Contains(cpuInfo, "AMD") || strings.Contains(cpuInfo, "Apple")
-	if systemVersion == "0.1.16+api1.0.0" && !notAllowedCPU {
-		return true
+	if strings.Contains(systemVersion, iosSymbol) {
+		return types.NodeIOS
 	}
 
-	return false
+	if strings.Contains(systemVersion, windowsSymbol) {
+		return types.NodeWindows
+	}
+
+	if strings.Contains(systemVersion, macosSymbol) {
+		return types.NodeMacos
+	}
+
+	return types.NodeOther
 }
 
 func roundUpToNextGB(bytes int64) int64 {
@@ -280,9 +291,9 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 			nodeInfo.AvailableDiskSpace = availableDiskLimit
 		}
 
-		nodeInfo.IsPhone = isPhone(nodeInfo.SystemVersion, nodeInfo.CPUInfo, s.SchedulerCfg.AndroidSymbol, s.SchedulerCfg.IOSSymbol)
+		nodeInfo.ClientType = checkNodeClientType(nodeInfo.SystemVersion, s.SchedulerCfg.AndroidSymbol, s.SchedulerCfg.IOSSymbol, s.SchedulerCfg.WindowsSymbol, s.SchedulerCfg.MacosSymbol)
 		// limit node availableDiskSpace to 5 GiB when using phone
-		if nodeInfo.IsPhone {
+		if nodeInfo.ClientType == types.NodeAndroid || nodeInfo.ClientType == types.NodeIOS {
 			if nodeInfo.AvailableDiskSpace > float64(5*units.GiB) {
 				nodeInfo.AvailableDiskSpace = float64(5 * units.GiB)
 			}
@@ -327,9 +338,9 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 	}
 
 	nodeInfo.TitanDiskUsage = float64(useSize)
-	if nodeInfo.AvailableDiskSpace < float64(useSize) {
-		nodeInfo.AvailableDiskSpace = float64(roundUpToNextGB(useSize))
-	}
+	// if nodeInfo.AvailableDiskSpace < float64(useSize) {
+	// 	nodeInfo.AvailableDiskSpace = float64(roundUpToNextGB(useSize))
+	// }
 
 	return &nodeInfo, meetCandidateStandard, nil
 }
@@ -416,67 +427,6 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (*types.ValidationInf
 	return &types.ValidationInfo{
 		NextElectionTime: eTime,
 	}, nil
-}
-
-// SubmitUserWorkloadReport submits report of workload for User Asset Download
-func (s *Scheduler) SubmitUserWorkloadReport(ctx context.Context, r io.Reader) error {
-	// nodeID := handler.GetNodeID(ctx)
-	// cipherText, err := io.ReadAll(r)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// log.Infof("SubmitUserWorkloadReport %s , size:%d\n", nodeID, len(cipherText))
-	return nil
-	// node := s.NodeManager.GetNode(nodeID)
-
-	// if err != nil {
-	// 	return err
-	// }
-
-	// titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	// data, err := titanRsa.Decrypt(cipherText, s.PrivateKey)
-	// if err != nil {
-	// 	return xerrors.Errorf("decrypt error: %w", err)
-	// }
-
-	// return s.WorkloadManager.HandleUserWorkload(data, node)
-}
-
-// SubmitNodeWorkloadReport submits report of workload for node Asset Download
-func (s *Scheduler) SubmitNodeWorkloadReport(ctx context.Context, r io.Reader) error {
-	// nodeID := handler.GetNodeID(ctx)
-	// cipherText, err := io.ReadAll(r)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// log.Infof("SubmitNodeWorkloadReport %s , size:%d\n", nodeID, len(cipherText))
-	return nil
-	// nodeID := handler.GetNodeID(ctx)
-	// node := s.NodeManager.GetNode(nodeID)
-	// if node == nil {
-	// 	return xerrors.Errorf("node %s not exists", nodeID)
-	// }
-
-	// report := &types.NodeWorkloadReport{}
-	// dec := gob.NewDecoder(r)
-	// err := dec.Decode(report)
-	// if err != nil {
-	// 	return xerrors.Errorf("decode data to NodeWorkloadReport error: %w", err)
-	// }
-
-	// titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	// if err = titanRsa.VerifySign(node.PublicKey, report.Sign, report.CipherText); err != nil {
-	// 	return xerrors.Errorf("verify sign error: %w", err)
-	// }
-
-	// data, err := titanRsa.Decrypt(report.CipherText, s.PrivateKey)
-	// if err != nil {
-	// 	return xerrors.Errorf("decrypt error: %w", err)
-	// }
-
-	// return s.WorkloadManager.PushResult(data, node)
 }
 
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {

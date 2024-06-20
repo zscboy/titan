@@ -14,7 +14,8 @@ import (
 // such as the last online time, online duration, CPU usage rate, and score changes.
 type NodeDynamicInfo struct {
 	NodeID             string    `json:"node_id" form:"nodeId" gorm:"column:node_id;comment:;" db:"node_id"`
-	OnlineDuration     int       `db:"online_duration"` // unit:Minute
+	OnlineDuration     int       `db:"online_duration"`  // unit:Minute
+	OfflineDuration    int       `db:"offline_duration"` // unit:Minute
 	DiskUsage          float64   `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	LastSeen           time.Time `db:"last_seen"`
 	Profit             float64   `db:"profit"`
@@ -36,7 +37,7 @@ type NodeInfo struct {
 	MemoryUsage     float64
 	Status          NodeStatus
 	NATType         string
-	IsPhone         bool
+	ClientType      NodeClientType
 	BackProjectTime int64
 	RemoteAddr      string
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
@@ -65,6 +66,17 @@ type NodeInfo struct {
 
 	NodeDynamicInfo
 }
+
+// NodeClientType node client type
+type NodeClientType int
+
+const (
+	NodeOther NodeClientType = iota
+	NodeWindows
+	NodeMacos
+	NodeAndroid
+	NodeIOS
+)
 
 // NodeStatus node status
 type NodeStatus int
@@ -150,6 +162,12 @@ type EdgeDownloadInfo struct {
 	Tk      *Token
 	NodeID  string
 	NatType string
+}
+
+type ExitProfitRsp struct {
+	CurrentPoint   float64
+	RemainingPoint float64
+	PenaltyRate    float64
 }
 
 // EdgeDownloadInfoList represents a list of EdgeDownloadInfo structures along with

@@ -47,6 +47,7 @@ var cNodeInfoTable = `
 	    scheduler_sid        VARCHAR(128)    NOT NULL,
 		first_login_time     DATETIME        DEFAULT CURRENT_TIMESTAMP,
 	    online_duration      INT             DEFAULT 0,
+	    offline_duration     INT             DEFAULT 0,
 	    profit               DECIMAL(14, 6)  DEFAULT 0,
 	    last_seen            DATETIME        DEFAULT CURRENT_TIMESTAMP,
 	    disk_usage           FLOAT           DEFAULT 0,
@@ -339,3 +340,11 @@ var cProjectEventTable = `
 		KEY idx_node_id (node_id),
 		KEY idx_time (created_time)
 	) ENGINE=InnoDB COMMENT='project replica event';`
+
+var cOnlineCountTable = `
+	CREATE TABLE if not exists %s (
+		node_id         VARCHAR(128)  NOT NULL,
+		create_time     DATETIME      NOT NULL,
+		online_count    INT           DEFAULT 0,
+		PRIMARY KEY (node_id,create_time)
+	) ENGINE=InnoDB COMMENT='node and server online count';`
