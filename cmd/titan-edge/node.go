@@ -282,10 +282,6 @@ func (node *edgeNode) startServer(daemonSwitch *clib.DaemonSwitch) error {
 
 			quitWg.Wait()
 
-			if err := node.transport.Conn.Close(); err != nil {
-				log.Errorf("Close udpPacketConn: %s", err.Error())
-			}
-
 			log.Warn("Graceful shutdown successful")
 
 			return nil
