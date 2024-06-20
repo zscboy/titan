@@ -258,6 +258,9 @@ func (node *edgeNode) startServer(daemonSwitch *clib.DaemonSwitch) error {
 
 	go startHTTPServer(node.ctx, httpSrv, node.edgeConfig.Network)
 
+	// Wait for the server to start, if the server does not start, the scheduler will fail to connect back.
+	waitServerStart(node.edgeConfig.Network.ListenAddress)
+
 	hbeatParams := heartbeatParams{
 		shutdownChan: node.shutdownChan,
 		edgeAPI:      node.edgeAPI,

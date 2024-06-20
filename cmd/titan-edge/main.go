@@ -438,3 +438,24 @@ func registShutdownSignal(shutdown chan struct{}) {
 	}()
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 }
+
+// check local server if start complete
+func waitServerStart(listenAddress string) {
+	_, port, err := net.SplitHostPort(listenAddress)
+	if err != nil {
+		log.Errorf("waitServerStart SplitHostPort %s", err.Error())
+		return
+	}
+
+	url := fmt.Sprintf("https://127.0.0.1:%s/rpc/v0", port)
+	edgeAPI, closer, err := client.NewEdge(context.Background(), url, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
+	if err != nil {
+		log.Errorf("waitServerStart %s", err.Error())
+		return
+	}
+	defer closer()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	edgeAPI.Version(ctx)
+}
