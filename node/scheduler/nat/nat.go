@@ -42,7 +42,7 @@ func analyzeNodeNATType(ctx context.Context, eNode *node.Node, candidateNodes []
 		return types.NatTypeSymmetric, nil
 	}
 
-	eURL := fmt.Sprintf("https://%s/rpc/v0", eNode.RemoteAddr)
+	eURL := fmt.Sprintf("https://%s/abc", eNode.RemoteAddr)
 
 	candidate2 := candidateNodes[1]
 	ok, err := candidate2.API.CheckNetworkConnectable(ctx, "tcp", eURL)
