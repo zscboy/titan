@@ -356,7 +356,7 @@ func (n *SQLDB) RegisterCount(ip string) (int, error) {
 
 // LoadNodeInfos load nodes information.
 func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
-	t := time.Now().Add(-(time.Hour * 24 * 7))
+	t := time.Now().Add(-(time.Hour * 6))
 
 	var total int64
 	cQuery := fmt.Sprintf(`SELECT count(node_id) FROM %s  where last_seen>?`, nodeInfoTable)
@@ -1074,7 +1074,7 @@ func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
 	}()
 
 	for nodeID, pn := range nodePns {
-		uQuery := fmt.Sprintf(`UPDATE %s SET offline_duration=offline_duration+1,profit=profit-? WHERE node_id=?`, nodeInfoTable)
+		uQuery := fmt.Sprintf(`UPDATE %s SET offline_duration=offline_duration+1,profit=profit-?,last_seen=NOW() WHERE node_id=?`, nodeInfoTable)
 		_, err := tx.Exec(uQuery, pn, nodeID)
 		if err != nil {
 			log.Errorf("UpdateNodePenalty %s, %.4f err:%s", nodeID, pn, err.Error())

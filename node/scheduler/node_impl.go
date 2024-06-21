@@ -819,19 +819,21 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			return out, nil
 		}
 
-		record := &types.WorkloadRecord{
-			WorkloadID: out.WorkloadID,
-			AssetCID:   cid,
-			ClientID:   clientID,
-			AssetSize:  aInfo.TotalSize,
-			Workloads:  buffer.Bytes(),
-			Event:      event,
-			Status:     types.WorkloadStatusCreate,
-		}
+		if event == types.WorkloadEventSync {
+			record := &types.WorkloadRecord{
+				WorkloadID: out.WorkloadID,
+				AssetCID:   cid,
+				ClientID:   clientID,
+				AssetSize:  aInfo.TotalSize,
+				Workloads:  buffer.Bytes(),
+				Event:      event,
+				Status:     types.WorkloadStatusCreate,
+			}
 
-		if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
-			log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
-			return out, nil
+			if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
+				log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
+				return out, nil
+			}
 		}
 	}
 
@@ -947,19 +949,21 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 			return cSources, nil
 		}
 
-		record := &types.WorkloadRecord{
-			WorkloadID: uuid.NewString(),
-			AssetCID:   cid,
-			ClientID:   clientID,
-			AssetSize:  aInfo.TotalSize,
-			Workloads:  buffer.Bytes(),
-			Event:      event,
-			Status:     types.WorkloadStatusCreate,
-		}
+		if event == types.WorkloadEventSync {
+			record := &types.WorkloadRecord{
+				WorkloadID: uuid.NewString(),
+				AssetCID:   cid,
+				ClientID:   clientID,
+				AssetSize:  aInfo.TotalSize,
+				Workloads:  buffer.Bytes(),
+				Event:      event,
+				Status:     types.WorkloadStatusCreate,
+			}
 
-		if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
-			log.Errorf("GetCandidateDownloadInfos SaveWorkloadRecord error:%s", err.Error())
-			return cSources, nil
+			if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
+				log.Errorf("GetCandidateDownloadInfos SaveWorkloadRecord error:%s", err.Error())
+				return cSources, nil
+			}
 		}
 	}
 

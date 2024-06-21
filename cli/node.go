@@ -240,6 +240,7 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("IP"),
 			tablewriter.Col("Profit"),
 			tablewriter.Col("OnlineDuration"),
+			tablewriter.Col("OfflineDuration"),
 			tablewriter.Col("Geo"),
 			tablewriter.Col("Disk"),
 		)
@@ -253,16 +254,17 @@ var listNodeCmd = &cli.Command{
 			}
 
 			m := map[string]interface{}{
-				"NodeID":         info.NodeID,
-				"NodeType":       info.Type.String(),
-				"Status":         colorOnline(info.Status),
-				"Nat":            info.NATType,
-				"IP":             info.ExternalIP,
-				"Addr":           info.RemoteAddr,
-				"Profit":         fmt.Sprintf("%.4f", info.Profit),
-				"OnlineDuration": fmt.Sprintf("%d", info.OnlineDuration),
-				"Geo":            fmt.Sprintf("%s", geo),
-				"Disk":           fmt.Sprintf("%s/%s   %.4f", units.BytesSize(info.TitanDiskUsage), units.BytesSize(info.AvailableDiskSpace), info.DiskUsage),
+				"NodeID":          info.NodeID,
+				"NodeType":        info.Type.String(),
+				"Status":          colorOnline(info.Status),
+				"Nat":             info.NATType,
+				"IP":              info.ExternalIP,
+				"Addr":            info.RemoteAddr,
+				"Profit":          fmt.Sprintf("%.4f", info.Profit),
+				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
+				"OfflineDuration": fmt.Sprintf("%d", info.OfflineDuration),
+				"Geo":             fmt.Sprintf("%s", geo),
+				"Disk":            fmt.Sprintf("%s/%s   %.4f", units.BytesSize(info.TitanDiskUsage), units.BytesSize(info.AvailableDiskSpace), info.DiskUsage),
 			}
 
 			tw.Write(m)

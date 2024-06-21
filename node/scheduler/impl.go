@@ -100,9 +100,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		if cNode.ExternalIP != "" {
 			s.NodeManager.RemoveNodeIP(nodeID, cNode.ExternalIP)
 		}
-		if cNode.GeoInfo != nil {
-			s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
-		}
 	}
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
@@ -117,6 +114,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	defer func() {
 		if err != nil {
 			s.NodeManager.RemoveNodeIP(nodeID, externalIP)
+			s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
 		}
 	}()
 
@@ -188,6 +186,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		// init node info
 		nodeInfo.PortMapping = oldInfo.PortMapping
 		nodeInfo.OnlineDuration = oldInfo.OnlineDuration
+		nodeInfo.OfflineDuration = oldInfo.OfflineDuration
 		nodeInfo.BandwidthDown = oldInfo.BandwidthDown
 		nodeInfo.BandwidthUp = oldInfo.BandwidthUp
 		nodeInfo.DeactivateTime = oldInfo.DeactivateTime
@@ -203,11 +202,16 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	cNode.NodeInfo = nodeInfo
-	// cNode.IncomeIncr = (s.NodeManager.NodeCalculateMCx(cNode.IsPhone) * 360)
 	cNode.MeetCandidateStandard = meetCandidateStandard
 
 	if !alreadyConnect {
-		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, oldInfo.FirstTime)
+		if nodeType == types.NodeEdge {
+			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode)
+			cNode.IncomeIncr = incr
+
+			s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
+		}
+		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, cNode.FirstTime)
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
@@ -230,7 +234,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	if nodeType == types.NodeEdge {
-		s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
 	} else {
 		go s.NatManager.DetermineCandidateNATType(context.Background(), nodeID)

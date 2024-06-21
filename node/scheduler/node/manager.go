@@ -23,7 +23,7 @@ const (
 	keepaliveTime = 10 * time.Second // seconds
 
 	// saveInfoInterval is the interval at which node information is saved during keepalive requests
-	saveInfoInterval = 5 * 60 * time.Second // keepalive saves information
+	saveInfoInterval = 5 * time.Minute // keepalive saves information
 	penaltyInterval  = 60 * time.Second
 
 	oneDay = 24 * time.Hour
@@ -208,17 +208,6 @@ func (m *Manager) startSaveNodeDataTimer() {
 	}
 }
 
-func (m *Manager) startNodePenaltyTimer() {
-	ticker := time.NewTicker(penaltyInterval)
-	defer ticker.Stop()
-
-	for {
-		<-ticker.C
-
-		m.penaltyNode()
-	}
-}
-
 func (m *Manager) startCheckNodeTimer() {
 	now := time.Now()
 
@@ -342,52 +331,13 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 	}
 }
 
-func (m *Manager) penaltyNode() {
-	list, err := m.LoadNodeInfosOfType(int(types.NodeCandidate))
-	if err != nil {
-		log.Errorf("LoadNodeInfosOfType err:%s", err.Error())
-		return
-	}
-
-	offlineNodes := make(map[string]float64)
-
-	for _, info := range list {
-		if m.GetNode(info.NodeID) != nil {
-			continue
-		}
-
-		if info.DeactivateTime > 0 {
-			continue
-		}
-
-		pn := m.CalculatePenalty(info.Profit, info.OfflineDuration)
-		offlineNodes[info.NodeID] = pn
-	}
-
-	if len(offlineNodes) > 0 {
-		err := m.UpdateNodePenalty(offlineNodes)
-		if err != nil {
-			log.Errorf("UpdateNodePenalty err:%s", err.Error())
-		}
-	}
-}
-
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) updateNodeData() {
 	nodes := make([]*types.NodeDynamicInfo, 0)
 
-	// detailsList := make([]*types.ProfitDetails, 0)
-	// mcCount := float64((saveInfoInterval * keepaliveTime) / (5 * time.Second))
-
 	onlineDuration := 5
 
-	// mcP := m.NodeCalculateMCx(true)
-	// profitP := mcP * mcCount
-	// incomeIncrP := (mcP * 360)
-
-	// mcW := m.NodeCalculateMCx(false)
-	// profitW := mcW * mcCount
-	// incomeIncrW := (mcW * 360)
+	detailsList := make([]*types.ProfitDetails, 0)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -395,23 +345,23 @@ func (m *Manager) updateNodeData() {
 			return true
 		}
 
-		node.OnlineDuration += onlineDuration
-		// incomeIncr := incomeIncrW
-		// profit := profitW
-		// if node.IsPhone {
-		// 	incomeIncr = incomeIncrP
-		// 	profit = profitP
-		// }
+		if node.IsAbnormal() {
+			return true
+		}
 
+		incr, dInfo := m.GetEdgeBaseProfitDetails(node)
+		detailsList = append(detailsList, dInfo)
+		node.Profit += dInfo.Profit
+
+		node.OnlineDuration += onlineDuration
+		node.KeepaliveCount = 0
 		// add node mc
-		// node.IncomeIncr = incomeIncr
+		node.IncomeIncr = incr
 
 		nodes = append(nodes, &node.NodeDynamicInfo)
 
 		return true
 	})
-
-	detailsList := make([]*types.ProfitDetails, 0)
 
 	m.candidateNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -421,6 +371,7 @@ func (m *Manager) updateNodeData() {
 		if node.IsAbnormal() {
 			return true
 		}
+
 		dInfo := m.GetCandidateBaseProfitDetails(node)
 		detailsList = append(detailsList, dInfo)
 		node.Profit += dInfo.Profit

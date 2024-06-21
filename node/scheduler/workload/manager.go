@@ -3,6 +3,7 @@ package workload
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -69,7 +70,7 @@ func (m *Manager) handleResults() {
 		result := <-m.resultQueue
 
 		if result.nodeID == "" {
-			m.handleUserWorkload(result.data)
+			// m.handleUserWorkload(result.data)
 		} else {
 			m.handleNodeWorkload(result.data, result.nodeID)
 		}
@@ -78,121 +79,121 @@ func (m *Manager) handleResults() {
 	// }
 }
 
-// handleUserWorkload handle node workload
-func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
-	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID)
-	if err != nil {
-		log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
-		return err
-	}
+// // handleUserWorkload handle node workload
+// func (m *Manager) handleUserWorkload(data *types.WorkloadRecordReq) error {
+// 	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID)
+// 	if err != nil {
+// 		log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
+// 		return err
+// 	}
 
-	if record == nil {
-		log.Errorf("handleUserWorkload not found Workload: %s", data.WorkloadID)
-		return nil
-	}
+// 	if record == nil {
+// 		log.Errorf("handleUserWorkload not found Workload: %s", data.WorkloadID)
+// 		return nil
+// 	}
 
-	if record.Status != types.WorkloadStatusCreate {
-		return nil
-	}
+// 	if record.Status != types.WorkloadStatusCreate {
+// 		return nil
+// 	}
 
-	downloadTotalSize := int64(0)
+// 	downloadTotalSize := int64(0)
 
-	ws := make([]*types.Workload, 0)
-	dec := gob.NewDecoder(bytes.NewBuffer(record.Workloads))
-	err = dec.Decode(&ws)
-	if err != nil {
-		log.Errorf("handleUserWorkload decode data to []*types.Workload error: %s", err.Error())
-		return err
-	}
+// 	ws := make([]*types.Workload, 0)
+// 	dec := gob.NewDecoder(bytes.NewBuffer(record.Workloads))
+// 	err = dec.Decode(&ws)
+// 	if err != nil {
+// 		log.Errorf("handleUserWorkload decode data to []*types.Workload error: %s", err.Error())
+// 		return err
+// 	}
 
-	sourceIDSet := make(map[string]struct{})
-	for _, w := range ws {
-		sourceIDSet[w.SourceID] = struct{}{}
-	}
+// 	sourceIDSet := make(map[string]struct{})
+// 	for _, w := range ws {
+// 		sourceIDSet[w.SourceID] = struct{}{}
+// 	}
 
-	downloadTotalSize = int64(0)
+// 	downloadTotalSize = int64(0)
 
-	for _, dw := range data.Workloads {
-		downloadTotalSize += dw.DownloadSize
-		if _, exists := sourceIDSet[dw.SourceID]; !exists {
-			log.Errorf("handleUserWorkload source not found : %s", dw.SourceID)
-			return nil
-		}
-	}
+// 	for _, dw := range data.Workloads {
+// 		downloadTotalSize += dw.DownloadSize
+// 		if _, exists := sourceIDSet[dw.SourceID]; !exists {
+// 			log.Errorf("handleUserWorkload source not found : %s", dw.SourceID)
+// 			return nil
+// 		}
+// 	}
 
-	// update status
-	record.Status = types.WorkloadStatusSucceeded
-	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
-	if err != nil {
-		log.Errorf("handleUserWorkload UpdateWorkloadRecord error: %s", err.Error())
-		return err
-	}
+// 	// update status
+// 	record.Status = types.WorkloadStatusSucceeded
+// 	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
+// 	if err != nil {
+// 		log.Errorf("handleUserWorkload UpdateWorkloadRecord error: %s", err.Error())
+// 		return err
+// 	}
 
-	eventList := make([]*types.RetrieveEvent, 0)
-	// detailsList := make([]*types.ProfitDetails, 0)
+// 	eventList := make([]*types.RetrieveEvent, 0)
+// 	// detailsList := make([]*types.ProfitDetails, 0)
 
-	limit := int64(float64(record.AssetSize) * 1.3)
-	if downloadTotalSize > limit {
-		downloadTotalSize = limit
-	}
+// 	limit := int64(float64(record.AssetSize) * 1.3)
+// 	if downloadTotalSize > limit {
+// 		downloadTotalSize = limit
+// 	}
 
-	for _, dw := range data.Workloads {
-		if dw.SourceID == types.DownloadSourceAWS.String() || dw.SourceID == types.DownloadSourceIPFS.String() || dw.SourceID == types.DownloadSourceSDK.String() {
-			continue
-		}
+// 	for _, dw := range data.Workloads {
+// 		if dw.SourceID == types.DownloadSourceAWS.String() || dw.SourceID == types.DownloadSourceIPFS.String() || dw.SourceID == types.DownloadSourceSDK.String() {
+// 			continue
+// 		}
 
-		if dw.DownloadSize > limit {
-			dw.DownloadSize = limit
-		}
+// 		if dw.DownloadSize > limit {
+// 			dw.DownloadSize = limit
+// 		}
 
-		retrieveEvent := &types.RetrieveEvent{
-			CID:         record.AssetCID,
-			TokenID:     uuid.NewString(),
-			NodeID:      dw.SourceID,
-			ClientID:    record.ClientID,
-			Size:        dw.DownloadSize,
-			CreatedTime: record.CreatedTime.Unix(),
-			EndTime:     time.Now().Unix(),
-		}
-		eventList = append(eventList, retrieveEvent)
+// 		retrieveEvent := &types.RetrieveEvent{
+// 			CID:         record.AssetCID,
+// 			TokenID:     uuid.NewString(),
+// 			NodeID:      dw.SourceID,
+// 			ClientID:    record.ClientID,
+// 			Size:        dw.DownloadSize,
+// 			CreatedTime: record.CreatedTime.Unix(),
+// 			EndTime:     time.Now().Unix(),
+// 		}
+// 		eventList = append(eventList, retrieveEvent)
 
-		node := m.nodeMgr.GetNode(dw.SourceID)
-		if node != nil {
-			// dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-			// if dInfo != nil {
-			// 	dInfo.CID = retrieveEvent.CID
-			// 	dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+// 		node := m.nodeMgr.GetNode(dw.SourceID)
+// 		if node != nil {
+// 			// dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+// 			// if dInfo != nil {
+// 			// 	dInfo.CID = retrieveEvent.CID
+// 			// 	dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
-			// 	detailsList = append(detailsList, dInfo)
-			// }
+// 			// 	detailsList = append(detailsList, dInfo)
+// 			// }
 
-			node.UploadTraffic += dw.DownloadSize
-		}
+// 			node.UploadTraffic += dw.DownloadSize
+// 		}
 
-		// update node bandwidths
-		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
-		if speed > 0 {
-			// m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
-			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
-		}
-	}
+// 		// update node bandwidths
+// 		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
+// 		if speed > 0 {
+// 			// m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
+// 			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
+// 		}
+// 	}
 
-	// Retrieve Event
-	for _, data := range eventList {
-		if err := m.SaveRetrieveEventInfo(data); err != nil {
-			log.Errorf("handleUserWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
-		}
-	}
+// 	// Retrieve Event
+// 	for _, data := range eventList {
+// 		if err := m.SaveRetrieveEventInfo(data); err != nil {
+// 			log.Errorf("handleUserWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+// 		}
+// 	}
 
-	// for _, data := range detailsList {
-	// 	err = m.nodeMgr.AddNodeProfit(data)
-	// 	if err != nil {
-	// 		log.Errorf("handleUserWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-	// 	}
-	// }
+// 	// for _, data := range detailsList {
+// 	// 	err = m.nodeMgr.AddNodeProfit(data)
+// 	// 	if err != nil {
+// 	// 		log.Errorf("handleUserWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+// 	// 	}
+// 	// }
 
-	return nil
-}
+// 	return nil
+// }
 
 // handleNodeWorkload handle node workload
 func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID string) error {
@@ -269,7 +270,7 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	}
 
 	eventList := make([]*types.RetrieveEvent, 0)
-	// detailsList := make([]*types.ProfitDetails, 0)
+	detailsList := make([]*types.ProfitDetails, 0)
 
 	limit := int64(float64(record.AssetSize) * 1.3)
 	if downloadTotalSize > limit {
@@ -305,13 +306,13 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 
 		node := m.nodeMgr.GetNode(dw.SourceID)
 		if node != nil {
-			// dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-			// if dInfo != nil {
-			// 	dInfo.CID = retrieveEvent.CID
-			// 	dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+			if dInfo != nil {
+				dInfo.CID = retrieveEvent.CID
+				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
-			// 	detailsList = append(detailsList, dInfo)
-			// }
+				detailsList = append(detailsList, dInfo)
+			}
 
 			node.UploadTraffic += dw.DownloadSize
 		}
@@ -331,12 +332,12 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 		}
 	}
 
-	// for _, data := range detailsList {
-	// 	err = m.nodeMgr.AddNodeProfit(data)
-	// 	if err != nil {
-	// 		log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-	// 	}
-	// }
+	for _, data := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(data)
+		if err != nil {
+			log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+		}
+	}
 
 	return nil
 }

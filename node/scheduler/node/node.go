@@ -44,6 +44,8 @@ type Node struct {
 	MeetCandidateStandard bool
 
 	OnlineRate float64
+
+	KeepaliveCount int
 }
 
 // API represents the node API

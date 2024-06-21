@@ -42,6 +42,7 @@ func (m *Manager) nodesKeepalive() {
 			return true
 		}
 
+		node.KeepaliveCount++
 		if m.checkNodeStatus(node, t) {
 			nodes = append(nodes, node.NodeID)
 		}
