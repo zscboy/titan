@@ -170,7 +170,16 @@ var daemonStartCmd = &cli.Command{
 		repoPath := cctx.String(FlagEdgeRepo)
 		locatorURL := cctx.String("url")
 
-		d, err := newDaemon(lcli.ReqContext(cctx), repoPath, locatorURL)
+		ok, err := registerNodeIfNotExist(repoPath, locatorURL)
+		if err != nil {
+			return err
+		}
+
+		if ok {
+			log.Info("register new node")
+		}
+
+		d, err := newDaemon(lcli.ReqContext(cctx), repoPath)
 		if err != nil {
 			return err
 		}
@@ -454,4 +463,33 @@ func waitServerStart(listenAddress string) {
 	httpclient := client.NewHTTP3Client()
 	httpclient.Timeout = 3 * time.Second
 	httpclient.Get(url)
+}
+
+func registerNodeIfNotExist(repoPath string, locatorURL string) (bool, error) {
+	r, err := openRepoOrNew(repoPath)
+	if err != nil {
+		return false, err
+	}
+
+	_, nodeIDErr := r.NodeID()
+	if nodeIDErr == repo.ErrNodeIDNotExist {
+		if len(locatorURL) == 0 {
+			return false, fmt.Errorf("Must set --url")
+		}
+
+		lr, err := r.Lock(repo.Edge)
+		if err != nil {
+			return false, err
+		}
+		defer lr.Close()
+
+		if err := lcli.RegisterEdgeNode(lr, locatorURL); err != nil {
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+
 }

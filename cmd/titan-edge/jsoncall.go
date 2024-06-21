@@ -43,7 +43,16 @@ func JSONCall(jsonStrPtr *C.char) *C.char {
 }
 
 func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath, locatorURL string) error {
-	d, err := newDaemon(ctx, repoPath, locatorURL)
+	ok, err := registerNodeIfNotExist(repoPath, locatorURL)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		log.Infof("daemonStart register new node")
+	}
+
+	d, err := newDaemon(ctx, repoPath)
 	if err != nil {
 		return err
 	}

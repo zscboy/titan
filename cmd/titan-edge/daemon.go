@@ -11,7 +11,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
-	lcli "github.com/Filecoin-Titan/titan/cli"
 	"github.com/Filecoin-Titan/titan/metrics"
 	"github.com/Filecoin-Titan/titan/node"
 	"github.com/Filecoin-Titan/titan/node/asset"
@@ -39,8 +38,7 @@ type daemon struct {
 	schedulerAPI api.Scheduler
 	privateKey   *rsa.PrivateKey
 
-	repoPath   string
-	locatorURL string
+	repoPath string
 
 	stop           node.StopFunc
 	closeScheduler jsonrpc.ClientCloser
@@ -53,7 +51,7 @@ type daemon struct {
 	restartDoneChan chan struct{} // make sure all modules are ready to start
 }
 
-func newDaemon(ctx context.Context, repoPath, locatorURL string) (*daemon, error) {
+func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 	log.Info("new titan edge node")
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -75,16 +73,6 @@ func newDaemon(ctx context.Context, repoPath, locatorURL string) (*daemon, error
 	lr, err := r.Lock(repo.Edge)
 	if err != nil {
 		return nil, err
-	}
-
-	_, nodeIDErr := r.NodeID()
-	if nodeIDErr == repo.ErrNodeIDNotExist {
-		if len(locatorURL) == 0 {
-			return nil, fmt.Errorf("Must set --url")
-		}
-		if err := lcli.RegisterEdgeNode(lr, locatorURL); err != nil {
-			return nil, err
-		}
 	}
 
 	cfg, err := lr.Config()
@@ -233,8 +221,7 @@ func newDaemon(ctx context.Context, repoPath, locatorURL string) (*daemon, error
 		edgeConfig:   edgeCfg,
 		privateKey:   privateKey,
 
-		repoPath:   repoPath,
-		locatorURL: locatorURL,
+		repoPath: repoPath,
 
 		stop:           stop,
 		closeScheduler: closeScheduler,
@@ -302,7 +289,7 @@ func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
 
 			d.restartDoneChan <- struct{}{} // node/edge/impl.go
 
-			d, err = newDaemon(context.Background(), d.repoPath, d.locatorURL)
+			d, err = newDaemon(context.Background(), d.repoPath)
 			if err != nil {
 				log.Errorf("newDaemon %s", err.Error())
 				return err
