@@ -502,7 +502,7 @@ var daemonStartCmd = &cli.Command{
 
 // private minio storage only, not public storage
 func isPrivateMinioOnly(config *config.CandidateCfg) bool {
-	if len(config.AccessKeyID) > 0 && len(config.SecretAccessKey) > 0 && len(config.Endpoint) > 0 {
+	if config.IsPrivate {
 		return true
 	}
 	return false

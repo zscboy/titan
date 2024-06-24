@@ -104,6 +104,8 @@ type CandidateCfg struct {
 	MinioConfig
 	WebRedirect string
 	ExternalURL string
+	// Let the scheduler know that this node does not do tasks
+	IsPrivate bool
 }
 
 // LocatorCfg locator config

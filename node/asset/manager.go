@@ -33,10 +33,13 @@ const maxSizeOfCache = 128
 
 // assetWaiter is used by Manager to store waiting assets for pulling
 type assetWaiter struct {
-	Root       cid.Cid
-	Dss        []*types.CandidateDownloadInfo
+	Root cid.Cid
+	// Dss                []*types.CandidateDownloadInfo
+	Dss *types.DownloadSources
+
 	puller     *assetPuller
 	isSyncData bool
+	workloadID string
 }
 
 // Manager is the struct that manages asset pulling and store
@@ -241,18 +244,17 @@ func (m *Manager) removeAssetFromWaitList(root cid.Cid) *assetWaiter {
 }
 
 // addToWaitList adds an assetWaiter to waitList if the asset with the root CID is not already waiting to be downloaded
-func (m *Manager) addToWaitList(root cid.Cid, dss []*types.CandidateDownloadInfo, isSyncData bool) {
+func (m *Manager) addToWaitList(aw *assetWaiter) {
 	m.waitListLock.Lock()
 	defer m.waitListLock.Unlock()
 
 	for _, waiter := range m.waitList {
-		if waiter.Root.Hash().String() == root.Hash().String() {
+		if waiter.Root.Hash().String() == aw.Root.Hash().String() {
 			return
 		}
 	}
 
-	cw := &assetWaiter{Root: root, Dss: dss, isSyncData: isSyncData}
-	m.waitList = append(m.waitList, cw)
+	m.waitList = append(m.waitList, aw)
 
 	if err := m.saveWaitList(); err != nil {
 		log.Errorf("save wait list error: %s", err.Error())
@@ -417,8 +419,8 @@ func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, er
 		}
 
 		// cover new download sources
-		if len(opts.dss) > 0 {
-			cc.downloadSources = opts.dss
+		if opts.dss != nil {
+			cc.dss = opts.dss
 		}
 	}
 	return cc, nil
@@ -595,11 +597,14 @@ func (m *Manager) AddLostAsset(root cid.Cid) error {
 		return m.AddAssetToView(context.TODO(), root)
 	}
 
-	downloadInfos, err := m.GetCandidateDownloadInfos(context.Background(), root.String())
+	downloadInfos, err := m.GetAssetSourceDownloadInfo(context.Background(), root.String())
 	if err != nil {
 		return xerrors.Errorf("get candidate download infos: %w", err.Error())
 	}
-	m.addToWaitList(root, downloadInfos, true)
+	aws := types.AWSDownloadSources{Bucket: downloadInfos.AWSBucket, Key: downloadInfos.AWSKey}
+	dss := types.DownloadSources{Nodes: downloadInfos.SourceList, AWS: &aws}
+	aw := assetWaiter{Root: root, Dss: &dss, isSyncData: true, workloadID: downloadInfos.WorkloadID}
+	m.addToWaitList(&aw)
 
 	return nil
 }
@@ -825,13 +830,4 @@ func (m *Manager) syncDataWithAssetView() error {
 	log.Debugf("syncDataWithAssetView cost %ds", time.Since(now)/time.Second)
 
 	return nil
-}
-
-func isContainAWSDownloadSource(downloadInfos []*types.CandidateDownloadInfo) bool {
-	for _, downloadSource := range downloadInfos {
-		if len(downloadSource.AWSBucket) > 0 {
-			return true
-		}
-	}
-	return false
 }

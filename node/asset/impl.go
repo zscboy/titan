@@ -61,7 +61,51 @@ func (a *Asset) PullAsset(ctx context.Context, rootCID string, infos []*types.Ca
 
 	log.Infof("Pull asset %s", rootCID)
 
-	a.mgr.addToWaitList(root, infos, false)
+	var aws *types.AWSDownloadSources = nil
+	dInfos := make([]*types.SourceDownloadInfo, len(infos))
+	for _, info := range infos {
+		dInfo := &types.SourceDownloadInfo{NodeID: info.NodeID, Address: info.Address, Tk: info.Tk}
+		dInfos = append(dInfos, dInfo)
+
+		if len(info.AWSBucket) > 0 && len(info.AWSKey) > 0 {
+			aws = &types.AWSDownloadSources{}
+			aws.Bucket = info.AWSBucket
+			aws.Key = info.AWSKey
+		}
+	}
+
+	dss := &types.DownloadSources{AWS: aws, Nodes: dInfos}
+	aw := &assetWaiter{Root: root, Dss: dss, isSyncData: false}
+	a.mgr.addToWaitList(aw)
+
+	return nil
+}
+
+// PullAsset adds the asset to the waitList for pulling
+func (a *Asset) PullAssetV2(ctx context.Context, req *types.AssetPullRequest) error {
+	if types.RunningNodeType == types.NodeEdge && req.Dss == nil {
+		return fmt.Errorf("candidate download infos can not empty")
+	}
+
+	root, err := cid.Decode(req.AssetCID)
+	if err != nil {
+		return err
+	}
+
+	has, err := a.mgr.AssetExists(root)
+	if err != nil {
+		return err
+	}
+
+	if has {
+		log.Debugf("Asset %s already exist", root.String())
+		return nil
+	}
+
+	log.Infof("Pull asset %s", root.String())
+
+	aw := &assetWaiter{Root: root, Dss: req.Dss, isSyncData: false, workloadID: req.WorkloadID}
+	a.mgr.addToWaitList(aw)
 	return nil
 }
 

@@ -309,3 +309,19 @@ type FreeUpDiskState struct {
 	Hash   string
 	ErrMsg string
 }
+
+type AWSDownloadSources struct {
+	Bucket string
+	Key    string
+}
+
+type DownloadSources struct {
+	Nodes []*SourceDownloadInfo
+	AWS   *AWSDownloadSources
+}
+
+type AssetPullRequest struct {
+	AssetCID   string
+	Dss        *DownloadSources
+	WorkloadID string
+}
