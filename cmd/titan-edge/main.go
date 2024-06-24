@@ -176,7 +176,7 @@ var daemonStartCmd = &cli.Command{
 		}
 
 		if ok {
-			log.Info("register new node")
+			log.Info("Register new node")
 		}
 
 		d, err := newDaemon(lcli.ReqContext(cctx), repoPath)

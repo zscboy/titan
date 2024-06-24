@@ -52,8 +52,6 @@ type daemon struct {
 }
 
 func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
-	log.Info("new titan edge node")
-
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Register all metric views
@@ -212,6 +210,8 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		return nil, xerrors.Errorf("creating node: %w", err)
 	}
 
+	log.Info("New titan daemon")
+
 	d := &daemon{
 		ID:           nodeID,
 		httpServer:   httpServer,
@@ -233,6 +233,7 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		restartChan:     restartChan,
 		restartDoneChan: restartDoneChan,
 	}
+
 	return d, nil
 }
 

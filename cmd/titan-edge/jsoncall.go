@@ -7,6 +7,7 @@ import "C"
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"unsafe"
 
 	"github.com/Filecoin-Titan/titan/node/edge/clib"
@@ -43,6 +44,12 @@ func JSONCall(jsonStrPtr *C.char) *C.char {
 }
 
 func daemonStart(ctx context.Context, daemonSwitch *clib.DaemonSwitch, repoPath, locatorURL string) error {
+	// TODO： Set this environment variable only for individual systems
+	err := os.Setenv("QUIC_GO_DISABLE_ECN", "true")
+	if err != nil {
+		log.Errorf("Error setting environment QUIC_GO_DISABLE_ECN:", err)
+	}
+
 	ok, err := registerNodeIfNotExist(repoPath, locatorURL)
 	if err != nil {
 		return err
