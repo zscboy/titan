@@ -222,6 +222,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 		}
 		cNode.PublicKey = publicKey
+		// init LastValidateTime
+		cNode.LastValidateTime = s.getNodeLastValidateTime(nodeID)
 
 		err = s.NodeManager.NodeOnline(cNode, nodeInfo)
 		if err != nil {
@@ -240,6 +242,16 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	s.DataSync.AddNodeToList(nodeID)
 	return nil
+}
+
+func (s *Scheduler) getNodeLastValidateTime(nodeID string) int64 {
+	rsp, err := s.NodeManager.LoadValidationResultInfos(nodeID, 1, 0)
+	if err != nil || len(rsp.ValidationResultInfos) == 0 {
+		return 0
+	}
+
+	info := rsp.ValidationResultInfos[0]
+	return info.StartTime.Unix()
 }
 
 func checkNodeClientType(systemVersion, androidSymbol, iosSymbol, windowsSymbol, macosSymbol string) types.NodeClientType {

@@ -1019,10 +1019,9 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 		return nil
 	}
 
-	now := time.Now()
-
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, now.Location())
+	// now := time.Now()
+	// startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, now.Location())
 
 	sources := make([]*types.CandidateDownloadInfo, 0)
 	cSources := make([]*types.CandidateDownloadInfo, 0)
@@ -1060,16 +1059,16 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
-		p, err := m.LoadTodayProfitsForNode(nodeID, startOfDay, endOfDay)
-		if err != nil {
-			log.Errorf("LoadTodayProfitsForNode2 %s err:%s", nodeID, err.Error())
-			continue
-		}
+		// p, err := m.LoadTodayProfitsForNode(nodeID, startOfDay, endOfDay)
+		// if err != nil {
+		// 	log.Errorf("LoadTodayProfitsForNode2 %s err:%s", nodeID, err.Error())
+		// 	continue
+		// }
 
-		if p > nodeProfitsLimitOfDay {
-			log.Errorf("LoadTodayProfitsForNode2 %s limit profits:%.2f > %.2f", nodeID, p, nodeProfitsLimitOfDay)
-			continue
-		}
+		// if p > nodeProfitsLimitOfDay {
+		// 	log.Errorf("LoadTodayProfitsForNode2 %s limit profits:%.2f > %.2f", nodeID, p, nodeProfitsLimitOfDay)
+		// 	continue
+		// }
 
 		source := &types.CandidateDownloadInfo{
 			NodeID:    nodeID,

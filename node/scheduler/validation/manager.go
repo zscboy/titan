@@ -144,7 +144,8 @@ func (m *Manager) initCfg() {
 
 // Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
-	nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
+	// nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
+	nextTick := getNextExecutionTime()
 	duration := nextTick.Sub(time.Now())
 
 	go m.startValidationTicker(duration)
@@ -153,6 +154,22 @@ func (m *Manager) Start(ctx context.Context) {
 
 	m.subscribeNodeEvents()
 	m.handleResults()
+}
+
+// getNextExecutionTime
+func getNextExecutionTime() time.Time {
+	hours := []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23}
+
+	now := time.Now()
+	for _, hour := range hours {
+		next := time.Date(now.Year(), now.Month(), now.Day(), hour, 0, 0, 0, now.Location())
+		if next.After(now) {
+			return next
+		}
+	}
+
+	next := time.Date(now.Year(), now.Month(), now.Day()+1, hours[0], 0, 0, 0, now.Location())
+	return next
 }
 
 // Stop stop

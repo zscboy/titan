@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	validationInterval = 30 * time.Minute // validation start-up time interval (Unit:minute)
+	validationInterval = 4 * 30 * time.Minute // validation start-up time interval (Unit:minute)
 
 	handValidatorProfitsInterval = 5 * time.Minute // validation start-up time interval (Unit:minute)
 
@@ -88,11 +88,6 @@ func (m *Manager) startValidate() error {
 	}
 	m.seed = seed
 
-	edges := m.nodeMgr.GetAllEdgeNode()
-	sort.Slice(edges, func(i, j int) bool {
-		return edges[i].LastValidateTime < edges[j].LastValidateTime
-	})
-
 	validateReqs := make(map[string]*api.ValidateReq)
 	_, candidates := m.nodeMgr.GetAllCandidateNodes()
 	for _, candidate := range candidates {
@@ -112,6 +107,11 @@ func (m *Manager) startValidate() error {
 
 		validateReqs[candidate.NodeID] = req
 	}
+
+	edges := m.nodeMgr.GetAllEdgeNode()
+	sort.Slice(edges, func(i, j int) bool {
+		return edges[i].LastValidateTime < edges[j].LastValidateTime
+	})
 
 	m.distributeEdges(edges, validateReqs)
 	// m.resetGroup()
@@ -196,6 +196,8 @@ func (m *Manager) sendValidateReqToNode(nID string, req *api.ValidateReq, delay 
 
 	cNode := m.nodeMgr.GetNode(nID)
 	if cNode != nil {
+		cNode.LastValidateTime = time.Now().Unix()
+
 		err := cNode.ExecuteValidation(context.Background(), req)
 		if err == nil {
 			return
