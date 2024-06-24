@@ -172,7 +172,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
-	ms := mr * mx * mo * min(s, 50) * 0.211148649 * mt * u * b * uploadTrafficProfit * mip * mn
+	ms := (mr * mx * mo * min(s, 50) * 0.211148649 * mt) + (u * b * uploadTrafficProfit * mip * mn)
 
 	if ms < 0.000001 {
 		return nil

@@ -3,7 +3,6 @@ package assets
 import (
 	"bytes"
 	"context"
-	"crypto"
 	"database/sql"
 	"encoding/gob"
 	"fmt"
@@ -1057,7 +1056,7 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
-		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
+		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) && cNode.ExternalIP == "" {
 			continue
 		}
 
@@ -1090,14 +1089,13 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 
 // chooseCandidateNodes selects candidate nodes to pull asset replicas
 func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size float64) (map[string]*node.Node, string) {
-	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), m.nodeMgr.Candidates)
+	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+	curNode := len(nodes)
+
+	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), curNode)
 
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {
-		return selectMap, str
-	}
-
-	if len(filterNodes) >= m.nodeMgr.Candidates {
 		return selectMap, str
 	}
 
@@ -1106,7 +1104,6 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 		filterMap[nodeID] = struct{}{}
 	}
 
-	_, nodes := m.nodeMgr.GetAllCandidateNodes()
 	sort.Slice(nodes, func(i, j int) bool {
 		if nodes[i].Type == nodes[j].Type {
 			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
@@ -1124,19 +1121,15 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 		}
 
 		// Merge L1 nodes
-		if node.Type == types.NodeValidator {
-			continue
-		}
-
-		if !node.MeetCandidateStandard {
-			continue
-		}
+		// if node.Type == types.NodeValidator {
+		// 	continue
+		// }
+		nodeID := node.NodeID
 
 		if !node.DiskEnough(size) {
+			log.Infof("chooseCandidateNodes %s DiskEnough...", nodeID)
 			continue
 		}
-
-		nodeID := node.NodeID
 
 		if _, exist := filterMap[nodeID]; exist {
 			continue
@@ -1322,34 +1315,17 @@ func (m *Manager) generateTokenForDownloadSources(sources []*types.CandidateDown
 	return downloadSources, record, nil
 }
 
-func (m *Manager) GenerateToken(assetCID string, sources []*types.CandidateDownloadInfo, nodes map[string]*node.Node, size int64) (map[string][]*types.CandidateDownloadInfo, []*types.WorkloadRecord, error) {
-	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	downloadSources := make(map[string][]*types.CandidateDownloadInfo)
-	workloads := make([]*types.WorkloadRecord, 0)
-
-	// index := 0
-	for _, node := range nodes {
-		ts := make([]*types.CandidateDownloadInfo, 0)
-		if len(sources) > 2 {
-			secondIndex := rand.Intn(len(sources)-1) + 1
-			ts = append(ts, sources[0], sources[secondIndex])
-		} else {
-			ts = sources
-		}
-		// ss := sources[index]
-
-		newSources, workload, err := m.generateTokenForDownloadSources(ts, titanRsa, assetCID, node.NodeID, size)
-		if err != nil {
-			continue
-		}
-
-		// index++
-
-		workloads = append(workloads, workload)
-		downloadSources[node.NodeID] = newSources
+func (m *Manager) GenerateToken(assetCID string, sources []*types.CandidateDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.CandidateDownloadInfo, *types.WorkloadRecord, error) {
+	ts := make([]*types.CandidateDownloadInfo, 0)
+	if len(sources) > 2 {
+		secondIndex := rand.Intn(len(sources)-1) + 1
+		ts = append(ts, sources[0], sources[secondIndex])
+	} else {
+		ts = sources
 	}
+	// ss := sources[index]
 
-	return downloadSources, workloads, nil
+	return m.generateTokenForDownloadSources(ts, titanRsa, assetCID, node.NodeID, size)
 }
 
 func (m *Manager) SaveTokenPayload(payloads []*types.WorkloadRecord) error {

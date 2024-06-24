@@ -132,7 +132,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	log.Infof("node connected %s, address[%s] , %v", nodeID, remoteAddr, alreadyConnect)
+	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
 	if err != nil {
@@ -162,7 +162,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return err
 	}
 
-	if nodeType != types.NodeEdge && !meetCandidateStandard {
+	if !meetCandidateStandard {
 		return xerrors.Errorf("Node %s does not meet the standard", nodeID)
 	}
 
@@ -202,7 +202,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	cNode.NodeInfo = nodeInfo
-	cNode.MeetCandidateStandard = meetCandidateStandard
 
 	if !alreadyConnect {
 		if nodeType == types.NodeEdge {
@@ -290,6 +289,8 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 	}
 
 	if nodeType == types.NodeEdge {
+		meetCandidateStandard = true
+
 		if nodeInfo.AvailableDiskSpace > availableDiskLimit {
 			nodeInfo.AvailableDiskSpace = availableDiskLimit
 		}
@@ -334,7 +335,7 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 			return nil, false, xerrors.Errorf("checkNodeParameters %s IsValidator err:%s", nodeInfo.NodeID, err.Error())
 		}
 
-		if isValidator && meetCandidateStandard {
+		if isValidator {
 			nodeInfo.Type = types.NodeValidator
 		}
 		nodeInfo.AvailableDiskSpace = nodeInfo.DiskSpace * 0.9
@@ -433,11 +434,13 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (*types.ValidationInf
 }
 
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {
+	// from sdk or web or client
 	return s.WorkloadManager.PushResult(workload, "")
 }
 
 // SubmitWorkloadReport
 func (s *Scheduler) SubmitWorkloadReport(ctx context.Context, workload *types.WorkloadRecordReq) error {
+	// from node
 	nodeID := handler.GetNodeID(ctx)
 
 	node := s.NodeManager.GetNode(nodeID)

@@ -2,11 +2,13 @@ package assets
 
 import (
 	"bytes"
+	"crypto"
 	"encoding/gob"
 	"math"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
+	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/alecthomas/units"
 	"github.com/filecoin-project/go-statemachine"
@@ -239,47 +241,41 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		}
 	}
 
-	downloadSources, workloads, err := m.GenerateToken(info.CID, sources, nodes, info.Size)
-	if err != nil {
-		return ctx.Send(SelectFailed{error: err})
-	}
-
-	// err = m.SaveTokenPayload(payloads)
-	// if err != nil {
-	// 	return ctx.Send(SelectFailed{error: err})
-	// }
-
-	// save to db
-	// err = m.saveReplicaInformation(nodes, info.Hash.String(), true)
-	// if err != nil {
-	// 	return ctx.Send(SelectFailed{error: err})
-	// }
-
-	// send a pull request to the node
-	err = m.SaveTokenPayload(workloads)
-	if err != nil {
-		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
-	}
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 
 	for _, node := range nodes {
 		cNode := node
 
-		err := cNode.PullAsset(ctx.Context(), info.CID, downloadSources[cNode.NodeID])
+		downloadSource, workload, err := m.GenerateToken(info.CID, sources, cNode, info.Size, titanRsa)
 		if err != nil {
-			log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
+			log.Errorf("%s GenerateToken err:%s", cNode.NodeID, err.Error())
 			continue
 		}
 
-		err = m.SaveReplicaStatus(&types.ReplicaInfo{
-			NodeID:      cNode.NodeID,
-			Status:      types.ReplicaStatusWaiting,
-			Hash:        info.Hash.String(),
-			IsCandidate: true,
-		})
-		if err != nil {
-			log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())
-		}
+		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
 
+		go func() {
+			err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+			if err != nil {
+				log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
+				return
+			}
+
+			err = m.SaveReplicaStatus(&types.ReplicaInfo{
+				NodeID:      cNode.NodeID,
+				Status:      types.ReplicaStatusWaiting,
+				Hash:        info.Hash.String(),
+				IsCandidate: true,
+			})
+			if err != nil {
+				log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())
+			}
+		}()
+	}
+
+	// Wait send to node
+	if err := failedCoolDown(ctx, info, WaitTime); err != nil {
+		return err
 	}
 
 	m.startAssetTimeoutCounting(info.Hash.String(), 0, info.Size)
@@ -360,20 +356,20 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		}
 	}
 
-	downloadSources, workloads, err := m.GenerateToken(info.CID, sources, nodes, info.Size)
-	if err != nil {
-		return ctx.Send(SelectFailed{error: xerrors.Errorf("GenerateToken; %s", err.Error())})
-	}
-
-	err = m.SaveTokenPayload(workloads)
-	if err != nil {
-		log.Errorf("%s len:%d SaveTokenPayload err:%s", info.Hash, len(workloads), err.Error())
-	}
-
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	for _, node := range nodes {
 		cNode := node
+
+		downloadSource, workload, err := m.GenerateToken(info.CID, sources, cNode, info.Size, titanRsa)
+		if err != nil {
+			log.Errorf("%s GenerateToken err:%s", cNode.NodeID, err.Error())
+			continue
+		}
+
+		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
+
 		go func() {
-			err := cNode.PullAsset(ctx.Context(), info.CID, downloadSources[cNode.NodeID])
+			err := cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
 			if err != nil {
 				log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
 				return

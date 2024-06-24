@@ -7,6 +7,9 @@ import (
 )
 
 func (m *Manager) startNodePenaltyTimer() {
+	offset := time.Minute * 10
+	time.Sleep(offset)
+
 	ticker := time.NewTicker(penaltyInterval)
 	defer ticker.Stop()
 

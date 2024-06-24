@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/cidutil"
+	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/docker/go-units"
 	"github.com/google/uuid"
-	"golang.org/x/xerrors"
 )
 
 const (
@@ -87,35 +88,103 @@ func (m *Manager) startValidate() error {
 	}
 	m.seed = seed
 
-	m.resetGroup()
+	edges := m.nodeMgr.GetAllEdgeNode()
+	sort.Slice(edges, func(i, j int) bool {
+		return edges[i].LastValidateTime < edges[j].LastValidateTime
+	})
 
-	vrs := m.PairValidatorsAndValidatableNodes()
-	if vrs == nil {
-		return xerrors.Errorf("PairValidatorsAndValidatableNodes err...")
-	}
-
-	vReqs, dbInfos := m.getValidationDetails(vrs)
-	if len(vReqs) == 0 {
-		return xerrors.New("validation pair fail")
-	}
-
-	err = m.nodeMgr.SaveValidationResultInfos(dbInfos)
-	if err != nil {
-		return xerrors.Errorf("SaveValidationResultInfos err:%s", err.Error())
-	}
-
-	delay := 0
-	maxDelay := 20 * 60 // 20min
-	for nodeID, req := range vReqs {
-		delay += duration
-		if delay > maxDelay {
-			delay = 0
+	validateReqs := make(map[string]*api.ValidateReq)
+	_, candidates := m.nodeMgr.GetAllCandidateNodes()
+	for _, candidate := range candidates {
+		if candidate == nil || candidate.Type != types.NodeValidator {
+			continue
 		}
 
-		go m.sendValidateReqToNode(nodeID, req, delay)
+		vTCPAddr := candidate.TCPAddr()
+		wURL := candidate.WsURL()
+
+		req := &api.ValidateReq{
+			RandomSeed: m.seed,
+			Duration:   duration,
+			TCPSrvAddr: vTCPAddr,
+			WSURL:      wURL,
+		}
+
+		validateReqs[candidate.NodeID] = req
 	}
 
+	m.distributeEdges(edges, validateReqs)
+	// m.resetGroup()
+
+	// vrs := m.PairValidatorsAndValidatableNodes()
+	// if vrs == nil {
+	// 	return xerrors.Errorf("PairValidatorsAndValidatableNodes err...")
+	// }
+
+	// vReqs, dbInfos := m.getValidationDetails(vrs)
+	// if len(vReqs) == 0 {
+	// 	return xerrors.New("validation pair fail")
+	// }
+
+	// err = m.nodeMgr.SaveValidationResultInfos(dbInfos)
+	// if err != nil {
+	// 	return xerrors.Errorf("SaveValidationResultInfos err:%s", err.Error())
+	// }
+
+	// delay := 0
+	// maxDelay := 20 * 60 // 20min
+	// for nodeID, req := range vReqs {
+	// 	delay += duration
+	// 	if delay > maxDelay {
+	// 		delay = 0
+	// 	}
+
+	// 	go m.sendValidateReqToNode(nodeID, req, delay)
+	// }
+
 	return nil
+}
+
+func (m *Manager) distributeEdges(edges []*node.Node, validateReqs map[string]*api.ValidateReq) {
+	dbInfos := make([]*types.ValidationResultInfo, 0)
+	totalEdges := len(edges)
+	currentEdgeIndex := 0
+	edgesPerRound := 3
+	duration := 20
+
+	loops := (30 * 60) / duration
+	delay := 0
+
+	for i := 0; i < loops; i++ {
+		for vID, req := range validateReqs {
+			if currentEdgeIndex >= totalEdges {
+				return
+			}
+			for j := 0; j < edgesPerRound; j++ {
+				if currentEdgeIndex >= totalEdges {
+					return
+				}
+				eID := edges[currentEdgeIndex].NodeID
+
+				dbInfo, err := m.getValidationResultInfo(eID, vID)
+				if err != nil {
+					log.Errorf("%s RandomAsset err:%s", eID, err.Error())
+					continue
+				}
+
+				dbInfos = append(dbInfos, dbInfo)
+
+				go m.sendValidateReqToNode(eID, req, delay)
+				currentEdgeIndex++
+			}
+		}
+		delay += duration
+	}
+
+	err := m.nodeMgr.SaveValidationResultInfos(dbInfos)
+	if err != nil {
+		log.Errorf("SaveValidationResultInfos err:%s", err.Error())
+	}
 }
 
 // sends a validation request to a node.

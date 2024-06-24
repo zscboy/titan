@@ -842,132 +842,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 
 // GetCandidateDownloadInfos finds candidate download info for the given CID.
 func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) {
-	clientID := ""
-
-	event := types.WorkloadEventRetrieve
-
-	nodeID := handler.GetNodeID(ctx)
-	if len(nodeID) > 0 {
-		clientID = nodeID
-		event = types.WorkloadEventSync
-	} else {
-		uID := handler.GetUserID(ctx)
-		if len(uID) > 0 {
-			clientID = uID
-		}
-	}
-
-	log.Infof("GetCandidateDownloadInfos clientID:%s, cid:%s", clientID, cid)
-
-	hash, err := cidutil.CIDToHash(cid)
-	if err != nil {
-		return nil, xerrors.Errorf("GetCandidateDownloadInfos %s cid to hash err:%s", cid, err.Error())
-	}
-
-	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.CandidateDownloadInfo, 0)
-	cSources := make([]*types.CandidateDownloadInfo, 0)
-
-	replicas, err := s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
-	if err != nil {
-		return nil, err
-	}
-
-	aInfo, err := s.db.LoadAssetRecord(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	bucket := ""
-	if aInfo.Source == int64(types.AssetSourceAWS) {
-		bucket = aInfo.Note
-
-		sources = append(sources, &types.CandidateDownloadInfo{AWSBucket: bucket, NodeID: types.DownloadSourceAWS.String()})
-	}
-
-	// Shuffle array
-	for i := len(replicas) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		replicas[i], replicas[j] = replicas[j], replicas[i]
-	}
-
-	limit := 5
-	for _, rInfo := range replicas {
-		nodeID := rInfo.NodeID
-		cNode := s.NodeManager.GetNode(nodeID)
-		if cNode == nil {
-			continue
-		}
-
-		if cNode.NetFlowUpExcess(float64(rInfo.DoneSize)) {
-			continue
-		}
-
-		if rInfo.IsCandidate {
-			// if aInfo.Source == int64(types.AssetSourceStorage) {
-			// 	if !cNode.IsStorageOnly {
-			// 		continue
-			// 	}
-			// }
-
-			source := s.getSource(cNode, cid, bucket, titanRsa)
-			if source != nil {
-				cSources = append(cSources, source)
-			}
-
-			continue
-		}
-
-		// limit edge count
-		if len(sources) >= limit {
-			continue
-		}
-
-		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
-			continue
-		}
-
-		source := s.getSource(cNode, cid, bucket, titanRsa)
-		if source != nil {
-			sources = append(sources, source)
-		}
-	}
-
-	cSources = append(cSources, sources...)
-
-	if len(cSources) > 0 {
-		ws := make([]*types.Workload, 0)
-		for _, info := range cSources {
-			ws = append(ws, &types.Workload{SourceID: info.NodeID})
-		}
-
-		buffer := &bytes.Buffer{}
-		enc := gob.NewEncoder(buffer)
-		err := enc.Encode(ws)
-		if err != nil {
-			log.Errorf("GetCandidateDownloadInfos encode error:%s", err.Error())
-			return cSources, nil
-		}
-
-		if event == types.WorkloadEventSync {
-			record := &types.WorkloadRecord{
-				WorkloadID: uuid.NewString(),
-				AssetCID:   cid,
-				ClientID:   clientID,
-				AssetSize:  aInfo.TotalSize,
-				Workloads:  buffer.Bytes(),
-				Event:      event,
-				Status:     types.WorkloadStatusCreate,
-			}
-
-			if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
-				log.Errorf("GetCandidateDownloadInfos SaveWorkloadRecord error:%s", err.Error())
-				return cSources, nil
-			}
-		}
-	}
-
-	return cSources, nil
+	return nil, xerrors.New("The interface has been deprecated")
 }
 
 // NodeExists checks if the node with the specified ID exists.
@@ -981,30 +856,8 @@ func (s *Scheduler) NodeExists(ctx context.Context, nodeID string) error {
 
 // NodeKeepalive candidate and edge keepalive
 func (s *Scheduler) NodeKeepalive(ctx context.Context) (uuid.UUID, error) {
-	uuid, err := s.CommonAPI.Session(ctx)
-
-	remoteAddr := handler.GetRemoteAddr(ctx)
-	nodeID := handler.GetNodeID(ctx)
-	if nodeID != "" && remoteAddr != "" {
-		lastTime := time.Now()
-
-		node := s.NodeManager.GetNode(nodeID)
-		if node != nil {
-			if remoteAddr != node.RemoteAddr {
-				log.Debugf("node %s remoteAddr inconsistent, new addr %s ,old addr %s", nodeID, remoteAddr, node.RemoteAddr)
-			}
-
-			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
-				return uuid, xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)
-			}
-
-			node.SetLastRequestTime(lastTime)
-		}
-	} else {
-		return uuid, xerrors.Errorf("nodeID %s or remoteAddr %s is nil", nodeID, remoteAddr)
-	}
-
-	return uuid, err
+	uuid, _ := s.CommonAPI.Session(ctx)
+	return uuid, xerrors.New("The interface has been deprecated")
 }
 
 // NodeKeepaliveV2 candidate and edge keepalive

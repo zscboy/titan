@@ -36,16 +36,16 @@ type Node struct {
 	resetNumberOfIPChangesTime time.Time
 
 	// node info
-	PublicKey             *rsa.PublicKey
-	TCPPort               int
-	ExternalURL           string
-	IsPrivateMinioOnly    bool
-	IsStorageOnly         bool
-	MeetCandidateStandard bool
+	PublicKey          *rsa.PublicKey
+	TCPPort            int
+	ExternalURL        string
+	IsPrivateMinioOnly bool
+	IsStorageOnly      bool
 
 	OnlineRate float64
 
-	KeepaliveCount int
+	KeepaliveCount   int
+	LastValidateTime int64
 }
 
 // API represents the node API

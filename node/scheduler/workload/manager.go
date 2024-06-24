@@ -1,8 +1,6 @@
 package workload
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"time"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("workload")
@@ -58,25 +57,21 @@ type WorkloadResult struct {
 }
 
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
+	if nodeID == "" {
+		return nil
+	}
+
 	m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
 
 	return nil
 }
 
 func (m *Manager) handleResults() {
-	// for i := 0; i < handlerWorkers; i++ {
-	// 	go func() {
 	for {
 		result := <-m.resultQueue
 
-		if result.nodeID == "" {
-			// m.handleUserWorkload(result.data)
-		} else {
-			m.handleNodeWorkload(result.data, result.nodeID)
-		}
+		m.handleClientWorkload(result.data, result.nodeID)
 	}
-	// 	}()
-	// }
 }
 
 // // handleUserWorkload handle node workload
@@ -195,69 +190,30 @@ func (m *Manager) handleResults() {
 // 	return nil
 // }
 
-// handleNodeWorkload handle node workload
-func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID string) error {
-	var record *types.WorkloadRecord
-	var err error
+// handleClientWorkload handle node workload
+func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID string) error {
 	downloadTotalSize := int64(0)
 
-	if data.WorkloadID != "" {
-		record, err = m.LoadWorkloadRecordOfID(data.WorkloadID)
-		if err != nil {
-			log.Errorf("handleUserWorkload LoadWorkloadRecordOfID error: %s", err.Error())
-			return err
-		}
+	if data.WorkloadID == "" {
+		return xerrors.New("WorkloadID is nil")
+	}
 
-		if record.Status != types.WorkloadStatusCreate {
-			return nil
-		}
+	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID)
+	if err != nil {
+		log.Errorf("handleClientWorkload LoadWorkloadRecordOfID error: %s", err.Error())
+		return err
+	}
 
-		for _, dw := range data.Workloads {
-			downloadTotalSize += dw.DownloadSize
-		}
-	} else {
-		list, err := m.LoadWorkloadRecord(&types.WorkloadRecord{AssetCID: data.AssetCID, ClientID: nodeID, Status: types.WorkloadStatusCreate})
-		if err != nil {
-			log.Errorf("handleNodeWorkload AssetCID:%s , %s LoadWorkloadRecord error: %s", data.AssetCID, nodeID, err.Error())
-			return err
-		}
+	if record.Status != types.WorkloadStatusCreate {
+		return nil
+	}
 
-		if len(list) == 0 {
-			log.Errorf("handleNodeWorkload list is nil : %s, %s", data.AssetCID, nodeID)
-			return nil
-		}
-
-	outerLoop:
-		for _, info := range list {
-			ws := make([]*types.Workload, 0)
-			dec := gob.NewDecoder(bytes.NewBuffer(info.Workloads))
-			err := dec.Decode(&ws)
-			if err != nil {
-				log.Errorf("handleNodeWorkload decode data to []*types.Workload error: %s", err.Error())
-				continue
-			}
-
-			sourceIDSet := make(map[string]struct{})
-			for _, w := range ws {
-				sourceIDSet[w.SourceID] = struct{}{}
-			}
-
-			downloadTotalSize = int64(0)
-
-			for _, dw := range data.Workloads {
-				downloadTotalSize += dw.DownloadSize
-				if _, exists := sourceIDSet[dw.SourceID]; !exists {
-					continue outerLoop
-				}
-			}
-
-			record = info
-			break // Find the first matching workload, no need to continue
-		}
+	for _, dw := range data.Workloads {
+		downloadTotalSize += dw.DownloadSize
 	}
 
 	if record == nil {
-		log.Errorf("handleNodeWorkload record is nil : %s, %s", data.AssetCID, nodeID)
+		log.Errorf("handleClientWorkload record is nil : %s, %s", data.AssetCID, nodeID)
 		return nil
 	}
 
@@ -265,7 +221,7 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	record.Status = types.WorkloadStatusSucceeded
 	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
 	if err != nil {
-		log.Errorf("handleNodeWorkload UpdateWorkloadRecord error: %s", err.Error())
+		log.Errorf("handleClientWorkload UpdateWorkloadRecord error: %s", err.Error())
 		return err
 	}
 
@@ -304,7 +260,8 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 		}
 		eventList = append(eventList, retrieveEvent)
 
-		node := m.nodeMgr.GetNode(dw.SourceID)
+		// Only edge can get this reward
+		node := m.nodeMgr.GetEdgeNode(dw.SourceID)
 		if node != nil {
 			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
 			if dInfo != nil {
@@ -328,14 +285,14 @@ func (m *Manager) handleNodeWorkload(data *types.WorkloadRecordReq, nodeID strin
 	// Retrieve Event
 	for _, data := range eventList {
 		if err := m.SaveRetrieveEventInfo(data); err != nil {
-			log.Errorf("handleNodeWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+			log.Errorf("handleClientWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
 		}
 	}
 
 	for _, data := range detailsList {
 		err = m.nodeMgr.AddNodeProfit(data)
 		if err != nil {
-			log.Errorf("handleNodeWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+			log.Errorf("handleClientWorkload AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
 		}
 	}
 

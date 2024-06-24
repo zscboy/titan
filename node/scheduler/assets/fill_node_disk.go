@@ -246,17 +246,9 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64,
 		}
 
 		// Merge L1 nodes
-		if node.Type == types.NodeValidator {
-			continue
-		}
-
-		// if node.IsStorageOnly {
+		// if node.Type == types.NodeValidator {
 		// 	continue
 		// }
-
-		if !node.MeetCandidateStandard {
-			continue
-		}
 
 		if !node.DiskEnough(size) {
 			continue
@@ -394,11 +386,11 @@ func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string, size 
 			m.storeNodeToFillAsset(cid, node)
 		}
 
-		// workload
-		wID := m.createSeedWorkload(AssetPullingInfo{CID: cid, Size: size, Source: AssetSourceAWS}, nodeID)
-		costTime := int64(time.Since(info.CreateTime) / time.Millisecond)
+		// // workload
+		// wID := m.createSeedWorkload(AssetPullingInfo{CID: cid, Size: size, Source: AssetSourceAWS}, nodeID)
+		// costTime := int64(time.Since(info.CreateTime) / time.Millisecond)
 
-		m.workloadMgr.PushResult(&types.WorkloadRecordReq{AssetCID: cid, WorkloadID: wID, Workloads: []types.Workload{{SourceID: types.DownloadSourceAWS.String(), DownloadSize: size, CostTime: costTime}}}, nodeID)
+		// m.workloadMgr.PushResult(&types.WorkloadRecordReq{AssetCID: cid, WorkloadID: wID, Workloads: []types.Workload{{SourceID: types.DownloadSourceAWS.String(), DownloadSize: size, CostTime: costTime}}}, nodeID)
 	}
 
 	m.fillAssets.Store(bucket, info)
