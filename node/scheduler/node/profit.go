@@ -216,8 +216,56 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 	}
 }
 
-func (m *Manager) CalculatePenalty(profit float64, offlineDuration int) float64 {
-	pn := profit * (penaltyRate + penaltyRate*float64(offlineDuration/200))
+func (m *Manager) GetDownloadProfitDetails(node *Node, size float64) *types.ProfitDetails {
+	d := bToGB(size)
+	mx := rateOfL2Mx(node.OnlineDuration)
+	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	mn := calculateMn(lip)
+
+	ms := mr * mx * mo * d * downloadTrafficProfit * mn
+
+	if ms < 0.000001 {
+		return nil
+	}
+
+	return &types.ProfitDetails{
+		NodeID: node.NodeID,
+		Profit: ms,
+		PType:  types.ProfitTypeDownload,
+		Size:   int64(size),
+		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f]GB, [%.4f], mn:[%.4f]", lip, mr, mx, mo, d, downloadTrafficProfit, mn),
+	}
+}
+
+func (m *Manager) GetUploadProfitDetails(node *Node, size float64) *types.ProfitDetails {
+	u := bToGB(size)
+	mx := rateOfL2Mx(node.OnlineDuration)
+	b := calculateB(node.BandwidthUp)
+	mip := calculateMip(node.NATType)
+	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	mn := calculateMn(lip)
+
+	ms := (mr * mx * mo * u * b * uploadTrafficProfit * mn)
+
+	if ms < 0.000001 {
+		return nil
+	}
+
+	return &types.ProfitDetails{
+		NodeID: node.NodeID,
+		Profit: ms,
+		PType:  types.ProfitTypeUpload,
+		Size:   int64(size),
+		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, node.BandwidthUp, mr, mx, mo, u, b, uploadTrafficProfit, mip, mn),
+	}
+}
+
+func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int) float64 {
+	od := float64(offlineDuration / 200)
+	pr := (penaltyRate + penaltyRate*od)
+	pn := profit * pr
+
+	log.Infof("CalculatePenalty %s ,pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", nodeID, pn, profit, pr, od, offlineDuration)
 
 	return pn
 }

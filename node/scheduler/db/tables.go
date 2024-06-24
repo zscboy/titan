@@ -48,7 +48,7 @@ var cNodeInfoTable = `
 		first_login_time     DATETIME        DEFAULT CURRENT_TIMESTAMP,
 	    online_duration      INT             DEFAULT 0,
 	    offline_duration     INT             DEFAULT 0,
-	    profit               DECIMAL(14, 6)  DEFAULT 0,
+	    profit               DECIMAL(20, 6)  DEFAULT 0,
 	    last_seen            DATETIME        DEFAULT CURRENT_TIMESTAMP,
 	    disk_usage           FLOAT           DEFAULT 0,
     	upload_traffic       BIGINT          DEFAULT 0,

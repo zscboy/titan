@@ -545,6 +545,10 @@ const (
 	ProfitTypeValidatable
 	// ProfitTypeValidator
 	ProfitTypeValidator
+	// ProfitTypeDownload
+	ProfitTypeDownload
+	// ProfitTypeUpload
+	ProfitTypeUpload
 )
 
 type ProfitDetails struct {
