@@ -114,9 +114,9 @@ func (m *Manager) Start(ctx context.Context) {
 		log.Errorf("restartStateMachines err: %s", err.Error())
 	}
 
-	// go m.startCheckAssetsTimer()
+	go m.startCheckAssetsTimer()
 	go m.startCheckPullProgressesTimer()
-	// go m.startCheckCandidateBackupTimer()
+	go m.startCheckCandidateBackupTimer()
 	go m.initFillDiskTimer()
 }
 
@@ -1013,24 +1013,13 @@ func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash strin
 }
 
 // getDownloadSources gets download sources for a given CID
-func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSource) []*types.CandidateDownloadInfo {
+func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 	replicaInfos, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		return nil
 	}
 
-	// now := time.Now()
-	// startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	// endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, now.Location())
-
-	sources := make([]*types.CandidateDownloadInfo, 0)
-	cSources := make([]*types.CandidateDownloadInfo, 0)
-
-	if assetSource == AssetSourceAWS {
-		sources = append(sources, &types.CandidateDownloadInfo{AWSBucket: bucket, NodeID: types.DownloadSourceAWS.String()})
-	} else if assetSource == AssetSourceIPFS {
-		sources = append(sources, &types.CandidateDownloadInfo{NodeID: types.DownloadSourceIPFS.String()})
-	}
+	sources := make([]*types.SourceDownloadInfo, 0)
 
 	for _, replica := range replicaInfos {
 		nodeID := replica.NodeID
@@ -1044,14 +1033,12 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 		}
 
 		if cNode.Type == types.NodeCandidate {
-
-			source := &types.CandidateDownloadInfo{
-				NodeID:    nodeID,
-				Address:   cNode.DownloadAddr(),
-				AWSBucket: bucket,
+			source := &types.SourceDownloadInfo{
+				NodeID:  nodeID,
+				Address: cNode.DownloadAddr(),
 			}
 
-			cSources = append(cSources, source)
+			sources = append(sources, source)
 			continue
 		}
 
@@ -1059,28 +1046,12 @@ func (m *Manager) getDownloadSources(hash, bucket string, assetSource AssetSourc
 			continue
 		}
 
-		// p, err := m.LoadTodayProfitsForNode(nodeID, startOfDay, endOfDay)
-		// if err != nil {
-		// 	log.Errorf("LoadTodayProfitsForNode2 %s err:%s", nodeID, err.Error())
-		// 	continue
-		// }
-
-		// if p > nodeProfitsLimitOfDay {
-		// 	log.Errorf("LoadTodayProfitsForNode2 %s limit profits:%.2f > %.2f", nodeID, p, nodeProfitsLimitOfDay)
-		// 	continue
-		// }
-
-		source := &types.CandidateDownloadInfo{
-			NodeID:    nodeID,
-			Address:   cNode.DownloadAddr(),
-			AWSBucket: bucket,
+		source := &types.SourceDownloadInfo{
+			NodeID:  nodeID,
+			Address: cNode.DownloadAddr(),
 		}
 
 		sources = append(sources, source)
-	}
-
-	if len(sources) < 1 {
-		sources = append(sources, cSources...)
 	}
 
 	return sources
@@ -1264,10 +1235,10 @@ func (m *Manager) GetAssetCount() (int, error) {
 	return m.LoadAssetCount(m.nodeMgr.ServerID, Remove.String())
 }
 
-func (m *Manager) generateTokenForDownloadSources(sources []*types.CandidateDownloadInfo, titanRsa *titanrsa.Rsa, assetCID string, clientID string, size int64) ([]*types.CandidateDownloadInfo, *types.WorkloadRecord, error) {
+func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloadInfo, titanRsa *titanrsa.Rsa, assetCID string, clientID string, size int64) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
 	ws := make([]*types.Workload, 0)
 
-	downloadSources := make([]*types.CandidateDownloadInfo, 0, len(sources))
+	downloadSources := make([]*types.SourceDownloadInfo, 0, len(sources))
 
 	for _, source := range sources {
 		ws = append(ws, &types.Workload{SourceID: source.NodeID})
@@ -1314,11 +1285,12 @@ func (m *Manager) generateTokenForDownloadSources(sources []*types.CandidateDown
 	return downloadSources, record, nil
 }
 
-func (m *Manager) GenerateToken(assetCID string, sources []*types.CandidateDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.CandidateDownloadInfo, *types.WorkloadRecord, error) {
-	ts := make([]*types.CandidateDownloadInfo, 0)
+func (m *Manager) GenerateToken(assetCID string, sources []*types.SourceDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
+	ts := make([]*types.SourceDownloadInfo, 0)
 	if len(sources) > 2 {
-		secondIndex := rand.Intn(len(sources)-1) + 1
-		ts = append(ts, sources[0], sources[secondIndex])
+		firstIndex := rand.Intn(len(sources))
+		secondIndex := rand.Intn(len(sources))
+		ts = append(ts, sources[firstIndex], sources[secondIndex])
 	} else {
 		ts = sources
 	}

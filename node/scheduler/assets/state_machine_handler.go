@@ -58,7 +58,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		}
 		nodes[cNode.NodeID] = cNode
 	} else {
-		nodeInfo := m.getNodesFromFillAsset(info.CID)
+		nodeInfo := m.getNodesFromAWSAsset(info.CID)
 		if nodeInfo != nil && nodeInfo.candidateList != nil && len(nodeInfo.candidateList) > 0 {
 			seed := nodeInfo.candidateList[0]
 			nodes[seed.NodeID] = seed
@@ -72,17 +72,18 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 		}
 	}
 
-	cInfo := make([]*types.CandidateDownloadInfo, 0)
-	if info.Note != "" {
-		cInfo = append(cInfo, &types.CandidateDownloadInfo{AWSBucket: info.Note})
+	var awsInfo *types.AWSDownloadSources
+	if info.Source == AssetSourceAWS && info.Note != "" {
+		awsInfo = &types.AWSDownloadSources{Bucket: info.Note}
 	}
 
 	for _, node := range nodes {
 		cNode := node
 
-		m.createSeedWorkload(info, cNode.NodeID)
+		workloadID := m.createSeedWorkload(info, cNode.NodeID)
 
-		err := cNode.PullAsset(ctx.Context(), info.CID, cInfo)
+		log.Infof("workload PullAssetV2 nodeID:[%s] , %s\n", cNode.NodeID, workloadID)
+		err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, WorkloadID: workloadID, Dss: &types.DownloadSources{AWS: awsInfo}})
 		if err != nil {
 			log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
 			continue
@@ -217,14 +218,19 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		return ctx.Send(SkipStep{})
 	}
 
-	sources := m.getDownloadSources(info.Hash.String(), info.Note, AssetSource(info.Source))
-	if len(sources) < 1 {
+	var awsInfo *types.AWSDownloadSources
+	if info.Source == AssetSourceAWS && info.Note != "" {
+		awsInfo = &types.AWSDownloadSources{Bucket: info.Note}
+	}
+
+	sources := m.getDownloadSources(info.Hash.String())
+	if len(sources) < 1 && awsInfo == nil {
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
 	nodes := make(map[string]*node.Node)
 
-	nodeInfo := m.getNodesFromFillAsset(info.CID)
+	nodeInfo := m.getNodesFromAWSAsset(info.CID)
 	if nodeInfo != nil && nodeInfo.candidateList != nil && len(nodeInfo.candidateList) > 1 {
 		ns := nodeInfo.candidateList[1:]
 		for _, n := range ns {
@@ -255,7 +261,9 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
 
 		go func() {
-			err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+			// err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+			log.Infof("workload PullAssetV2 nodeID:[%s] , %s\n", cNode.NodeID, workload.WorkloadID)
+			err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, WorkloadID: workload.WorkloadID, Dss: &types.DownloadSources{AWS: awsInfo, Nodes: downloadSource}})
 			if err != nil {
 				log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
 				return
@@ -334,14 +342,19 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(SkipStep{})
 	}
 
-	sources := m.getDownloadSources(info.Hash.String(), info.Note, AssetSource(info.Source))
-	if len(sources) < 1 {
+	var awsInfo *types.AWSDownloadSources
+	if info.Source == AssetSourceAWS && info.Note != "" {
+		awsInfo = &types.AWSDownloadSources{Bucket: info.Note}
+	}
+
+	sources := m.getDownloadSources(info.Hash.String())
+	if len(sources) < 1 && awsInfo == nil {
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
 	nodes := make(map[string]*node.Node)
 
-	nodeInfo := m.getNodesFromFillAsset(info.CID)
+	nodeInfo := m.getNodesFromAWSAsset(info.CID)
 	if nodeInfo != nil && nodeInfo.edgeList != nil && len(nodeInfo.edgeList) > 0 {
 		for _, n := range nodeInfo.edgeList {
 			nodes[n.NodeID] = n
@@ -369,7 +382,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
 
 		go func() {
-			err := cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+			// err := cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+			log.Infof("workload PullAssetV2 nodeID:[%s] , %s\n", cNode.NodeID, workload.WorkloadID)
+			err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, WorkloadID: workload.WorkloadID, Dss: &types.DownloadSources{AWS: awsInfo, Nodes: downloadSource}})
 			if err != nil {
 				log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
 				return

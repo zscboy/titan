@@ -42,7 +42,7 @@ func (m *Manager) penaltyNode() {
 			continue
 		}
 
-		pn := m.CalculatePenalty(info.NodeID, info.Profit, info.OfflineDuration)
+		pn := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
 		if pn > info.Profit {
 			pn = info.Profit
 		}
