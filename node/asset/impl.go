@@ -2,6 +2,7 @@ package asset
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -59,7 +60,7 @@ func (a *Asset) PullAsset(ctx context.Context, rootCID string, infos []*types.Ca
 		return nil
 	}
 
-	log.Infof("Pull asset %s", rootCID)
+	log.Infof("PullAsset %s", rootCID)
 
 	var aws *types.AWSDownloadSources = nil
 	dInfos := make([]*types.SourceDownloadInfo, len(infos))
@@ -102,7 +103,8 @@ func (a *Asset) PullAssetV2(ctx context.Context, req *types.AssetPullRequest) er
 		return nil
 	}
 
-	log.Infof("Pull asset %s", root.String())
+	buf, _ := json.Marshal(req)
+	log.Infof("PullAssetV2 %s, dss %s", root.String(), string(buf))
 
 	aw := &assetWaiter{Root: root, Dss: req.Dss, isSyncData: false, workloadID: req.WorkloadID}
 	a.mgr.addToWaitList(aw)

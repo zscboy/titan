@@ -10,7 +10,7 @@ import (
 type Asset interface {
 	// PullAsset pull the asset with given assetCID from specified sources
 	PullAsset(ctx context.Context, assetCID string, sources []*types.CandidateDownloadInfo) error //perm:admin
-	// PullAssetV2 pull the asset with given assetCID from specified sources
+	// PullAssetV2 pull the asset by scheduler
 	PullAssetV2(ctx context.Context, req *types.AssetPullRequest) error //perm:admin
 	// DeleteAsset deletes the asset with given assetCID
 	DeleteAsset(ctx context.Context, assetCID string) error //perm:admin

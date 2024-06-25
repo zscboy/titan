@@ -45,6 +45,7 @@ type assetPuller struct {
 
 	errMsgs     []*fetcher.ErrMsg
 	rateLimiter *rate.Limiter
+	workloadID  string
 }
 
 type pullerOptions struct {
@@ -56,16 +57,17 @@ type pullerOptions struct {
 	config      *config.Puller
 	httpClient  *http.Client
 	rateLimiter *rate.Limiter
+	workloadID  string
 }
 
 // newAssetPuller creates a new asset puller with the given options
 func newAssetPuller(opts *pullerOptions) (*assetPuller, error) {
-	if types.RunningNodeType == types.NodeEdge && opts.dss == nil {
-		return nil, fmt.Errorf("newAssetPuller error, puller options dss cannot empty")
+	if types.RunningNodeType == types.NodeEdge && isDownloadSourceEmpty(opts.dss) {
+		return nil, fmt.Errorf("newAssetPuller error, downloadSources cannot empty for edge node")
 	}
 
 	var blockFetcher fetcher.BlockFetcher
-	if opts.dss != nil {
+	if !isDownloadSourceEmpty(opts.dss) {
 		blockFetcher = fetcher.NewCandidateFetcher(opts.httpClient)
 	} else {
 		blockFetcher = fetcher.NewIPFSClient(opts.ipfsAPIURL)
@@ -80,6 +82,7 @@ func newAssetPuller(opts *pullerOptions) (*assetPuller, error) {
 		startTime:   time.Now(),
 		errMsgs:     make([]*fetcher.ErrMsg, 0),
 		workloads:   make(map[string]*types.Workload),
+		workloadID:  opts.workloadID,
 	}, nil
 }
 
@@ -451,4 +454,20 @@ func getAWSBucketAndKey(downloadInfos []*types.CandidateDownloadInfo) (string, s
 		}
 	}
 	return "", ""
+}
+
+func isDownloadSourceEmpty(dss *types.DownloadSources) bool {
+	if dss == nil {
+		return true
+	}
+
+	if dss.AWS != nil && len(dss.AWS.Bucket) > 0 && len(dss.AWS.Key) > 0 {
+		return false
+	}
+
+	if len(dss.Nodes) > 0 {
+		return false
+	}
+
+	return true
 }

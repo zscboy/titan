@@ -191,6 +191,7 @@ func (m *Manager) doPullAsset() {
 		config:      m.pullerConfig,
 		rateLimiter: m.rateLimiter.BandwidthDownLimiter,
 		httpClient:  client.NewHTTP3Client(),
+		workloadID:  aw.workloadID,
 	}
 
 	assetPuller, err := m.restoreAssetPullerOrNew(opts)
@@ -422,6 +423,8 @@ func (m *Manager) restoreAssetPullerOrNew(opts *pullerOptions) (*assetPuller, er
 		if opts.dss != nil {
 			cc.dss = opts.dss
 		}
+
+		cc.workloadID = opts.workloadID
 	}
 	return cc, nil
 }
@@ -706,7 +709,7 @@ func (m *Manager) submitPullerWorkloads(puller *assetPuller) error {
 		workloads = append(workloads, *w)
 	}
 
-	req := types.WorkloadRecordReq{AssetCID: puller.root.String(), Workloads: workloads}
+	req := types.WorkloadRecordReq{AssetCID: puller.root.String(), Workloads: workloads, WorkloadID: puller.workloadID}
 	log.Debugf("WorkloadRecordReq ", req)
 
 	return m.SubmitWorkloadReport(context.Background(), &req)

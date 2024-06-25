@@ -83,6 +83,8 @@ func (ac *awsClient) PullAssetFromAWS(ctx context.Context, bucket, key string) e
 	ac.isRunning = true
 	ac.object = awsObject{bucket: bucket, key: key}
 
+	log.Infof("PullAssetFromAWS bucket %s key %s", bucket, key)
+
 	go func() {
 		defer func() {
 			ac.isRunning = false
