@@ -1484,9 +1484,10 @@ func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp
 	if vNode == nil {
 		// select candidate
 		_, list := s.NodeManager.GetAllCandidateNodes()
-		index := rand.Intn(len(list))
-
-		vNode = list[index]
+		if len(list) > 0 {
+			index := rand.Intn(len(list))
+			vNode = list[index]
+		}
 	}
 
 	if vNode == nil {

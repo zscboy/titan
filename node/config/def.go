@@ -171,7 +171,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		LotusToken:              "",
 		EdgeDownloadRatio:       0.7,
 		AssetPullTaskLimit:      10,
-		UploadAssetReplicaCount: 10,
+		UploadAssetReplicaCount: 20,
 		UploadAssetExpiration:   150,
 		IPLimit:                 5,
 		FillAssetEdgeCount:      500,
@@ -197,10 +197,10 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		MaxAPIKey:                5,
 		// Maximum number of node registrations for the same IP on the same day
 		MaxNumberOfRegistrations: 50,
-		AndroidSymbol:            "Android",
-		IOSSymbol:                "IOS",
-		WindowsSymbol:            "Windows",
-		MacosSymbol:              "Macos",
+		AndroidSymbol:            "+android-",
+		IOSSymbol:                "+ios-",
+		WindowsSymbol:            "+windows-",
+		MacosSymbol:              "+macos-",
 	}
 }
 
