@@ -142,7 +142,6 @@ func DefaultLocatorCfg() *LocatorCfg {
 		PrivateKeyPath:     "",
 		CaCertificatePath:  "",
 		EtcdAddresses:      []string{"127.0.0.1:2379"},
-		DefaultAreaID:      "Asia-China-Guangdong-Shenzhen",
 		DNSServerAddress:   "0.0.0.0:53",
 	}
 }

@@ -127,11 +127,10 @@ type LocatorCfg struct {
 	// self sign certificate, use for client
 	CaCertificatePath string
 	// etcd server addresses
-	EtcdAddresses          []string
-	DefaultAreaID          string
-	DNSServerAddress       string
-	DNSRecords             map[string]string
-	LoadBalanceExcludeArea []string
+	EtcdAddresses    []string
+	DNSServerAddress string
+	DNSRecords       map[string]string
+	DefaultAreas     []string
 }
 
 // SchedulerCfg scheduler config
