@@ -262,8 +262,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 
 		go func() {
 			// err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
-			log.Infof("workload PullAssetV2 nodeID:[%s] , %s\n", cNode.NodeID, workload.WorkloadID)
-			err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, WorkloadID: workload.WorkloadID, Dss: &types.DownloadSources{AWS: awsInfo, Nodes: downloadSource}})
+			err = cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, WorkloadID: workload.WorkloadID, Dss: &types.DownloadSources{AWS: awsInfo, Nodes: downloadSource}})
 			if err != nil {
 				log.Errorf("%s PullAsset err:%s", cNode.NodeID, err.Error())
 				return

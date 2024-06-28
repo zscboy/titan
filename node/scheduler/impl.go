@@ -49,8 +49,9 @@ const (
 	bandwidthUpLimit   = 200 * units.MiB
 	availableDiskLimit = 2 * units.TiB
 
-	validatorCpuLimit    = 8
-	validatorMemoryLimit = 8 * units.GB
+	l1CpuLimit       = 8
+	l1MemoryLimit    = 16 * units.GB
+	l1DiskSpaceLimit = 10 * units.TB
 )
 
 // Scheduler represents a scheduler node in a distributed system.
@@ -114,7 +115,9 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	defer func() {
 		if err != nil {
 			s.NodeManager.RemoveNodeIP(nodeID, externalIP)
-			s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
+			if cNode.NodeInfo != nil {
+				s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
+			}
 		}
 	}()
 
@@ -149,12 +152,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	if nodeID != nInfo.NodeID {
 		return xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nInfo.NodeID)
 	}
-
-	info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
-	if err != nil {
-		return xerrors.Errorf("nodeID GetCandidateCodeInfoForNodeID %s, %s", nodeID, err.Error())
-	}
-	nInfo.IsTestNode = info.IsTest
 
 	nodeInfo, meetCandidateStandard, err := s.checkNodeParameters(nInfo, nodeType)
 	if err != nil {
@@ -339,7 +336,13 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 		}
 
 	} else if nodeType == types.NodeCandidate {
-		meetCandidateStandard = nodeInfo.IsTestNode || (nodeInfo.Memory >= validatorMemoryLimit && nodeInfo.CPUCores >= validatorCpuLimit)
+		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeInfo.NodeID)
+		if err != nil {
+			return nil, false, xerrors.Errorf("nodeID GetCandidateCodeInfoForNodeID %s, %s", nodeInfo.NodeID, err.Error())
+		}
+		nodeInfo.IsTestNode = info.IsTest
+
+		meetCandidateStandard = nodeInfo.IsTestNode || (nodeInfo.Memory >= l1MemoryLimit && nodeInfo.CPUCores >= l1CpuLimit && nodeInfo.DiskSpace >= l1DiskSpaceLimit)
 
 		isValidator, err := s.db.IsValidator(nodeInfo.NodeID)
 		if err != nil {

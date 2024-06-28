@@ -871,6 +871,16 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 
 		node := s.NodeManager.GetNode(nodeID)
 		if node != nil {
+			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
+				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
+			}
+
+			if node.Type == types.NodeCandidate || node.Type == types.NodeValidator {
+				if node.NATType == types.NatTypePortRestricted.String() || node.NATType == types.NatTypeRestricted.String() || node.NATType == types.NatTypeSymmetric.String() {
+					return uuid, xerrors.Errorf("The NAT type [%s] of the node [%s] does not conform to the rules", node.NATType, nodeID)
+				}
+			}
+
 			if remoteAddr != node.RemoteAddr {
 				count, lastTime := node.GetNumberOfIPChanges()
 				duration := time.Now().Sub(lastTime)
@@ -888,10 +898,6 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 
 				count++
 				node.SetNumberOfIPChanges(count)
-			}
-
-			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
-				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
 			}
 
 			node.SetLastRequestTime(lastTime)

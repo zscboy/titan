@@ -80,7 +80,7 @@ func projectStateTable(serverID dtypes.ServerID) string {
 
 // InitTables initializes data tables.
 func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
-	doExec(d)
+	doExec(d, serverID)
 
 	// init table
 	tx, err := d.db.Beginx()
@@ -126,8 +126,12 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	return tx.Commit()
 }
 
-func doExec(d *SQLDB) {
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD is_test 	  BOOLEAN        DEFAULT false;", candidateCodeTable))
+func doExec(d *SQLDB, serverID dtypes.ServerID) {
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  state               VARCHAR(32)  DEFAULT ''", assetStateTable(serverID)))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  state               VARCHAR(32)  DEFAULT ''", projectStateTable(serverID)))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}

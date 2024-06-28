@@ -481,24 +481,24 @@ func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) floa
 
 	for date, serverCount := range m.serverOnlineCounts {
 		if firstTime.Before(date) {
-			continue
-		}
+			nodeCount, err := m.GetOnlineCount(nodeID, date)
+			if err != nil {
+				log.Errorf("GetOnlineCount %s err: %v", nodeID, err)
+			}
 
-		nodeCount, err := m.GetOnlineCount(nodeID, date)
-		if err != nil {
-			log.Errorf("GetOnlineCount %s err: %v", nodeID, err)
+			nodeC += nodeCount
+			serverC += serverCount
 		}
-
-		nodeC += nodeCount
-		serverC += serverCount
 	}
+
+	log.Infof("%s serverOnlineCounts [%v] %d/%d", nodeID, m.serverOnlineCounts, nodeC, serverC)
 
 	if serverC == 0 {
 		return 1.0
 	}
 
-	if nodeC > serverC {
-		return 1
+	if nodeC >= serverC {
+		return 1.0
 	}
 
 	return float64(nodeC) / float64(serverC)

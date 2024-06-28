@@ -4,7 +4,7 @@ package db
 var cAssetStateTable = `
     CREATE TABLE if not exists %s (
 		hash                VARCHAR(128) NOT NULL UNIQUE,
-		state               VARCHAR(16)  DEFAULT '',
+		state               VARCHAR(32)  DEFAULT '',
 		retry_count         INT          DEFAULT 0,
 		replenish_replicas  INT          DEFAULT 0,
 		PRIMARY KEY (hash)
@@ -293,7 +293,7 @@ var cCandidateCodeTable = `
 var cProjectStateTable = `
     CREATE TABLE if not exists %s (
 		id                  VARCHAR(128) NOT NULL UNIQUE,	
-		state               VARCHAR(16)  DEFAULT 0,		
+		state               VARCHAR(32)  DEFAULT 0,		
 		retry_count         INT          DEFAULT 0,
 		replenish_replicas  INT          DEFAULT 0,
 		PRIMARY KEY (id)

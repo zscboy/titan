@@ -160,7 +160,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		DatabaseAddress:         "mysql_user:mysql_password@tcp(127.0.0.1:3306)/titan",
 		EnableValidation:        true,
 		EtcdAddresses:           []string{},
-		CandidateReplicas:       1,
+		CandidateReplicas:       3,
 		ValidatorRatio:          1,
 		ValidatorBaseBwDn:       100,
 		ValidationProfit:        0,

@@ -431,7 +431,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		CID:                   req.AssetCID,
 		ServerID:              m.nodeMgr.ServerID,
 		NeedEdgeReplica:       replicaCount,
-		NeedCandidateReplicas: 2,
+		NeedCandidateReplicas: int64(m.candidateReplicaCount),
 		Expiration:            expiration,
 		NeedBandwidth:         bandwidth,
 		State:                 UploadInit.String(),
