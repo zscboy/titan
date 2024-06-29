@@ -76,7 +76,7 @@ func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey
 	nodeType := info.NodeType
 
 	// check params
-	if nodeType != types.NodeCandidate && nodeType != types.NodeValidator {
+	if nodeType != types.NodeCandidate {
 		return nil, xerrors.New("invalid node type")
 	}
 
@@ -93,13 +93,13 @@ func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey
 		return nil, xerrors.Errorf("pem to publicKey err : %s", err.Error())
 	}
 
-	isValidator := false
-	if nodeType == types.NodeValidator {
-		isValidator = true
-		nodeType = types.NodeCandidate
-	}
+	// isValidator := false
+	// if nodeType == types.NodeValidator {
+	// 	isValidator = true
+	// 	// nodeType = types.NodeCandidate
+	// }
 
-	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
+	if err = s.db.NodeExistsFromType(nodeID, nodeType); err == nil {
 		return nil, xerrors.Errorf("Node %s are exist", nodeID)
 	}
 
@@ -131,12 +131,12 @@ func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey
 		return nil, xerrors.Errorf("SaveNodePublicKey %w", err)
 	}
 
-	if isValidator {
-		err = s.db.UpdateValidators([]string{nodeID}, s.ServerID, false)
-		if err != nil {
-			log.Errorf("RegisterNode UpdateValidators %s err:%s", nodeID, err.Error())
-		}
-	}
+	// if isValidator {
+	// err = s.db.UpdateValidators([]string{nodeID}, s.ServerID, false)
+	// if err != nil {
+	// 	log.Errorf("RegisterNode UpdateValidators %s err:%s", nodeID, err.Error())
+	// }
+	// }
 
 	return detail, nil
 }
@@ -167,7 +167,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 		return nil, xerrors.Errorf("pem to publicKey err : %s", err.Error())
 	}
 
-	if err = s.db.NodeExists(nodeID, nodeType); err == nil {
+	if err = s.db.NodeExistsFromType(nodeID, nodeType); err == nil {
 		return nil, xerrors.Errorf("Node %s aready exist", nodeID)
 	}
 
@@ -239,8 +239,9 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 
 	penaltyPoint := 0.0
 
-	err = s.db.NodeExists(nodeID, types.NodeCandidate)
-	if err == nil {
+	// is candidate
+	err = s.db.NodeExistsFromType(nodeID, types.NodeEdge)
+	if err != nil {
 		info, err := s.db.LoadNodeInfo(nodeID)
 		if err != nil {
 			return err
@@ -275,8 +276,8 @@ func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (typ
 		nodeID = nID
 	}
 
-	err := s.db.NodeExists(nodeID, types.NodeCandidate)
-	if err != nil {
+	err := s.db.NodeExistsFromType(nodeID, types.NodeEdge)
+	if err == nil {
 		return types.ExitProfitRsp{}, nil
 	}
 
@@ -847,11 +848,7 @@ func (s *Scheduler) GetCandidateDownloadInfos(ctx context.Context, cid string) (
 
 // NodeExists checks if the node with the specified ID exists.
 func (s *Scheduler) NodeExists(ctx context.Context, nodeID string) error {
-	if err := s.NodeManager.NodeExists(nodeID, types.NodeEdge); err != nil {
-		return s.NodeManager.NodeExists(nodeID, types.NodeCandidate)
-	}
-
-	return nil
+	return s.NodeManager.NodeExists(nodeID)
 }
 
 // NodeKeepalive candidate and edge keepalive
@@ -875,7 +872,7 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
 			}
 
-			if node.Type == types.NodeCandidate || node.Type == types.NodeValidator {
+			if node.Type == types.NodeCandidate {
 				if node.NATType == types.NatTypePortRestricted.String() || node.NATType == types.NatTypeRestricted.String() || node.NATType == types.NatTypeSymmetric.String() {
 					return uuid, xerrors.Errorf("The NAT type [%s] of the node [%s] does not conform to the rules", node.NATType, nodeID)
 				}

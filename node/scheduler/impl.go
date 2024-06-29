@@ -89,7 +89,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	cNode := s.NodeManager.GetNode(nodeID)
 	if cNode == nil {
-		if err := s.NodeManager.NodeExists(nodeID, nodeType); err != nil {
+		if err := s.NodeManager.NodeExists(nodeID); err != nil {
 			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, nodeType, err)
 		}
 		cNode = node.New()
@@ -135,7 +135,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly)
+	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v , opts.ExternalURL:%s", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly, opts.ExternalURL)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
 	if err != nil {
@@ -153,13 +153,9 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nInfo.NodeID)
 	}
 
-	nodeInfo, meetCandidateStandard, err := s.checkNodeParameters(nInfo, nodeType)
+	nodeInfo, err := s.checkNodeParameters(nInfo, nodeType)
 	if err != nil {
-		return err
-	}
-
-	if !meetCandidateStandard {
-		return xerrors.Errorf("Node %s does not meet the standard", nodeID)
+		return xerrors.Errorf("Node %s does not meet the standard %s", nodeID, err.Error())
 	}
 
 	nodeInfo.RemoteAddr = remoteAddr
@@ -178,6 +174,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
 	}
 
+	nodeInfo.FirstTime = time.Now()
 	if oldInfo != nil {
 		// init node info
 		nodeInfo.PortMapping = oldInfo.PortMapping
@@ -278,9 +275,7 @@ func roundUpToNextGB(bytes int64) int64 {
 	return ((bytes / GB) + 1) * GB
 }
 
-func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.NodeType) (*types.NodeInfo, bool, error) {
-	meetCandidateStandard := false
-
+func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.NodeType) (*types.NodeInfo, error) {
 	if nodeInfo.AvailableDiskSpace <= 0 {
 		nodeInfo.AvailableDiskSpace = 2 * units.GiB
 	}
@@ -293,12 +288,10 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 
 	useSize, err := s.db.LoadReplicaSizeByNodeID(nodeInfo.NodeID)
 	if err != nil {
-		return nil, false, xerrors.Errorf("LoadReplicaSizeByNodeID %s err:%s", nodeInfo.NodeID, err.Error())
+		return nil, xerrors.Errorf("LoadReplicaSizeByNodeID %s err:%s", nodeInfo.NodeID, err.Error())
 	}
 
 	if nodeType == types.NodeEdge {
-		meetCandidateStandard = true
-
 		if nodeInfo.AvailableDiskSpace > availableDiskLimit {
 			nodeInfo.AvailableDiskSpace = availableDiskLimit
 		}
@@ -316,42 +309,53 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 		}
 
 		if nodeInfo.DiskSpace > diskSpaceLimit || nodeInfo.DiskSpace < 0 {
-			return nil, false, xerrors.Errorf("checkNodeParameters [%s] DiskSpace [%.2f]", nodeInfo.NodeID, nodeInfo.DiskSpace)
+			return nil, xerrors.Errorf("checkNodeParameters [%s] DiskSpace [%s]", nodeInfo.NodeID, units.BytesSize(nodeInfo.DiskSpace))
 		}
 
 		if nodeInfo.BandwidthDown < 0 {
-			return nil, false, xerrors.Errorf("checkNodeParameters [%s] BandwidthDown [%d]", nodeInfo.NodeID, nodeInfo.BandwidthDown)
+			return nil, xerrors.Errorf("checkNodeParameters [%s] BandwidthDown [%s]", nodeInfo.NodeID, units.BytesSize(float64(nodeInfo.BandwidthDown)))
 		}
 
 		if nodeInfo.BandwidthUp > bandwidthUpLimit || nodeInfo.BandwidthUp < 0 {
-			return nil, false, xerrors.Errorf("checkNodeParameters [%s] BandwidthUp [%d]", nodeInfo.NodeID, nodeInfo.BandwidthUp)
+			return nil, xerrors.Errorf("checkNodeParameters [%s] BandwidthUp [%s]", nodeInfo.NodeID, units.BytesSize(float64(nodeInfo.BandwidthUp)))
 		}
 
 		if nodeInfo.Memory > memoryLimit || nodeInfo.Memory < 0 {
-			return nil, false, xerrors.Errorf("checkNodeParameters [%s] Memory [%.2f]", nodeInfo.NodeID, nodeInfo.Memory)
+			return nil, xerrors.Errorf("checkNodeParameters [%s] Memory [%s]", nodeInfo.NodeID, units.BytesSize(nodeInfo.Memory))
 		}
 
 		if nodeInfo.CPUCores > cpuLimit || nodeInfo.CPUCores < 0 {
-			return nil, false, xerrors.Errorf("checkNodeParameters [%s] CPUCores [%d]", nodeInfo.NodeID, nodeInfo.CPUCores)
+			return nil, xerrors.Errorf("checkNodeParameters [%s] CPUCores [%d]", nodeInfo.NodeID, nodeInfo.CPUCores)
 		}
-
 	} else if nodeType == types.NodeCandidate {
 		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeInfo.NodeID)
 		if err != nil {
-			return nil, false, xerrors.Errorf("nodeID GetCandidateCodeInfoForNodeID %s, %s", nodeInfo.NodeID, err.Error())
+			return nil, xerrors.Errorf("nodeID GetCandidateCodeInfoForNodeID %s, %s", nodeInfo.NodeID, err.Error())
 		}
 		nodeInfo.IsTestNode = info.IsTest
 
-		meetCandidateStandard = nodeInfo.IsTestNode || (nodeInfo.Memory >= l1MemoryLimit && nodeInfo.CPUCores >= l1CpuLimit && nodeInfo.DiskSpace >= l1DiskSpaceLimit)
+		if !nodeInfo.IsTestNode {
+			if nodeInfo.Memory < l1MemoryLimit {
+				return nil, xerrors.Errorf("Memory [%s]<[%s]", units.BytesSize(nodeInfo.Memory), units.BytesSize(l1MemoryLimit))
+			}
 
-		isValidator, err := s.db.IsValidator(nodeInfo.NodeID)
-		if err != nil {
-			return nil, false, xerrors.Errorf("checkNodeParameters %s IsValidator err:%s", nodeInfo.NodeID, err.Error())
+			if nodeInfo.CPUCores < l1CpuLimit {
+				return nil, xerrors.Errorf("CPUCores [%d]<[%d]", nodeInfo.CPUCores, l1CpuLimit)
+			}
+
+			if nodeInfo.DiskSpace < l1DiskSpaceLimit {
+				return nil, xerrors.Errorf("DiskSpace [%s]<[%s]", units.BytesSize(nodeInfo.DiskSpace), units.BytesSize(l1DiskSpaceLimit))
+			}
 		}
 
-		if isValidator {
-			nodeInfo.Type = types.NodeValidator
-		}
+		// isValidator, err := s.db.IsValidator(nodeInfo.NodeID)
+		// if err != nil {
+		// 	return nil, false, xerrors.Errorf("checkNodeParameters %s IsValidator err:%s", nodeInfo.NodeID, err.Error())
+		// }
+
+		// if isValidator {
+		// nodeInfo.Type = types.NodeValidator
+		// }
 		nodeInfo.AvailableDiskSpace = nodeInfo.DiskSpace * 0.9
 	}
 
@@ -360,7 +364,7 @@ func (s *Scheduler) checkNodeParameters(nodeInfo types.NodeInfo, nodeType types.
 	// 	nodeInfo.AvailableDiskSpace = float64(roundUpToNextGB(useSize))
 	// }
 
-	return &nodeInfo, meetCandidateStandard, nil
+	return &nodeInfo, nil
 }
 
 // NodeValidationResult processes the validation result for a node
@@ -403,7 +407,7 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, r io.Reader, sign 
 
 // TriggerElection triggers a single election for validators.
 func (s *Scheduler) TriggerElection(ctx context.Context) error {
-	s.ValidationMgr.StartElection()
+	// s.ValidationMgr.StartElection()
 	return nil
 }
 
@@ -491,7 +495,8 @@ func (s *Scheduler) ElectValidators(ctx context.Context, nodeIDs []string, clean
 		return nil
 	}
 
-	return s.ValidationMgr.CompulsoryElection(nodeIDs, cleanOld)
+	// return s.ValidationMgr.CompulsoryElection(nodeIDs, cleanOld)
+	return nil
 }
 
 // UpdateNetFlows update node net flow total,up,down usage

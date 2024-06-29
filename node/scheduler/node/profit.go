@@ -195,7 +195,14 @@ func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDe
 
 	p := mcx * float64(node.KeepaliveCount)
 
-	return mcx, &types.ProfitDetails{
+	// client incr
+	cIncr := mcx * 360
+
+	if p < 0.000001 {
+		return cIncr, nil
+	}
+
+	return cIncr, &types.ProfitDetails{
 		NodeID: node.NodeID,
 		Profit: p,
 		PType:  types.ProfitTypeBase,
@@ -207,6 +214,10 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 	// Every 5 minutes
 	arR := rateOfAR(node.OnlineRate)
 	mcx := l1RBase * node.OnlineRate * arR
+
+	if mcx < 0.000001 {
+		return nil
+	}
 
 	return &types.ProfitDetails{
 		NodeID: node.NodeID,
@@ -349,24 +360,11 @@ func rateOfL2Base(nct types.NodeClientType) float64 {
 func rateOfL2Mx(onlineDuration int) float64 {
 	onlineHour := onlineDuration / 60
 
-	if onlineHour < 24 {
-		return 0
-	} else if onlineHour < 48 {
-		return 0.15
-	} else if onlineHour < 72 {
-		return 0.3
-	} else if onlineHour < 96 {
-		return 0.5
-	} else if onlineHour < 120 {
-		return 0.7
-	} else if onlineHour < 144 {
-		return 0.9
-	} else if onlineHour < 168 {
+	if onlineHour < 168 {
 		return 1
 	}
 
 	onlineDay := onlineHour / 24
-
 	count := onlineDay - 7
 
 	return 1.0 + (float64(count) * 0.03)

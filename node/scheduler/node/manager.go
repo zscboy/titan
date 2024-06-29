@@ -2,6 +2,7 @@ package node
 
 import (
 	"crypto/rsa"
+	"math"
 	"sync"
 	"time"
 
@@ -335,8 +336,6 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 func (m *Manager) updateNodeData() {
 	nodes := make([]*types.NodeDynamicInfo, 0)
 
-	onlineDuration := 5
-
 	detailsList := make([]*types.ProfitDetails, 0)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
@@ -350,10 +349,12 @@ func (m *Manager) updateNodeData() {
 		}
 
 		incr, dInfo := m.GetEdgeBaseProfitDetails(node)
-		detailsList = append(detailsList, dInfo)
-		node.Profit += dInfo.Profit
-
-		node.OnlineDuration += onlineDuration
+		if dInfo != nil {
+			detailsList = append(detailsList, dInfo)
+			node.Profit += dInfo.Profit
+		}
+		oIncr := roundDivision((node.KeepaliveCount * 5), 60)
+		node.OnlineDuration += oIncr
 		node.KeepaliveCount = 0
 		// add node mc
 		node.IncomeIncr = incr
@@ -372,11 +373,18 @@ func (m *Manager) updateNodeData() {
 			return true
 		}
 
-		dInfo := m.GetCandidateBaseProfitDetails(node)
-		detailsList = append(detailsList, dInfo)
-		node.Profit += dInfo.Profit
+		if isGoodNat(node.NATType) {
+			dInfo := m.GetCandidateBaseProfitDetails(node)
+			if dInfo != nil {
+				detailsList = append(detailsList, dInfo)
+				node.Profit += dInfo.Profit
+			}
+		}
 
-		node.OnlineDuration += onlineDuration
+		oIncr := roundDivision((node.KeepaliveCount * 5), 60)
+		node.OnlineDuration += oIncr
+		node.KeepaliveCount = 0
+
 		nodes = append(nodes, &node.NodeDynamicInfo)
 
 		return true
@@ -403,6 +411,19 @@ func (m *Manager) updateNodeData() {
 			}
 		}
 	}
+}
+
+func roundDivision(a, b int) int {
+	result := float64(a) / float64(b)
+	return int(math.Round(result))
+}
+
+func isGoodNat(natType string) bool {
+	if natType == types.NatTypeNo.String() || natType == types.NatTypeFullCone.String() || natType == types.NatTypeUnknown.String() {
+		return true
+	}
+
+	return false
 }
 
 // saveInfo Save node information when it comes online
@@ -480,6 +501,7 @@ func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) floa
 	serverC := 0
 
 	for date, serverCount := range m.serverOnlineCounts {
+		log.Infof("%s %s/%s %v", nodeID, date.String(), firstTime.String(), firstTime.Before(date))
 		if firstTime.Before(date) {
 			nodeCount, err := m.GetOnlineCount(nodeID, date)
 			if err != nil {

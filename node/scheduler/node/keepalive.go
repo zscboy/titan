@@ -42,7 +42,7 @@ func (m *Manager) nodesKeepalive() {
 			return true
 		}
 
-		node.KeepaliveCount++
+		node.KeepaliveCount += 2
 		if m.checkNodeStatus(node, t) {
 			nodes = append(nodes, node.NodeID)
 		}
@@ -56,6 +56,7 @@ func (m *Manager) nodesKeepalive() {
 			return true
 		}
 
+		node.KeepaliveCount += 2
 		if m.checkNodeStatus(node, t) {
 			nodes = append(nodes, node.NodeID)
 		}
@@ -79,7 +80,7 @@ func (m *Manager) checkNodeStatus(node *Node, t time.Time) bool {
 		m.RemoveNodeIP(node.NodeID, node.ExternalIP)
 		m.RemoveNodeGeo(node.NodeID, node.GeoInfo)
 
-		if node.Type == types.NodeCandidate || node.Type == types.NodeValidator {
+		if node.Type == types.NodeCandidate {
 			m.deleteCandidateNode(node)
 		} else if node.Type == types.NodeEdge {
 			m.deleteEdgeNode(node)

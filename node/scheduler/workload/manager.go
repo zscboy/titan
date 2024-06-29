@@ -24,6 +24,8 @@ const (
 	vWorkloadLimit = 500
 
 	handlerWorkers = 50
+
+	l2ProfitLimit = 5000
 )
 
 // Manager node workload
@@ -78,6 +80,10 @@ func (m *Manager) handleResults() {
 
 // handleClientWorkload handle node workload
 func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID string) error {
+	start := time.Now()
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+	end := start.Add(24 * time.Hour)
+
 	downloadTotalSize := int64(0)
 
 	if data.WorkloadID == "" {
@@ -139,6 +145,19 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID str
 		// Only edge can get this reward
 		node := m.nodeMgr.GetEdgeNode(dw.SourceID)
 		if node != nil {
+			node.UploadTraffic += dw.DownloadSize
+
+			todayProfit, err := m.nodeMgr.LoadTodayProfitsForNode(node.NodeID, start, end)
+			if err != nil {
+				log.Errorf("%s LoadTodayProfitsForNode err:%s", node.NodeID, err.Error())
+				continue
+			}
+
+			if todayProfit > l2ProfitLimit {
+				log.Infof("%s LoadTodayProfitsForNode %.4f > %d", node.NodeID, todayProfit, l2ProfitLimit)
+				continue
+			}
+
 			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
 			if dInfo != nil {
 				dInfo.CID = retrieveEvent.CID
@@ -147,7 +166,6 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID str
 				detailsList = append(detailsList, dInfo)
 			}
 
-			node.UploadTraffic += dw.DownloadSize
 		}
 
 		// update node bandwidths

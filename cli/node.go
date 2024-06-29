@@ -101,7 +101,7 @@ var generateCandidateCodeCmd = &cli.Command{
 	Name:  "gcodes",
 	Usage: "generate code",
 	Flags: []cli.Flag{
-		nodeTypeFlag,
+		// nodeTypeFlag,
 		&cli.Int64Flag{
 			Name:  "count",
 			Usage: "code count",
@@ -114,7 +114,7 @@ var generateCandidateCodeCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		nodeType := cctx.Int("node-type")
+		// nodeType := cctx.Int("node-type")
 		count := cctx.Int("count")
 		isTest := cctx.Bool("test")
 
@@ -125,15 +125,15 @@ var generateCandidateCodeCmd = &cli.Command{
 		}
 		defer closer()
 
-		if nodeType != int(types.NodeCandidate) && nodeType != int(types.NodeValidator) {
-			return nil
-		}
+		// if nodeType != int(types.NodeCandidate) && nodeType != int(types.NodeValidator) {
+		// 	return nil
+		// }
 
 		if count <= 0 {
 			return nil
 		}
 
-		list, err := schedulerAPI.GenerateCandidateCode(ctx, count, types.NodeType(nodeType), isTest)
+		list, err := schedulerAPI.GenerateCandidateCode(ctx, count, types.NodeCandidate, isTest)
 		if err != nil {
 			return err
 		}

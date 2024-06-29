@@ -129,7 +129,7 @@ func (m *Manager) NodeOnline(node *Node, info *types.NodeInfo) error {
 	switch node.Type {
 	case types.NodeEdge:
 		m.storeEdgeNode(node)
-	case types.NodeCandidate, types.NodeValidator:
+	case types.NodeCandidate:
 		m.storeCandidateNode(node)
 	}
 

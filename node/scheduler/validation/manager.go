@@ -129,7 +129,7 @@ func (m *Manager) initCfg() {
 	if err != nil {
 		log.Errorf("get schedulerConfig err:%s", err.Error())
 
-		m.electionCycle = electionCycle
+		// m.electionCycle = electionCycle
 		m.validatorRatio = 1
 		return
 	}
@@ -149,7 +149,7 @@ func (m *Manager) Start(ctx context.Context) {
 	duration := nextTick.Sub(time.Now())
 
 	go m.startValidationTicker(duration)
-	go m.startElectionTicker()
+	// go m.startElectionTicker()
 	go m.handleValidatorProfits(duration + (time.Minute * 2))
 
 	m.subscribeNodeEvents()
@@ -204,20 +204,20 @@ func (m *Manager) onNodeStateChange(node *node.Node, isOnline bool) {
 		return
 	}
 
-	nodeID := node.NodeID
+	// nodeID := node.NodeID
 
-	isValidator := node.Type == types.NodeValidator
-	if isOnline {
-		if isValidator {
-			// m.addValidator(nodeID, node.BandwidthDown)
+	// isValidator := node.Type == types.NodeValidator
+	// if isOnline {
+	// 	if isValidator {
+	// 		// m.addValidator(nodeID, node.BandwidthDown)
 
-			// update validator owner
-			err := m.nodeMgr.UpdateValidatorInfo(m.nodeMgr.ServerID, nodeID)
-			if err != nil {
-				log.Errorf("UpdateValidatorInfo err:%s", err.Error())
-			}
-		}
-	}
+	// 		// update validator owner
+	// 		err := m.nodeMgr.UpdateValidatorInfo(m.nodeMgr.ServerID, nodeID)
+	// 		if err != nil {
+	// 			log.Errorf("UpdateValidatorInfo err:%s", err.Error())
+	// 		}
+	// 	}
+	// }
 }
 
 // GetNextElectionTime Get the time of the next election

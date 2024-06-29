@@ -324,11 +324,27 @@ func (n *SQLDB) LoadNodeType(nodeID string) (types.NodeType, error) {
 	return nodeType, nil
 }
 
-// NodeExists is node exists
-func (n *SQLDB) NodeExists(nodeID string, nodeType types.NodeType) error {
+// NodeExistsFromType is node exists
+func (n *SQLDB) NodeExistsFromType(nodeID string, nodeType types.NodeType) error {
 	var count int
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeRegisterTable)
 	err := n.db.Get(&count, cQuery, nodeID, nodeType)
+	if err != nil {
+		return err
+	}
+
+	if count < 1 {
+		return xerrors.New("node not exists")
+	}
+
+	return nil
+}
+
+// NodeExists is node exists
+func (n *SQLDB) NodeExists(nodeID string) error {
+	var count int
+	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? `, nodeRegisterTable)
+	err := n.db.Get(&count, cQuery, nodeID)
 	if err != nil {
 		return err
 	}
@@ -827,7 +843,7 @@ func (n *SQLDB) LoadNodeProfits(nodeID string, limit, offset int, ts []int) (*ty
 
 // SaveDeactivateNode save deactivate node time
 func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64, penaltyPoint float64) error {
-	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, point=point-? WHERE node_id=?`, nodeInfoTable)
+	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, profit=profit-? WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, time, penaltyPoint, nodeID)
 	return err
 }

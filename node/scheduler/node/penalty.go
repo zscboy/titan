@@ -27,6 +27,13 @@ func (m *Manager) penaltyNode() {
 		return
 	}
 
+	// list2, err := m.LoadNodeInfosOfType(int(types.NodeValidator))
+	// if err != nil {
+	// 	log.Errorf("LoadNodeInfosOfType err:%s", err.Error())
+	// }
+
+	// list = append(list, list2...)
+
 	offlineNodes := make(map[string]float64)
 
 	for _, info := range list {

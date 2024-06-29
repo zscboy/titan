@@ -91,7 +91,7 @@ func (m *Manager) startValidate() error {
 	validateReqs := make(map[string]*api.ValidateReq)
 	_, candidates := m.nodeMgr.GetAllCandidateNodes()
 	for _, candidate := range candidates {
-		if candidate == nil || candidate.Type != types.NodeValidator {
+		if candidate == nil {
 			continue
 		}
 
