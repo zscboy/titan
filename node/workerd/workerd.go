@@ -268,9 +268,9 @@ func (w *Workerd) setupAndStartProject(ctx context.Context, project *types.Proje
 		return err
 	}
 
-	if err = testWebSocketConnection(service.Port); err != nil {
-		return err
-	}
+	// if err = testWebSocketConnection(service.Port); err != nil {
+	// 	return err
+	// }
 
 	w.reportProjectStatus(ctx, project)
 	log.Infof("Project %s created successfully. Service is now listening on: %s", project.ID, socketAddr)
