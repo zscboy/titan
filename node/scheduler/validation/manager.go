@@ -29,31 +29,31 @@ const (
 	oneDay            = 24 * time.Hour
 )
 
-// VWindow represents a validation window that contains a validator id and validatable node list.
-type VWindow struct {
-	NodeID           string // Node ID of the validation window.
-	ValidatableNodes map[string]int64
-}
+// // VWindow represents a validation window that contains a validator id and validatable node list.
+// type VWindow struct {
+// 	NodeID           string // Node ID of the validation window.
+// 	ValidatableNodes map[string]int64
+// }
 
-func newVWindow(nID string) *VWindow {
-	return &VWindow{
-		NodeID:           nID,
-		ValidatableNodes: make(map[string]int64),
-	}
-}
+// func newVWindow(nID string) *VWindow {
+// 	return &VWindow{
+// 		NodeID:           nID,
+// 		ValidatableNodes: make(map[string]int64),
+// 	}
+// }
 
-// ValidatableGroup Each ValidatableGroup will be paired with a VWindow
-type ValidatableGroup struct {
-	sumBwUp int64
-	nodes   map[string]int64
-	lock    sync.RWMutex
-}
+// // ValidatableGroup Each ValidatableGroup will be paired with a VWindow
+// type ValidatableGroup struct {
+// 	sumBwUp int64
+// 	nodes   map[string]int64
+// 	lock    sync.RWMutex
+// }
 
-func newValidatableGroup() *ValidatableGroup {
-	return &ValidatableGroup{
-		nodes: make(map[string]int64),
-	}
-}
+// func newValidatableGroup() *ValidatableGroup {
+// 	return &ValidatableGroup{
+// 		nodes: make(map[string]int64),
+// 	}
+// }
 
 // Manager validation manager
 type Manager struct {
@@ -65,9 +65,9 @@ type Manager struct {
 	// All nodes will randomly fall into a group(ValidatableGroup).
 	// When the validation starts, the window is paired with the group.
 	validationPairLock sync.RWMutex
-	vWindows           []*VWindow          // The validator allocates n window according to the size of the bandwidth down
-	validatableGroups  []*ValidatableGroup // Each VWindow has a ValidatableGroup
-	unpairedGroup      *ValidatableGroup   // Save unpaired Validatable nodes
+	// vWindows           []*VWindow // The validator allocates n window according to the size of the bandwidth down
+	// validatableGroups  []*ValidatableGroup // Each VWindow has a ValidatableGroup
+	// unpairedGroup      *ValidatableGroup   // Save unpaired Validatable nodes
 
 	seed       int64
 	curRoundID string
@@ -93,30 +93,30 @@ type Manager struct {
 
 	enableValidation bool
 
-	validationProfits     map[string]float64
-	validationProfitsLock sync.Mutex
+	// validationProfits map[string]float64
+	// validationProfitsLock sync.Mutex
 
 	l2ValidatorCount int
 	electionCycle    time.Duration
 	validatorRatio   float64
 
-	nodeBandwidthDowns map[string]float64
+	// nodeBandwidthDowns map[string]float64
 }
 
 // NewManager return new node manager instance
 func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
 	manager := &Manager{
-		nodeMgr:            nodeMgr,
-		assetMgr:           assetMgr,
-		config:             configFunc,
-		close:              make(chan struct{}),
-		unpairedGroup:      newValidatableGroup(),
-		updateCh:           make(chan struct{}, 1),
-		notify:             p,
-		resultQueue:        make(chan *api.ValidationResult),
-		leadershipMgr:      lmgr,
-		validationProfits:  make(map[string]float64),
-		nodeBandwidthDowns: make(map[string]float64),
+		nodeMgr:  nodeMgr,
+		assetMgr: assetMgr,
+		config:   configFunc,
+		close:    make(chan struct{}),
+		// unpairedGroup:      newValidatableGroup(),
+		updateCh:      make(chan struct{}, 1),
+		notify:        p,
+		resultQueue:   make(chan *api.ValidationResult),
+		leadershipMgr: lmgr,
+		// validationProfits: make(map[string]float64),
+		// nodeBandwidthDowns: make(map[string]float64),
 	}
 
 	manager.initCfg()
@@ -145,12 +145,15 @@ func (m *Manager) initCfg() {
 // Start start validate and elect task
 func (m *Manager) Start(ctx context.Context) {
 	// nextTick := time.Now().Truncate(validationInterval).Add(validationInterval)
-	nextTick := getNextExecutionTime()
-	duration := nextTick.Sub(time.Now())
+	// nextTick := getNextExecutionTime()
+	// duration := nextTick.Sub(time.Now())
 
-	go m.startValidationTicker(duration)
+	// log.Infof("start validation wait %.1f ", duration.Seconds())
+
+	go m.startValidationTicker()
 	// go m.startElectionTicker()
-	go m.handleValidatorProfits(duration + (time.Minute * 2))
+	// go m.handleValidatorProfits(duration + (time.Minute * 2))
+	// go m.startProfitTime()
 
 	m.subscribeNodeEvents()
 	m.handleResults()

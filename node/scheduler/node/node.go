@@ -40,7 +40,7 @@ type Node struct {
 	TCPPort            int
 	ExternalURL        string
 	IsPrivateMinioOnly bool
-	IsStorageOnly      bool
+	IsStorageNode      bool
 
 	OnlineRate float64
 

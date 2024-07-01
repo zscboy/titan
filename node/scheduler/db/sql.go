@@ -127,14 +127,14 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 }
 
 func doExec(d *SQLDB, serverID dtypes.ServerID) {
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  state               VARCHAR(32)  DEFAULT ''", assetStateTable(serverID)))
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  cid               VARCHAR(128)   DEFAULT ''", validationResultTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  state               VARCHAR(32)  DEFAULT ''", projectStateTable(serverID)))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN  state               VARCHAR(32)  DEFAULT ''", projectStateTable(serverID)))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

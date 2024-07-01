@@ -392,7 +392,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 
 		cNodes := make([]*node.Node, 0)
 		for _, node := range nodes {
-			if node.IsStorageOnly {
+			if node.IsStorageNode {
 				cNodes = append(cNodes, node)
 			}
 		}

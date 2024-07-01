@@ -47,12 +47,12 @@ const (
 	cpuLimit           = 140
 	memoryLimit        = 2250 * units.GiB
 	diskSpaceLimit     = 500 * units.TiB
-	bandwidthUpLimit   = 200 * units.MiB
+	bandwidthUpLimit   = 1500 * units.MiB
 	availableDiskLimit = 2 * units.TiB
 
 	l1CpuLimit       = 8
 	l1MemoryLimit    = 16 * units.GB
-	l1DiskSpaceLimit = 10 * units.TB
+	l1DiskSpaceLimit = 4 * units.TB
 )
 
 // Scheduler represents a scheduler node in a distributed system.
@@ -131,14 +131,15 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		domain := checkDomain(cNode.ExternalURL)
 		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, domain)
 
-		if len(s.SchedulerCfg.StorageCandidates) > 0 {
-			for _, nID := range s.SchedulerCfg.StorageCandidates {
-				if nID == nodeID {
-					cNode.IsStorageOnly = true
-					break
-				}
-			}
-		}
+		cNode.IsStorageNode = domain
+		// if len(s.SchedulerCfg.StorageCandidates) > 0 {
+		// 	for _, nID := range s.SchedulerCfg.StorageCandidates {
+		// 		if nID == nodeID {
+		// 			cNode.IsStorageOnly = true
+		// 			break
+		// 		}
+		// 	}
+		// }
 	}
 
 	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v , opts.ExternalURL:%s", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly, opts.ExternalURL)

@@ -161,13 +161,13 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 // 	}
 // }
 
-func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *types.ProfitDetails {
+func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64, bandwidthUp int64) *types.ProfitDetails {
 	ds := float64(node.TitanDiskUsage)
 	s := bToGB(ds)
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mt := 1.0
-	b := calculateB(node.BandwidthUp)
+	b := calculateB(bandwidthUp)
 	mip := calculateMip(node.NATType)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
@@ -183,7 +183,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 		Profit: ms,
 		PType:  types.ProfitTypeValidatable,
 		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, node.BandwidthUp, mr, mx, mo, s, u, b, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, bandwidthUp, mr, mx, mo, s, u, b, uploadTrafficProfit, mip, mn),
 	}
 }
 

@@ -440,7 +440,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 
 	cNodes := make([]*node.Node, 0)
 	for _, node := range nodes {
-		if node.IsStorageOnly {
+		if node.IsStorageNode {
 			cNodes = append(cNodes, node)
 		}
 	}

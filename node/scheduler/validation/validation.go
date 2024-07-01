@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	validationInterval = 4 * 30 * time.Minute // validation start-up time interval (Unit:minute)
+	validationInterval = 2 * time.Hour // validation start-up time interval
 
 	handValidatorProfitsInterval = 5 * time.Minute // validation start-up time interval (Unit:minute)
 
@@ -30,48 +30,83 @@ const (
 	trafficProfitLimit = units.GiB // GB
 )
 
-// startValidationTicker starts the validation process.
-func (m *Manager) startValidationTicker(duration time.Duration) {
-	timer := time.NewTimer(duration)
-	defer timer.Stop()
+func (m *Manager) startValidationTicker() {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
 
-	for {
-		select {
-		case <-timer.C:
-			timer.Reset(validationInterval)
+	nextTick := time.Now().Truncate(30 * time.Minute)
+	if nextTick.Before(time.Now()) {
+		nextTick = nextTick.Add(30 * time.Minute)
+	}
+	time.Sleep(time.Until(nextTick))
 
-			// save validator profits
-			// m.addValidatorProfitsAndInitMap()
-			// update bandwidthUps
-			m.updateValidatorBandwidthDowns()
-			// Set the timeout status of the previous verification
-			m.updateTimeoutResultInfo()
-
-			if !m.enableValidation {
-				continue
-			}
-
-			if err := m.startValidate(); err != nil {
-				log.Errorf("start new round: %v", err)
-			}
-		case <-m.close:
-			return
+	for t := range ticker.C {
+		hour := t.Hour()
+		log.Infof("start validation ------------- %d:%d", hour, t.Minute())
+		if hour%2 != 0 && t.Minute() == 0 {
+			m.doValidate()
+		} else {
+			m.computeNodeProfits()
 		}
 	}
 }
 
-func (m *Manager) handleValidatorProfits(duration time.Duration) {
-	ticker := time.NewTimer(duration)
-	defer ticker.Stop()
+func (m *Manager) doValidate() {
+	m.updateTimeoutResultInfo()
 
-	for {
-		<-ticker.C
-		ticker.Reset(handValidatorProfitsInterval)
+	if !m.enableValidation {
+		return
+	}
 
-		// save validator profits
-		m.addValidatorProfitsAndInitMap()
+	if err := m.startValidate(); err != nil {
+		log.Errorf("start new round: %v", err)
 	}
 }
+
+// // startValidationTicker starts the validation process.
+// func (m *Manager) startValidationTicker(duration time.Duration) {
+// 	timer := time.NewTimer(duration)
+// 	defer timer.Stop()
+
+// 	for {
+// 		select {
+// 		case <-timer.C:
+// 			timer.Reset(validationInterval)
+
+// 			log.Infof("start validation -------------")
+
+// 			// save validator profits
+// 			// m.addValidatorProfitsAndInitMap()
+// 			// update bandwidthUps
+// 			// m.updateValidatorBandwidthDowns()
+// 			// Set the timeout status of the previous verification
+// 			m.updateTimeoutResultInfo()
+
+// 			if !m.enableValidation {
+// 				continue
+// 			}
+
+// 			if err := m.startValidate(); err != nil {
+// 				log.Errorf("start new round: %v", err)
+// 			}
+// 		case <-m.close:
+// 			return
+// 		}
+// 	}
+// }
+
+// func (m *Manager) handleValidatorProfits(duration time.Duration) {
+// 	ticker := time.NewTimer(duration)
+// 	defer ticker.Stop()
+
+// 	for {
+// 		<-ticker.C
+// 		ticker.Reset(handValidatorProfitsInterval)
+
+// 		// save validator profits
+// 		m.addValidatorProfitsAndInitMap()
+// 	}
+// }
 
 func (m *Manager) stopValidation() error {
 	close(m.close)
@@ -155,27 +190,28 @@ func (m *Manager) distributeEdges(edges []*node.Node, validateReqs map[string]*a
 	loops := (30 * 60) / duration
 	delay := 0
 
+outerLoop:
 	for i := 0; i < loops; i++ {
 		for vID, req := range validateReqs {
 			if currentEdgeIndex >= totalEdges {
-				return
+				continue outerLoop
 			}
+
 			for j := 0; j < edgesPerRound; j++ {
 				if currentEdgeIndex >= totalEdges {
-					return
+					continue outerLoop
 				}
 				eID := edges[currentEdgeIndex].NodeID
+				currentEdgeIndex++
 
 				dbInfo, err := m.getValidationResultInfo(eID, vID)
+				dbInfos = append(dbInfos, dbInfo)
+
 				if err != nil {
 					log.Errorf("%s RandomAsset err:%s", eID, err.Error())
 					continue
 				}
-
-				dbInfos = append(dbInfos, dbInfo)
-
 				go m.sendValidateReqToNode(eID, req, delay)
-				currentEdgeIndex++
 			}
 		}
 		delay += duration
@@ -213,95 +249,98 @@ func (m *Manager) sendValidateReqToNode(nID string, req *api.ValidateReq, delay 
 }
 
 func (m *Manager) getValidationResultInfo(nodeID, vID string) (*types.ValidationResultInfo, error) {
-	cid, err := m.assetMgr.RandomAsset(nodeID, m.seed)
-	if err != nil {
-		return nil, err
-	}
-
 	dbInfo := &types.ValidationResultInfo{
 		RoundID:     m.curRoundID,
 		NodeID:      nodeID,
 		ValidatorID: vID,
-		Status:      types.ValidationStatusCreate,
-		Cid:         cid.String(),
+		Status:      types.ValidationStatusCancel,
+		Cid:         "",
 		StartTime:   time.Now(),
 		EndTime:     time.Now(),
 		// NodeCount:   m.nodeMgr.TotalNetworkEdges,
 	}
 
+	cid, err := m.assetMgr.RandomAsset(nodeID, m.seed)
+	if err != nil {
+		return dbInfo, err
+	}
+
+	dbInfo.Status = types.ValidationStatusCreate
+	dbInfo.Cid = cid.String()
+
 	return dbInfo, nil
 }
 
 // get validation details.
-func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.ValidateReq, []*types.ValidationResultInfo) {
-	bReqs := make(map[string]*api.ValidateReq)
-	validateReqs := make(map[string]*api.ValidateReq, 0)
-	vrInfos := make([]*types.ValidationResultInfo, 0)
+// func (m *Manager) getValidationDetails(vrs []*VWindow) (map[string]*api.ValidateReq, []*types.ValidationResultInfo) {
+// 	bReqs := make(map[string]*api.ValidateReq)
+// 	validateReqs := make(map[string]*api.ValidateReq, 0)
+// 	vrInfos := make([]*types.ValidationResultInfo, 0)
 
-	bIDs := make([]string, 0)
+// 	bIDs := make([]string, 0)
 
-	for _, vr := range vrs {
-		vID := vr.NodeID
-		vTCPAddr := ""
-		wURL := ""
+// 	for _, vr := range vrs {
+// 		vID := vr.NodeID
+// 		vTCPAddr := ""
+// 		wURL := ""
 
-		req := validateReqs[vID]
-		if req == nil {
-			vNode := m.nodeMgr.GetNode(vID)
-			if vNode != nil {
-				vTCPAddr = vNode.TCPAddr()
-				wURL = vNode.WsURL()
-			}
+// 		req := validateReqs[vID]
+// 		if req == nil {
+// 			vNode := m.nodeMgr.GetNode(vID)
+// 			if vNode != nil {
+// 				vTCPAddr = vNode.TCPAddr()
+// 				wURL = vNode.WsURL()
+// 			}
 
-			req = &api.ValidateReq{
-				RandomSeed: m.seed,
-				Duration:   duration,
-				TCPSrvAddr: vTCPAddr,
-				WSURL:      wURL,
-			}
+// 			req = &api.ValidateReq{
+// 				RandomSeed: m.seed,
+// 				Duration:   duration,
+// 				TCPSrvAddr: vTCPAddr,
+// 				WSURL:      wURL,
+// 			}
 
-			validateReqs[vID] = req
-		}
+// 			validateReqs[vID] = req
+// 		}
 
-		for nodeID := range vr.ValidatableNodes {
-			if nodeID == vID {
-				bIDs = append(bIDs, nodeID)
-				continue
-			}
+// 		for nodeID := range vr.ValidatableNodes {
+// 			if nodeID == vID {
+// 				bIDs = append(bIDs, nodeID)
+// 				continue
+// 			}
 
-			dbInfo, err := m.getValidationResultInfo(nodeID, vID)
-			if err != nil {
-				log.Errorf("%s RandomAsset err:%s", nodeID, err.Error())
-				continue
-			}
+// 			dbInfo, err := m.getValidationResultInfo(nodeID, vID)
+// 			if err != nil {
+// 				log.Errorf("%s RandomAsset err:%s", nodeID, err.Error())
+// 				continue
+// 			}
 
-			vrInfos = append(vrInfos, dbInfo)
-			bReqs[nodeID] = req
-		}
-	}
+// 			vrInfos = append(vrInfos, dbInfo)
+// 			bReqs[nodeID] = req
+// 		}
+// 	}
 
-	if len(bIDs) > 0 {
-		for _, nodeID := range bIDs {
-			for vID, req := range validateReqs {
-				if nodeID == vID {
-					continue
-				}
+// 	if len(bIDs) > 0 {
+// 		for _, nodeID := range bIDs {
+// 			for vID, req := range validateReqs {
+// 				if nodeID == vID {
+// 					continue
+// 				}
 
-				dbInfo, err := m.getValidationResultInfo(nodeID, vID)
-				if err != nil {
-					log.Errorf("%s RandomAsset err:%s", nodeID, err.Error())
-					break
-				}
+// 				dbInfo, err := m.getValidationResultInfo(nodeID, vID)
+// 				if err != nil {
+// 					log.Errorf("%s RandomAsset err:%s", nodeID, err.Error())
+// 					break
+// 				}
 
-				vrInfos = append(vrInfos, dbInfo)
-				bReqs[nodeID] = req
-				break
-			}
-		}
-	}
+// 				vrInfos = append(vrInfos, dbInfo)
+// 				bReqs[nodeID] = req
+// 				break
+// 			}
+// 		}
+// 	}
 
-	return bReqs, vrInfos
-}
+// 	return bReqs, vrInfos
+// }
 
 // getRandNum generates a random number up to a given maximum value.
 func (m *Manager) getRandNum(max int, r *rand.Rand) int {
@@ -328,7 +367,7 @@ func (m *Manager) updateTimeoutResultInfo() {
 		node := m.nodeMgr.GetNode(resultInfo.NodeID)
 		if node != nil {
 			if m.curRoundID == "" {
-				dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp))
+				dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp), node.BandwidthUp)
 				if dInfo != nil {
 					dInfo.CID = resultInfo.Cid
 
@@ -381,7 +420,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 				node.BandwidthUp = int64(vr.Bandwidth)
 			}
 
-			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
+			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size, node.BandwidthUp)
 			if dInfo != nil {
 				profit = dInfo.Profit
 
@@ -409,7 +448,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 		ValidatorID: vr.Validator,
 	}
 
-	m.addValidationProfit(vr.Validator, size)
+	// m.addValidationProfit(vr.Validator, size)
 
 	vNode := m.nodeMgr.GetNode(vr.Validator)
 	if vNode != nil {
@@ -419,65 +458,65 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 	return m.nodeMgr.UpdateValidationResultInfo(resultInfo)
 }
 
-func (m *Manager) addValidationProfit(nodeID string, size float64) {
-	m.validationProfitsLock.Lock()
-	defer m.validationProfitsLock.Unlock()
+// func (m *Manager) addValidationProfit(nodeID string, size float64) {
+// 	m.validationProfitsLock.Lock()
+// 	defer m.validationProfitsLock.Unlock()
 
-	m.validationProfits[nodeID] += size
-}
+// 	m.validationProfits[nodeID] += size
+// }
 
-func (m *Manager) updateValidatorBandwidthDowns() {
-	m.validationProfitsLock.Lock()
-	defer m.validationProfitsLock.Unlock()
+// func (m *Manager) updateValidatorBandwidthDowns() {
+// 	m.validationProfitsLock.Lock()
+// 	defer m.validationProfitsLock.Unlock()
 
-	for nID, size := range m.nodeBandwidthDowns {
-		vNode := m.nodeMgr.GetNode(nID)
-		if vNode == nil {
-			continue
-		}
+// 	for nID, size := range m.nodeBandwidthDowns {
+// 		vNode := m.nodeMgr.GetNode(nID)
+// 		if vNode == nil {
+// 			continue
+// 		}
 
-		vNode.BandwidthDown = int64(size) / (int64(handValidatorProfitsInterval) / int64(time.Second))
-	}
+// 		vNode.BandwidthDown = int64(size) / (int64(handValidatorProfitsInterval) / int64(time.Second))
+// 	}
 
-	m.nodeBandwidthDowns = make(map[string]float64)
-}
+// 	m.nodeBandwidthDowns = make(map[string]float64)
+// }
 
-func (m *Manager) addValidatorProfitsAndInitMap() {
-	m.validationProfitsLock.Lock()
-	defer m.validationProfitsLock.Unlock()
+// func (m *Manager) addValidatorProfitsAndInitMap() {
+// 	m.validationProfitsLock.Lock()
+// 	defer m.validationProfitsLock.Unlock()
 
-	if m.validationProfits != nil {
-		nDowns := make(map[string]float64)
+// 	if m.validationProfits != nil {
+// 		nDowns := make(map[string]float64)
 
-		for nodeID, size := range m.validationProfits {
-			vNode := m.nodeMgr.GetNode(nodeID)
-			if vNode == nil {
-				continue
-			}
+// 		for nodeID, size := range m.validationProfits {
+// 			vNode := m.nodeMgr.GetNode(nodeID)
+// 			if vNode == nil {
+// 				continue
+// 			}
 
-			nDowns[nodeID] += size
+// 			nDowns[nodeID] += size
 
-			// dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
-			// if dInfo == nil {
-			// 	continue
-			// }
+// 			// dInfo := m.nodeMgr.GetNodeValidatorProfitDetails(vNode, size)
+// 			// if dInfo == nil {
+// 			// 	continue
+// 			// }
 
-			// err := m.nodeMgr.AddNodeProfit(dInfo)
-			// if err != nil {
-			// 	log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
-			// }
-		}
+// 			// err := m.nodeMgr.AddNodeProfit(dInfo)
+// 			// if err != nil {
+// 			// 	log.Errorf("addValidatorProfitsAndInitMap AddNodeProfit err:%s", err.Error())
+// 			// }
+// 		}
 
-		// Update node BandwidthUps
-		for nID, size := range nDowns {
-			if m.nodeBandwidthDowns[nID] < size {
-				m.nodeBandwidthDowns[nID] = size
-			}
-		}
-	}
+// 		// Update node BandwidthUps
+// 		for nID, size := range nDowns {
+// 			if m.nodeBandwidthDowns[nID] < size {
+// 				m.nodeBandwidthDowns[nID] = size
+// 			}
+// 		}
+// 	}
 
-	m.validationProfits = make(map[string]float64)
-}
+// 	m.validationProfits = make(map[string]float64)
+// }
 
 // PushResult push validation result info to queue
 func (m *Manager) PushResult(vr *api.ValidationResult) {
