@@ -205,8 +205,7 @@ type SchedulerCfg struct {
 	IPWhitelist              []string
 	MaxNumberOfRegistrations int
 
-	IPLimit            int
-	FillAssetEdgeCount int64
+	IPLimit int
 
 	StorageCandidates []string
 

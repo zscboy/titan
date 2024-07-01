@@ -9,7 +9,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
-	"github.com/docker/go-units"
 )
 
 const (
@@ -22,24 +21,14 @@ func (m *Manager) initFillDiskTimer() {
 	ticker := time.NewTicker(fillDiskInterval)
 	defer ticker.Stop()
 
-	edgeCount := m.getFillAssetEdgeCount()
 	candidateCount := int64(m.candidateReplicaCount)
 
 	for {
 		<-ticker.C
 		if m.fillSwitch {
-			m.fillDiskTasks(edgeCount, candidateCount)
+			m.fillDiskTasks(candidateCount)
 		}
 	}
-}
-
-func (m *Manager) getFillAssetEdgeCount() int64 {
-	cfg, err := m.config()
-	if err != nil {
-		return 4000
-	}
-
-	return cfg.FillAssetEdgeCount
 }
 
 func (m *Manager) StartFillDiskTimer() {
@@ -51,7 +40,7 @@ func (m *Manager) StopFillDiskTimer() {
 }
 
 func (m *Manager) autoRefillAssetReplicas() bool {
-	fillCount := int64(200)
+	fillCount := int64(220)
 
 	info, err := m.LoadNeedRefillAssetRecords(m.nodeMgr.ServerID, fillCount, Servicing.String())
 	if err != nil {
@@ -89,6 +78,7 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 		return false
 	}
 
+	var randomElement *types.AssetRecord
 	tList := make([]*types.AssetRecord, 0)
 	if isStorage {
 		for _, info := range list {
@@ -97,35 +87,23 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 			}
 		}
 
-		list = tList
-
-	} else {
-		m.isPullSpecifyAsset = !m.isPullSpecifyAsset
-
-		tList := make([]*types.AssetRecord, 0)
-		for _, info := range list {
-			if info.Source != int64(types.AssetSourceAWS) {
-				continue
-			}
-
-			if m.isPullSpecifyAsset && info.TotalSize > units.GiB {
-				continue
-			}
-
-			tList = append(tList, info)
-		}
-
 		if len(tList) > 0 {
 			list = tList
 		}
+
+		sort.Slice(list, func(i, j int) bool {
+			return list[i].NeedEdgeReplica < list[j].NeedEdgeReplica
+		})
+
+		randomElement = list[0]
+	} else {
+		index := rand.Intn(len(list))
+		randomElement = list[index]
 	}
 
 	if len(list) == 0 {
 		return false
 	}
-
-	index := rand.Intn(len(list))
-	randomElement := list[index]
 
 	err = m.RestartPullAssets([]types.AssetHash{types.AssetHash(randomElement.Hash)})
 	if err != nil {
@@ -136,7 +114,7 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 	return true
 }
 
-func (m *Manager) pullAssetFromAWSs(edgeCount, candidateCount int64) bool {
+func (m *Manager) pullAssetFromAWSs(candidateCount int64) bool {
 	task := m.getPullAssetTask()
 	if task != nil {
 		log.Infof("awsTask cur task : %s , count: %d/%d ,cid:%s", task.Bucket, task.ResponseCount, task.TotalCount, task.Cid)
@@ -167,7 +145,7 @@ func (m *Manager) pullAssetFromAWSs(edgeCount, candidateCount int64) bool {
 		return true
 	}
 
-	if m.nodeMgr.Edges < int(edgeCount) {
+	if m.nodeMgr.Candidates < 4 {
 		return false
 	}
 
@@ -200,7 +178,7 @@ func (m *Manager) pullAssetFromAWSs(edgeCount, candidateCount int64) bool {
 	return true
 }
 
-func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
+func (m *Manager) fillDiskTasks(candidateCount int64) {
 	pullList := m.getPullingAssetList()
 	limitCount := m.assetPullTaskLimit
 	if len(pullList) >= limitCount {
@@ -211,19 +189,17 @@ func (m *Manager) fillDiskTasks(edgeCount, candidateCount int64) {
 		return
 	}
 
-	log.Infof("awsTask, edge count : %d , limit count : %d pullCount : %d limitCount : %d", m.nodeMgr.Edges, edgeCount, len(pullList), limitCount)
+	log.Infof("awsTask, edge count : %d ,pullCount : %d limitCount : %d", m.nodeMgr.Edges, len(pullList), limitCount)
 
 	m.autoRestartAssetReplicas(true)
 
-	if m.autoRefillAssetReplicas() {
-		return
-	}
-
-	m.pullAssetFromAWSs(edgeCount, candidateCount)
+	m.autoRefillAssetReplicas()
 
 	if m.autoRestartAssetReplicas(false) {
 		return
 	}
+
+	m.pullAssetFromAWSs(candidateCount)
 
 	return
 }

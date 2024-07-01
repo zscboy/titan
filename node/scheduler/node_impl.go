@@ -240,8 +240,8 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 	penaltyPoint := 0.0
 
 	// is candidate
-	err = s.db.NodeExistsFromType(nodeID, types.NodeEdge)
-	if err != nil {
+	err = s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
+	if err == nil {
 		info, err := s.db.LoadNodeInfo(nodeID)
 		if err != nil {
 			return err
@@ -262,6 +262,7 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
 		node.DeactivateTime = deactivateTime
+		node.Profit -= penaltyPoint
 		s.NodeManager.RepayNodeWeight(node)
 
 		// remove from validation
@@ -276,8 +277,8 @@ func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (typ
 		nodeID = nID
 	}
 
-	err := s.db.NodeExistsFromType(nodeID, types.NodeEdge)
-	if err == nil {
+	err := s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
+	if err != nil {
 		return types.ExitProfitRsp{}, nil
 	}
 

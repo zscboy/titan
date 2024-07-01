@@ -173,7 +173,6 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		UploadAssetReplicaCount: 20,
 		UploadAssetExpiration:   150,
 		IPLimit:                 5,
-		FillAssetEdgeCount:      500,
 		L2ValidatorCount:        0,
 		StorageCandidates:       []string{},
 		NodeScoreLevel: map[string][]int{

@@ -1059,10 +1059,10 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 
 // chooseCandidateNodes selects candidate nodes to pull asset replicas
 func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size float64) (map[string]*node.Node, string) {
-	_, nodes := m.nodeMgr.GetAllCandidateNodes()
-	curNode := len(nodes)
+	// _, nodes := m.nodeMgr.GetAllCandidateNodes()
+	// curNode := len(nodes)
 
-	str := fmt.Sprintf("need node:%d , filter node:%d , cur node:%d , randNum : ", count, len(filterNodes), curNode)
+	str := fmt.Sprintf("need node:%d , filter node:%d , randNum : ", count, len(filterNodes))
 
 	selectMap := make(map[string]*node.Node)
 	if count <= 0 {
@@ -1074,18 +1074,18 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 		filterMap[nodeID] = struct{}{}
 	}
 
-	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].Type == nodes[j].Type {
-			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-		}
+	// sort.Slice(nodes, func(i, j int) bool {
+	// 	if nodes[i].Type == nodes[j].Type {
+	// 		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
+	// 	}
 
-		return nodes[i].Type == types.NodeCandidate
-	})
+	// 	return nodes[i].Type == types.NodeCandidate
+	// })
 
-	// num := count * selectNodeRetryLimit
-	// nodes := m.nodeMgr.GetRandomCandidates(num)
-	for _, node := range nodes {
-		// node := m.nodeMgr.GetCandidateNode(nodeID)
+	num := count * selectNodeRetryLimit
+	nodes := m.nodeMgr.GetRandomCandidates(num)
+	for nodeID := range nodes {
+		node := m.nodeMgr.GetCandidateNode(nodeID)
 		if node == nil {
 			continue
 		}

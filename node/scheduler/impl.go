@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -126,11 +127,16 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.TCPPort = opts.TcpServerPort
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
 
-	if len(s.SchedulerCfg.StorageCandidates) > 0 {
-		for _, nID := range s.SchedulerCfg.StorageCandidates {
-			if nID == nodeID {
-				cNode.IsStorageOnly = true
-				break
+	if nodeType == types.NodeCandidate {
+		domain := checkDomain(cNode.ExternalURL)
+		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, domain)
+
+		if len(s.SchedulerCfg.StorageCandidates) > 0 {
+			for _, nID := range s.SchedulerCfg.StorageCandidates {
+				if nID == nodeID {
+					cNode.IsStorageOnly = true
+					break
+				}
 			}
 		}
 	}
@@ -235,6 +241,28 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	s.DataSync.AddNodeToList(nodeID)
 	return nil
+}
+
+func checkDomain(domain string) bool {
+	if domain == "" {
+		return false
+	}
+
+	u, err := url.Parse(domain)
+	if err != nil {
+		return false
+	}
+
+	host := u.Host
+
+	timeout := time.Second * 3
+	conn, err := net.DialTimeout("tcp", host, timeout)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+
+	return true
 }
 
 func (s *Scheduler) getNodeLastValidateTime(nodeID string) int64 {
