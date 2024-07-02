@@ -31,24 +31,44 @@ const (
 )
 
 func (m *Manager) startValidationTicker() {
-	ticker := time.NewTicker(30 * time.Minute)
-	defer ticker.Stop()
-
 	nextTick := time.Now().Truncate(30 * time.Minute)
 	if nextTick.Before(time.Now()) {
 		nextTick = nextTick.Add(30 * time.Minute)
 	}
+
 	time.Sleep(time.Until(nextTick))
 
-	for t := range ticker.C {
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
+
+	doFunc := func(t time.Time) {
 		hour := t.Hour()
-		log.Infof("start validation ------------- %d:%d", hour, t.Minute())
+		log.Infof("start validation ------------- %d:%d\n", hour, t.Minute())
+
 		if hour%2 != 0 && t.Minute() == 0 {
 			m.doValidate()
 		} else {
 			m.computeNodeProfits()
 		}
 	}
+
+	doFunc(time.Now())
+
+	for {
+		t := <-ticker.C
+		doFunc(t)
+	}
+
+	// for t := range ticker.C {
+	// 	hour := t.Hour()
+
+	// 	log.Infof("start validation 3------------- %d:%d\n", hour, t.Minute())
+	// 	if hour%2 != 0 && t.Minute() == 0 {
+	// 		m.doValidate()
+	// 	} else {
+	// 		m.computeNodeProfits()
+	// 	}
+	// }
 }
 
 func (m *Manager) doValidate() {
@@ -127,6 +147,10 @@ func (m *Manager) startValidate() error {
 	_, candidates := m.nodeMgr.GetAllCandidateNodes()
 	for _, candidate := range candidates {
 		if candidate == nil {
+			continue
+		}
+
+		if candidate.NATType != types.NatTypeNo.String() || candidate.NATType != types.NatTypeUnknown.String() {
 			continue
 		}
 
@@ -367,7 +391,7 @@ func (m *Manager) updateTimeoutResultInfo() {
 		node := m.nodeMgr.GetNode(resultInfo.NodeID)
 		if node != nil {
 			if m.curRoundID == "" {
-				dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp), node.BandwidthUp)
+				dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, float64(node.BandwidthUp))
 				if dInfo != nil {
 					dInfo.CID = resultInfo.Cid
 
@@ -420,7 +444,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 				node.BandwidthUp = int64(vr.Bandwidth)
 			}
 
-			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size, node.BandwidthUp)
+			dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
 			if dInfo != nil {
 				profit = dInfo.Profit
 

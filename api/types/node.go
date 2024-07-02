@@ -401,6 +401,15 @@ type Token struct {
 	Sign string
 }
 
+// ProjectRecordReq
+type ProjectRecordReq struct {
+	NodeID    string
+	ProjectID string
+	Size      int64
+	StartTime time.Time
+	EndTime   time.Time
+}
+
 type WorkloadEvent int
 
 const (

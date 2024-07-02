@@ -480,6 +480,15 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (*types.ValidationInf
 	}, nil
 }
 
+func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error {
+	candidateID := handler.GetNodeID(ctx)
+	if len(candidateID) == 0 {
+		return fmt.Errorf("invalid request")
+	}
+
+	return nil
+}
+
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {
 	// from sdk or web or client
 	return s.WorkloadManager.PushResult(workload, "")

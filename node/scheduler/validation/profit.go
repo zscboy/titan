@@ -36,21 +36,18 @@ func (m *Manager) computeNodeProfits() {
 
 		l := len(rsp.ValidationResultInfos)
 
-		bandwidthUp := 0.0
 		size := 0.0
 		for _, info := range rsp.ValidationResultInfos {
 			if info.Status == types.ValidationStatusCreate {
 				continue
 			}
 
-			bandwidthUp += info.Bandwidth
 			size += info.Bandwidth * float64(info.Duration)
 		}
 
-		bandwidthUp = bandwidthUp / float64(l)
 		size = size / float64(l)
 
-		dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size, int64(bandwidthUp))
+		dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
 		if dInfo != nil {
 			err := m.nodeMgr.AddNodeProfit(dInfo)
 			if err != nil {

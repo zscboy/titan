@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	uploadTrafficProfit   = 220.0 // p/GB
-	downloadTrafficProfit = 55.0  // p/GB
+	validatableUploadTrafficProfit = 15.0 // p/GB
+	uploadTrafficProfit            = 50.0 // p/GB
+	downloadTrafficProfit          = 30.0 // p/GB
 
 	mr = 1.0
 	mo = 1.0
@@ -59,67 +60,14 @@ var (
 // 	}
 // }
 
-// func (m *Manager) startMxTimer() {
-// 	ticker := time.NewTicker(time.Minute * 1)
-// 	defer ticker.Stop()
-
-// 	mx = updateMx()
-
-// 	for {
-// 		<-ticker.C
-// 		mx = updateMx()
-// 	}
-// }
-
-// func (m *Manager) GetNodeBaseProfitDetails(node *Node, count float64) *types.ProfitDetails {
-// 	p := count * m.NodeCalculateMCx()
-
-// 	if p < 0.000001 {
-// 		return nil
-// 	}
-
-// 	return &types.ProfitDetails{
-// 		NodeID: node.NodeID,
-// 		Profit: p,
-// 		PType:  types.ProfitTypeBase,
-// 	}
-// }
-
-// func (m *Manager) GetNodePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
-// 	w := 1.0
-// 	if node.IsPhone {
-// 		w = phoneWeighting
-// 	}
-
-// 	d := bToGB(size)
-// 	mip := calculateMip(node.NATType)
-// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
-// 	mn := calculateMn(lip)
-
-// 	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
-
-// 	if mbnd < 0.000001 {
-// 		return nil
-// 	}
-
-// 	return &types.ProfitDetails{
-// 		NodeID: node.NodeID,
-// 		Profit: mbnd,
-// 		PType:  types.ProfitTypePull,
-// 		Size:   int64(size),
-// 		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f] ,w:[%.1f] ", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
-// 	}
-// }
-
 func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
 	u := bToGB(size)
-	b := calculateB(node.BandwidthUp)
 	mip := calculateMip(node.NATType)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 	mx := rateOfL2Mx(node.OnlineDuration)
 
-	mbnu := mr * mx * mo * u * b * uploadTrafficProfit * mip * mn
+	mbnu := mr * mx * mo * u * uploadTrafficProfit * mip * mn
 
 	if mbnu < 0.000001 {
 		return nil
@@ -130,49 +78,21 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 		Profit: mbnu,
 		PType:  types.ProfitTypeBePull,
 		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, node.BandwidthUp, mr, mx, mo, u, b, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d]  mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%d], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
 	}
 }
 
-// func (m *Manager) GetNodeValidatorProfitDetails(node *Node, size float64) *types.ProfitDetails {
-// 	w := 1.0
-// 	if node.IsPhone {
-// 		w = phoneWeighting
-// 	}
-
-// 	d := bToGB(size)
-
-// 	mip := calculateMip(node.NATType)
-// 	lip := len(m.GetNodeOfIP(node.ExternalIP))
-// 	mn := calculateMn(lip)
-
-// 	mbnd := mr * mx * mo * d * downloadTrafficProfit * mip * mn * w
-
-// 	if mbnd < 0.000001 {
-// 		return nil
-// 	}
-
-// 	return &types.ProfitDetails{
-// 		NodeID: node.NodeID,
-// 		Profit: mbnd,
-// 		PType:  types.ProfitTypeValidator,
-// 		Size:   int64(size),
-// 		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f],w:[%.1f]", lip, mr, mx, mo, d, downloadTrafficProfit, mip, mn, w),
-// 	}
-// }
-
-func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64, bandwidthUp int64) *types.ProfitDetails {
+func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *types.ProfitDetails {
 	ds := float64(node.TitanDiskUsage)
 	s := bToGB(ds)
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mt := 1.0
-	b := calculateB(bandwidthUp)
 	mip := calculateMip(node.NATType)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
-	ms := (mr * mx * mo * min(s, 50) * 0.211148649 * mt) + (u * b * uploadTrafficProfit * mip * mn)
+	ms := (mr * mx * mo * min(s, 50) * 1.5 * mt) + (u * validatableUploadTrafficProfit * mip * mn)
 
 	if ms < 0.000001 {
 		return nil
@@ -183,7 +103,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64, band
 		Profit: ms,
 		PType:  types.ProfitTypeValidatable,
 		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, bandwidthUp, mr, mx, mo, s, u, b, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d] mr:[%.4f], mx:[%.4f], mo:[%.4f], s:[%.4f], u:[%.6f]GB, [%.1f], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, s, u, validatableUploadTrafficProfit, mip, mn),
 	}
 }
 
@@ -251,12 +171,11 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64) *types.Prof
 func (m *Manager) GetUploadProfitDetails(node *Node, size float64) *types.ProfitDetails {
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
-	b := calculateB(node.BandwidthUp)
 	mip := calculateMip(node.NATType)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
-	ms := (mr * mx * mo * u * b * uploadTrafficProfit * mn)
+	ms := mr * mx * mo * u * uploadTrafficProfit * mn
 
 	if ms < 0.000001 {
 		return nil
@@ -267,7 +186,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64) *types.Profit
 		Profit: ms,
 		PType:  types.ProfitTypeUpload,
 		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d] BandwidthUp:[%d]; mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, b:[%.4f], [%.4f], mip:[%.4f], mn:[%.4f]", lip, node.BandwidthUp, mr, mx, mo, u, b, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d] mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
 	}
 }
 

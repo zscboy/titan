@@ -482,6 +482,8 @@ type SchedulerStruct struct {
 
 		SetEdgeUpdateConfig func(p0 context.Context, p1 *EdgeUpdateConfig) (error) `perm:"admin"`
 
+		SubmitProjectReport func(p0 context.Context, p1 *types.ProjectRecordReq) (error) `perm:"candidate"`
+
 		SubmitWorkloadReport func(p0 context.Context, p1 *types.WorkloadRecordReq) (error) `perm:"default"`
 
 		SubmitWorkloadReportV2 func(p0 context.Context, p1 *types.WorkloadRecordReq) (error) `perm:"default"`
@@ -2227,6 +2229,17 @@ func (s *SchedulerStruct) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdate
 }
 
 func (s *SchedulerStub) SetEdgeUpdateConfig(p0 context.Context, p1 *EdgeUpdateConfig) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) SubmitProjectReport(p0 context.Context, p1 *types.ProjectRecordReq) (error) {
+	if s.Internal.SubmitProjectReport == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SubmitProjectReport(p0, p1)
+}
+
+func (s *SchedulerStub) SubmitProjectReport(p0 context.Context, p1 *types.ProjectRecordReq) (error) {
 	return ErrNotSupported
 }
 

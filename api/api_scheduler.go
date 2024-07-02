@@ -257,6 +257,8 @@ type Scheduler interface {
 	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error //perm:edge,candidate
 	// GetValidationResults retrieves a list of validation results with pagination using the specified node, page number, and page size
 	GetValidationResults(ctx context.Context, nodeID string, limit, offset int) (*types.ListValidationResultRsp, error) //perm:web,admin
+	// SubmitProjectReport
+	SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error //perm:candidate
 	// SubmitWorkloadReport
 	SubmitWorkloadReport(ctx context.Context, workload *types.WorkloadRecordReq) error //perm:default
 	// SubmitWorkloadReportV2
