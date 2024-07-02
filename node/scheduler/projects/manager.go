@@ -391,7 +391,7 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 			continue
 		}
 
-		cInfo.DetailsList, err = m.LoadProjectReplicasInfos(cInfo.UUID)
+		cInfo.DetailsList, err = m.LoadProjectReplicaInfos(cInfo.UUID)
 		if err != nil {
 			log.Errorf("checkProjectReplicas %s load replicas err: %s", cInfo.UUID, err.Error())
 			continue

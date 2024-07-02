@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -401,7 +400,7 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, r io.Reader, sign 
 	validator := handler.GetNodeID(ctx)
 	node := s.NodeManager.GetNode(validator)
 	if node == nil {
-		return fmt.Errorf("node %s not online", validator)
+		return xerrors.Errorf("node %s not online", validator)
 	}
 
 	signBuf, err := hex.DecodeString(sign)
@@ -453,7 +452,7 @@ func (s *Scheduler) GetValidationResults(ctx context.Context, nodeID string, lim
 // GetSchedulerPublicKey get server publicKey
 func (s *Scheduler) GetSchedulerPublicKey(ctx context.Context) (string, error) {
 	if s.PrivateKey == nil {
-		return "", fmt.Errorf("scheduler private key not exist")
+		return "", xerrors.Errorf("scheduler private key not exist")
 	}
 
 	publicKey := s.PrivateKey.PublicKey
@@ -483,7 +482,60 @@ func (s *Scheduler) GetValidationInfo(ctx context.Context) (*types.ValidationInf
 func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error {
 	candidateID := handler.GetNodeID(ctx)
 	if len(candidateID) == 0 {
-		return fmt.Errorf("invalid request")
+		return xerrors.New("invalid request")
+	}
+
+	if req.NodeID == "" {
+		return xerrors.New("node id is nil")
+	}
+
+	if req.ProjectID == "" {
+		return xerrors.New("project id is nil")
+	}
+
+	rInfo, err := s.db.LoadProjectReplicaInfo(req.ProjectID, req.NodeID)
+	if err != nil {
+		return err
+	}
+
+	if rInfo.Status != types.ProjectReplicaStatusStarted {
+		return xerrors.Errorf("project status is %s", rInfo.Status.String())
+	}
+
+	wID, err := s.db.LoadWSServerID(req.NodeID)
+	if err != nil {
+		return err
+	}
+
+	if wID != candidateID {
+		return xerrors.Errorf("candidate id %s != %s", candidateID, wID)
+	}
+
+	node := s.NodeManager.GetEdgeNode(req.NodeID)
+	if node == nil {
+		return xerrors.Errorf("node %s offline", req.NodeID)
+	}
+
+	if req.BandwidthDownSize > 0 {
+		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthDownSize, req.ProjectID)
+		pInfo.Profit = 0 // TODO test
+		if pInfo != nil {
+			err := s.db.AddNodeProfit(pInfo)
+			if err != nil {
+				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
+			}
+		}
+	}
+
+	if req.BandwidthUpSize > 0 {
+		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
+		pInfo.Profit = 0 // TODO test
+		if pInfo != nil {
+			err := s.db.AddNodeProfit(pInfo)
+			if err != nil {
+				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
+			}
+		}
 	}
 
 	return nil

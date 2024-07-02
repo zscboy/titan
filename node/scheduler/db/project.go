@@ -187,11 +187,22 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 	return nil
 }
 
-// LoadProjectReplicasInfos load project replica information based on id
-func (n *SQLDB) LoadProjectReplicasInfos(id string) ([]*types.ProjectReplicas, error) {
+// LoadProjectReplicaInfos load project replica information based on id
+func (n *SQLDB) LoadProjectReplicaInfos(id string) ([]*types.ProjectReplicas, error) {
 	var out []*types.ProjectReplicas
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE id=? `, projectReplicasTable)
 	if err := n.db.Select(&out, sQuery, id); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// LoadProjectReplicaInfo load project replica information based on id
+func (n *SQLDB) LoadProjectReplicaInfo(id, nodeID string) (*types.ProjectReplicas, error) {
+	var out *types.ProjectReplicas
+	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE id=? AND node_id=?`, projectReplicasTable)
+	if err := n.db.Get(&out, sQuery, id, nodeID); err != nil {
 		return nil, err
 	}
 

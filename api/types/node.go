@@ -403,11 +403,12 @@ type Token struct {
 
 // ProjectRecordReq
 type ProjectRecordReq struct {
-	NodeID    string
-	ProjectID string
-	Size      int64
-	StartTime time.Time
-	EndTime   time.Time
+	NodeID            string
+	ProjectID         string
+	BandwidthUpSize   float64
+	BandwidthDownSize float64
+	StartTime         time.Time
+	EndTime           time.Time
 }
 
 type WorkloadEvent int

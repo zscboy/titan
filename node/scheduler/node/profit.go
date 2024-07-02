@@ -147,7 +147,7 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 	}
 }
 
-func (m *Manager) GetDownloadProfitDetails(node *Node, size float64) *types.ProfitDetails {
+func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
 	d := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
@@ -164,11 +164,12 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64) *types.Prof
 		Profit: ms,
 		PType:  types.ProfitTypeDownload,
 		Size:   int64(size),
+		CID:    pid,
 		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f]GB, [%.4f], mn:[%.4f]", lip, mr, mx, mo, d, downloadTrafficProfit, mn),
 	}
 }
 
-func (m *Manager) GetUploadProfitDetails(node *Node, size float64) *types.ProfitDetails {
+func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mip := calculateMip(node.NATType)
@@ -186,6 +187,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64) *types.Profit
 		Profit: ms,
 		PType:  types.ProfitTypeUpload,
 		Size:   int64(size),
+		CID:    pid,
 		Note:   fmt.Sprintf("lip:[%d] mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
 	}
 }

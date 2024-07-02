@@ -43,11 +43,13 @@ func (m *Manager) startValidationTicker() {
 
 	doFunc := func(t time.Time) {
 		hour := t.Hour()
-		log.Infof("start validation ------------- %d:%d\n", hour, t.Minute())
+		log.Infof("start validation ------------- %d:%d  (%d != 0)[%v] [%v] \n", hour, t.Minute(), hour%2, hour%2 != 0, t.Minute() == 0)
 
 		if hour%2 != 0 && t.Minute() == 0 {
+			log.Infoln("start validation 1------------- ")
 			m.doValidate()
 		} else {
+			log.Infoln("start validation 2------------- ")
 			m.computeNodeProfits()
 		}
 	}

@@ -142,7 +142,7 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 		return nil, err
 	}
 
-	list, err := m.LoadProjectReplicasInfos(uuid)
+	list, err := m.LoadProjectReplicaInfos(uuid)
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +160,8 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 		}
 
 		dInfo.WsURL = vNode.WsURL()
+		dInfo.IP = vNode.ExternalIP
+		dInfo.GeoID = vNode.GeoInfo.Geo
 	}
 
 	info.DetailsList = list
