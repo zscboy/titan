@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -357,9 +358,26 @@ var daemonStartCmd = &cli.Command{
 			return xerrors.Errorf("creating node: %w", err)
 		}
 
-		tlsConfig, err := getTLSConfig(candidateCfg)
-		if err != nil {
-			return xerrors.Errorf("get tls config error: %w", err)
+		// tlsConfig, err := getTLSConfig(candidateCfg)
+		// if err != nil {
+		// 	return xerrors.Errorf("get tls config error: %w", err)
+		// }
+
+		var tlsConfig *tls.Config
+		tlsCert, domainSuffix := fetchTlsConfig()
+		if tlsCert != nil {
+			tlsConfig = &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				Certificates:       []tls.Certificate{*tlsCert},
+				NextProtos:         []string{"h2", "h3"},
+				InsecureSkipVerify: false,
+			}
+		}
+		if domainSuffix != "" {
+			candidateCfg.ExternalURL = strings.Replace(domainSuffix, "*", nodeID, 1)
+		}
+		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
+			return xerrors.Errorf("flush tls config error: %w", err)
 		}
 
 		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
@@ -377,7 +395,7 @@ var daemonStartCmd = &cli.Command{
 			TLSConfig: tlsConfig,
 		}
 
-		go startHTTP3Server(transport, handler, candidateCfg)
+		go startHTTP3Server(transport, handler, tlsConfig)
 
 		go func() {
 			<-ctx.Done()
@@ -493,9 +511,12 @@ var daemonStartCmd = &cli.Command{
 			}
 		}()
 
-		if isEnableTLS(candidateCfg) {
+		if tlsConfig != nil {
 			return httpSrv.ServeTLS(nl, "", "")
 		}
+		// if isEnableTLS(candidateCfg) {
+
+		// }
 		return httpSrv.Serve(nl)
 	},
 }
@@ -662,28 +683,16 @@ func setEndpointAPI(lr repo.LockedRepo, address string) error {
 	return nil
 }
 
-func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *config.CandidateCfg) error {
+func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *tls.Config) error {
 	var tlsConfig *tls.Config
-	if len(config.CertificatePath) == 0 && len(config.PrivateKeyPath) == 0 {
+
+	if config == nil {
 		config, err := defaultTLSConfig()
 		if err != nil {
 			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
 		}
 		tlsConfig = config
-	} else {
-		cert, err := tls.LoadX509KeyPair(config.CertificatePath, config.PrivateKeyPath)
-		if err != nil {
-			log.Errorf("startUDPServer, LoadX509KeyPair error:%s", err.Error())
-			return err
-		}
-
-		tlsConfig = &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			Certificates:       []tls.Certificate{cert},
-			NextProtos:         []string{"h2", "h3"},
-			InsecureSkipVerify: false,
-		}
 	}
 
 	ln, err := transport.ListenEarly(tlsConfig, nil)
@@ -696,4 +705,60 @@ func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *c
 		Handler:   handler,
 	}
 	return srv.ServeListener(ln)
+}
+
+func fetchTlsConfig() (crt *tls.Certificate, domainSuffix string) {
+	type Acme struct {
+		Certificate string    `json:"certificate"`
+		PrivateKey  string    `json:"private_key"`
+		CreatedAt   time.Time `json:"created_at"`
+		ExpireAt    time.Time `json:"expire_at"`
+	}
+	acmeAddress := "http://120.79.221.36:10090/api/v2/acme"
+	resp, err := http.Get(acmeAddress)
+	if err != nil {
+		log.Errorf("fetch tls config failed, error:%s", err.Error())
+		return nil, ""
+	}
+	var acme Acme
+	err = json.NewDecoder(resp.Body).Decode(&acme)
+	if err != nil {
+		log.Errorf("read tls config failed, error:%s", err.Error())
+		return nil, ""
+	}
+
+	cert, err := tls.X509KeyPair([]byte(acme.Certificate), []byte(acme.PrivateKey))
+	if err != nil {
+		log.Errorf("load tls config failed, error:%s", err.Error())
+		return nil, ""
+	}
+
+	if len(cert.Certificate) == 0 {
+		log.Error("no certificate found in the provided tls.Certificate")
+		return nil, ""
+	}
+
+	parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
+	if err != nil {
+		log.Errorf("parse certificate failed, error:%s", err.Error())
+		return nil, ""
+	}
+
+	if parsedCert.NotAfter.Before(time.Now()) {
+		log.Error("remote certificate was expired")
+		return nil, ""
+	}
+
+	for _, v := range parsedCert.DNSNames {
+		if strings.HasPrefix("*", v) {
+			return &cert, v
+		}
+	}
+
+	return nil, ""
+}
+
+func flushConfig(lr repo.LockedRepo, tlsConfig *tls.Config, cfg *config.CandidateCfg) error {
+	// TODO flush cert/key pair to certain place, external to config
+	return nil
 }
