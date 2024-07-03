@@ -1089,11 +1089,11 @@ func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
 		}
 	}()
 
-	for nodeID, pn := range nodePns {
-		uQuery := fmt.Sprintf(`UPDATE %s SET offline_duration=offline_duration+1,profit=profit-?,last_seen=NOW() WHERE node_id=?`, nodeInfoTable)
-		_, err := tx.Exec(uQuery, pn, nodeID)
+	for nodeID := range nodePns {
+		uQuery := fmt.Sprintf(`UPDATE %s SET offline_duration=offline_duration+1,last_seen=NOW() WHERE node_id=?`, nodeInfoTable)
+		_, err := tx.Exec(uQuery, nodeID)
 		if err != nil {
-			log.Errorf("UpdateNodePenalty %s, %.4f err:%s", nodeID, pn, err.Error())
+			log.Errorf("UpdateNodePenalty %s, err:%s", nodeID, err.Error())
 		}
 	}
 

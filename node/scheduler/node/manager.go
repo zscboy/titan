@@ -28,6 +28,8 @@ const (
 	penaltyInterval  = 60 * time.Second
 
 	oneDay = 24 * time.Hour
+
+	penaltyFreeTime = 10 * time.Minute
 )
 
 // Manager is the node manager responsible for managing the online nodes
@@ -81,13 +83,14 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	nodeManager.updateServerOnlineCounts()
 
 	go nodeManager.startNodeKeepaliveTimer()
-	go nodeManager.startCheckNodeTimer()
 	go nodeManager.startSaveNodeDataTimer()
 	go nodeManager.startNodePenaltyTimer()
 	// go nodeManager.startSyncEdgeCountTimer()
 	// go nodeManager.startCalculatePointsTimer()
 
 	// go nodeManager.startMxTimer()
+
+	go nodeManager.startCheckNodeTimer()
 
 	return nodeManager
 }
@@ -199,13 +202,18 @@ func (m *Manager) CheckIPExist(ip string) bool {
 // }
 
 func (m *Manager) startSaveNodeDataTimer() {
+	time.Sleep(penaltyFreeTime)
+
 	ticker := time.NewTicker(saveInfoInterval)
 	defer ticker.Stop()
+
+	// Give nodes a data to make up for 10 minutes
+	m.updateNodeData(true)
 
 	for {
 		<-ticker.C
 
-		m.updateNodeData()
+		m.updateNodeData(false)
 	}
 }
 
@@ -333,9 +341,8 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 }
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
-func (m *Manager) updateNodeData() {
+func (m *Manager) updateNodeData(isCompensate bool) {
 	nodes := make([]*types.NodeDynamicInfo, 0)
-
 	detailsList := make([]*types.ProfitDetails, 0)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
@@ -346,6 +353,10 @@ func (m *Manager) updateNodeData() {
 
 		if node.IsAbnormal() {
 			return true
+		}
+
+		if isCompensate {
+			node.KeepaliveCount = 120
 		}
 
 		incr, dInfo := m.GetEdgeBaseProfitDetails(node)
@@ -371,6 +382,10 @@ func (m *Manager) updateNodeData() {
 
 		if node.IsAbnormal() {
 			return true
+		}
+
+		if isCompensate {
+			node.KeepaliveCount = 120
 		}
 
 		if isGoodNat(node.NATType) {

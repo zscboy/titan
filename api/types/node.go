@@ -559,6 +559,8 @@ const (
 	ProfitTypeDownload
 	// ProfitTypeUpload
 	ProfitTypeUpload
+	// ProfitTypeOfflinePenalty
+	ProfitTypeOfflinePenalty
 )
 
 type ProfitDetails struct {

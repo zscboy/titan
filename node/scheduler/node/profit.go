@@ -135,6 +135,10 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 	arR := rateOfAR(node.OnlineRate)
 	mcx := l1RBase * node.OnlineRate * arR
 
+	min := roundDivision((node.KeepaliveCount * 5), 60)
+	count := roundDivision(min, 5)
+	mcx = mcx * float64(count)
+
 	if mcx < 0.000001 {
 		return nil
 	}
@@ -143,7 +147,7 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 		NodeID: node.NodeID,
 		Profit: mcx,
 		PType:  types.ProfitTypeBase,
-		Note:   fmt.Sprintf("rbase:[%.4f],node rate:[%.4f] ar rate:[%.4f]", l1RBase, node.OnlineRate, arR),
+		Note:   fmt.Sprintf("rbase:[%.4f],node rate:[%.4f] ar rate:[%.4f] , count[%d]", l1RBase, node.OnlineRate, arR, count),
 	}
 }
 
@@ -192,14 +196,21 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 	}
 }
 
-func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int) float64 {
+func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int) *types.ProfitDetails {
 	od := float64(offlineDuration / 200)
 	pr := (penaltyRate + penaltyRate*od)
 	pn := profit * pr
 
-	log.Infof("CalculatePenalty %s ,pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", nodeID, pn, profit, pr, od, offlineDuration)
+	if pn > profit {
+		pn = profit
+	}
 
-	return pn
+	return &types.ProfitDetails{
+		NodeID: nodeID,
+		Profit: -pn,
+		PType:  types.ProfitTypeOfflinePenalty,
+		Note:   fmt.Sprintf("pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", pn, profit, pr, od, offlineDuration),
+	}
 }
 
 func (m *Manager) CalculateExitProfit(profit float64) (float64, float64) {

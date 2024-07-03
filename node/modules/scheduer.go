@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -175,11 +176,12 @@ func NewPubSub() *pubsub.PubSub {
 
 // RegisterToEtcd registers the server to etcd
 func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.GetSchedulerConfigFunc, serverID dtypes.ServerID, token dtypes.PermissionWebToken) (*etcdcli.Client, error) {
+	fmt.Println("RegisterToEtcd : ", serverID)
 	cfg, err := configFunc()
+	fmt.Println("RegisterToEtcd 2: ", err)
 	if err != nil {
 		return nil, err
 	}
-
 	sCfg := &types.SchedulerCfg{
 		AreaID:       cfg.AreaID,
 		SchedulerURL: cfg.ExternalURL,
@@ -188,11 +190,13 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 	}
 
 	value, err := etcdcli.SCMarshal(sCfg)
+	fmt.Println("RegisterToEtcd 3: ", err)
 	if err != nil {
 		return nil, xerrors.Errorf("cfg SCMarshal err:%s", err.Error())
 	}
 
 	eCli, err := etcdcli.New(cfg.EtcdAddresses)
+	fmt.Println("RegisterToEtcd 4: ", err)
 	if err != nil {
 		return nil, err
 	}

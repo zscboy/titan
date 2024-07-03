@@ -528,7 +528,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	}
 
 	if req.BandwidthUpSize > 0 {
-		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
+		pInfo := s.NodeManager.GetUploadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
 		pInfo.Profit = 0 // TODO test
 		if pInfo != nil {
 			err := s.db.AddNodeProfit(pInfo)

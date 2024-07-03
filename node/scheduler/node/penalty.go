@@ -7,8 +7,7 @@ import (
 )
 
 func (m *Manager) startNodePenaltyTimer() {
-	offset := time.Minute * 10
-	time.Sleep(offset)
+	time.Sleep(penaltyFreeTime)
 
 	ticker := time.NewTicker(penaltyInterval)
 	defer ticker.Stop()
@@ -35,6 +34,7 @@ func (m *Manager) penaltyNode() {
 	// list = append(list, list2...)
 
 	offlineNodes := make(map[string]float64)
+	detailsList := make([]*types.ProfitDetails, 0)
 
 	for _, info := range list {
 		if m.GetNode(info.NodeID) != nil {
@@ -45,22 +45,31 @@ func (m *Manager) penaltyNode() {
 			continue
 		}
 
-		if info.Profit <= 0 {
+		if info.Profit <= 0.00001 {
 			continue
 		}
 
-		pn := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
-		if pn > info.Profit {
-			pn = info.Profit
+		dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
+		if dInfo != nil {
+			detailsList = append(detailsList, dInfo)
 		}
 
-		offlineNodes[info.NodeID] = pn
+		offlineNodes[info.NodeID] = 0
 	}
 
 	if len(offlineNodes) > 0 {
 		err := m.UpdateNodePenalty(offlineNodes)
 		if err != nil {
 			log.Errorf("UpdateNodePenalty err:%s", err.Error())
+		}
+	}
+
+	if len(detailsList) > 0 {
+		for _, data := range detailsList {
+			err := m.AddNodeProfit(data)
+			if err != nil {
+				log.Errorf("AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+			}
 		}
 	}
 }

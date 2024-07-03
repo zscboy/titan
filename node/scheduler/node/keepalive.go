@@ -8,10 +8,11 @@ import (
 
 // startNodeKeepaliveTimer periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
 func (m *Manager) startNodeKeepaliveTimer() {
-	start := time.Now()
+	// start := time.Now()
 
-	offset := (time.Minute - time.Duration(start.Second())*time.Second - time.Duration(start.Nanosecond())) + (time.Minute * 10)
-	time.Sleep(offset)
+	// offset := (time.Minute - time.Duration(start.Second())*time.Second - time.Duration(start.Nanosecond())) + (time.Minute * 10)
+	// time.Sleep(offset)
+	time.Sleep(penaltyFreeTime)
 
 	ticker := time.NewTicker(keepaliveTime)
 	defer ticker.Stop()
