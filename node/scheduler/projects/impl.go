@@ -160,8 +160,8 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 		}
 
 		dInfo.WsURL = vNode.WsURL()
-		dInfo.IP = vNode.ExternalIP
-		dInfo.GeoID = vNode.GeoInfo.Geo
+		dInfo.IP = node.ExternalIP
+		dInfo.GeoID = node.GeoInfo.Geo
 	}
 
 	info.DetailsList = list

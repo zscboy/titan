@@ -687,6 +687,7 @@ var listProfitDetailsCmd = &cli.Command{
 			tablewriter.Col("Size"),
 			tablewriter.Col("Profit"),
 			tablewriter.Col("CreatedTime"),
+			tablewriter.Col("Rate"),
 			tablewriter.Col("Note"),
 			// tablewriter.NewLineCol("Processes"),
 		)
@@ -707,6 +708,7 @@ var listProfitDetailsCmd = &cli.Command{
 				"Size":        units.BytesSize(float64(info.Size)),
 				"Profit":      info.Profit,
 				"CreatedTime": info.CreatedTime.Format(defaultDateTimeLayout),
+				"Rate":        info.Rate,
 				"Note":        info.Note,
 			}
 

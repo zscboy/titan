@@ -85,10 +85,6 @@ const (
 	NodeOffline NodeStatus = iota
 
 	NodeServicing
-
-	NodeUnregister
-	// Exceptions
-	NodeNatSymmetric
 )
 
 func (n NodeStatus) String() string {
@@ -97,10 +93,6 @@ func (n NodeStatus) String() string {
 		return "offline"
 	case NodeServicing:
 		return "servicing"
-	case NodeUnregister:
-		return "unregister"
-	case NodeNatSymmetric:
-		return "nat-symmetric"
 	}
 
 	return ""
@@ -572,6 +564,7 @@ type ProfitDetails struct {
 	Size        int64      `db:"size"`
 	Note        string     `db:"note"`
 	CID         string     `db:"cid"`
+	Rate        float64    `db:"rate"`
 }
 
 // ListNodeProfitDetailsRsp list node profit

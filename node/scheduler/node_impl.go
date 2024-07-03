@@ -456,7 +456,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
-		nodeInfo.Status = nodeStatus(node)
+		nodeInfo.Status = types.NodeServicing
 		nodeInfo.NATType = node.NATType
 		nodeInfo.Type = node.Type
 		nodeInfo.CPUUsage = node.CPUUsage
@@ -494,7 +494,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 
 		node := s.NodeManager.GetNode(nodeInfo.NodeID)
 		if node != nil {
-			nodeInfo.Status = nodeStatus(node)
+			nodeInfo.Status = types.NodeServicing
 			nodeInfo.NATType = node.NATType
 			nodeInfo.Type = node.Type
 			nodeInfo.CPUUsage = node.CPUUsage
@@ -587,9 +587,6 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 			continue
 		}
 
-		// workloadRecord := &types.WorkloadRecord{TokenPayload: *tkPayload, Status: types.WorkloadStatusCreate, ClientEndTime: tkPayload.Expiration.Unix()}
-		// workloadRecords = append(workloadRecords, workloadRecord)
-
 		info := &types.EdgeDownloadInfo{
 			Address: eNode.DownloadAddr(),
 			NodeID:  nodeID,
@@ -602,27 +599,6 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 	if len(infos) == 0 {
 		return nil, nil
 	}
-
-	// if len(ws) > 0 {
-	// 	buffer := &bytes.Buffer{}
-	// 	enc := gob.NewEncoder(buffer)
-	// 	err := enc.Encode(ws)
-	// 	if err != nil {
-	// 		log.Errorf("encode error:%s", err.Error())
-	// 	} else {
-	// 		record = &types.WorkloadRecord{
-	// 			WorkloadID: uuid.NewString(),
-	// 			AssetCID:   cid,
-	// 			ClientID:   clientID,
-	// 			AssetSize:  size,
-	// 			Workloads:  buffer.Bytes(),
-	// 		}
-
-	// 		if err = s.NodeManager.SaveWorkloadRecord(workloadRecords); err != nil {
-	// 			return nil, err
-	// 		}
-	// 	}
-	// }
 
 	pk, err := s.GetSchedulerPublicKey(ctx)
 	if err != nil {
@@ -681,7 +657,7 @@ func (s *Scheduler) getEdgeDownloadRatio() float64 {
 	return s.SchedulerCfg.EdgeDownloadRatio
 }
 
-func (s *Scheduler) getSource2(cNode *node.Node, cid string, titanRsa *titanrsa.Rsa) *types.SourceDownloadInfo {
+func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.Rsa) *types.SourceDownloadInfo {
 	token, _, err := cNode.Token(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
 	if err != nil {
 		return nil
@@ -691,22 +667,6 @@ func (s *Scheduler) getSource2(cNode *node.Node, cid string, titanRsa *titanrsa.
 		NodeID:  cNode.NodeID,
 		Address: cNode.DownloadAddr(),
 		Tk:      token,
-	}
-
-	return source
-}
-
-func (s *Scheduler) getSource(cNode *node.Node, cid, bucket string, titanRsa *titanrsa.Rsa) *types.CandidateDownloadInfo {
-	token, _, err := cNode.Token(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
-	if err != nil {
-		return nil
-	}
-
-	source := &types.CandidateDownloadInfo{
-		NodeID:    cNode.NodeID,
-		Address:   cNode.DownloadAddr(),
-		AWSBucket: bucket,
-		Tk:        token,
 	}
 
 	return source
@@ -779,7 +739,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			// 	}
 			// }
 
-			source := s.getSource2(cNode, cid, titanRsa)
+			source := s.getSource(cNode, cid, titanRsa)
 			if source != nil {
 				sources = append(sources, source)
 			}
@@ -796,7 +756,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			continue
 		}
 
-		source := s.getSource2(cNode, cid, titanRsa)
+		source := s.getSource(cNode, cid, titanRsa)
 		if source != nil {
 			sources = append(sources, source)
 		}
@@ -937,14 +897,6 @@ func newNodeKey() string {
 	}
 
 	return hex.EncodeToString(randomString)
-}
-
-func nodeStatus(node *node.Node) types.NodeStatus {
-	if node.NATType == types.NatTypeSymmetric.String() {
-		return types.NodeNatSymmetric
-	}
-
-	return types.NodeServicing
 }
 
 // VerifyTokenWithLimitCount verify token in limit count

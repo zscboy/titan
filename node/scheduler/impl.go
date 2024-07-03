@@ -127,18 +127,18 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
 
 	if nodeType == types.NodeCandidate {
-		domain := checkDomain(cNode.ExternalURL)
-		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, domain)
+		err := checkDomain(cNode.ExternalURL)
+		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
 
-		cNode.IsStorageNode = domain
-		// if len(s.SchedulerCfg.StorageCandidates) > 0 {
-		// 	for _, nID := range s.SchedulerCfg.StorageCandidates {
-		// 		if nID == nodeID {
-		// 			cNode.IsStorageOnly = true
-		// 			break
-		// 		}
-		// 	}
-		// }
+		// cNode.IsStorageNode = domain
+		if len(s.SchedulerCfg.StorageCandidates) > 0 {
+			for _, nID := range s.SchedulerCfg.StorageCandidates {
+				if nID == nodeID {
+					cNode.IsStorageNode = true
+					break
+				}
+			}
+		}
 	}
 
 	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v , opts.ExternalURL:%s", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly, opts.ExternalURL)
@@ -243,14 +243,14 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	return nil
 }
 
-func checkDomain(domain string) bool {
+func checkDomain(domain string) error {
 	if domain == "" {
-		return false
+		return xerrors.New("domain is nil")
 	}
 
 	u, err := url.Parse(domain)
 	if err != nil {
-		return false
+		return xerrors.Errorf("domain Parse err:%s", err.Error())
 	}
 
 	host := u.Host
@@ -258,11 +258,11 @@ func checkDomain(domain string) bool {
 	timeout := time.Second * 3
 	conn, err := net.DialTimeout("tcp", host, timeout)
 	if err != nil {
-		return false
+		return xerrors.Errorf("DialTimeout err:%s", err.Error())
 	}
 	defer conn.Close()
 
-	return true
+	return nil
 }
 
 func (s *Scheduler) getNodeLastValidateTime(nodeID string) int64 {
@@ -470,15 +470,6 @@ func (s *Scheduler) GetNodePublicKey(ctx context.Context, nodeID string) (string
 	return string(pem), nil
 }
 
-// GetValidationInfo  get information related to validation and election
-func (s *Scheduler) GetValidationInfo(ctx context.Context) (*types.ValidationInfo, error) {
-	eTime := s.ValidationMgr.GetNextElectionTime()
-
-	return &types.ValidationInfo{
-		NextElectionTime: eTime,
-	}, nil
-}
-
 func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error {
 	candidateID := handler.GetNodeID(ctx)
 	if len(candidateID) == 0 {
@@ -572,21 +563,6 @@ func (s *Scheduler) GetWorkloadRecord(ctx context.Context, id string) (*types.Wo
 // GetRetrieveEventRecords retrieves a list of retrieve events
 func (s *Scheduler) GetRetrieveEventRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) {
 	return s.NodeManager.LoadRetrieveEventRecords(nodeID, limit, offset)
-}
-
-// // GetWorkloadRecord retrieves workload result.
-// func (s *Scheduler) GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) {
-// 	return s.NodeManager.LoadWorkloadRecord(tokenID)
-// }
-
-// ElectValidators elect validators
-func (s *Scheduler) ElectValidators(ctx context.Context, nodeIDs []string, cleanOld bool) error {
-	if len(nodeIDs) == 0 {
-		return nil
-	}
-
-	// return s.ValidationMgr.CompulsoryElection(nodeIDs, cleanOld)
-	return nil
 }
 
 // UpdateNetFlows update node net flow total,up,down usage

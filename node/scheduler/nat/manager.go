@@ -65,54 +65,11 @@ func (m *Manager) startTicker() {
 	for {
 		time.Sleep(detectInterval * time.Second)
 
-		eList := m.retryEdgeList
-		var eRetryNodes []*retryNode
-		for len(eList) > 0 {
-			eRetryNodes, eList = m.edgesFromHead(m.schedulerCfg.NatDetectConcurrency, eList)
-			m.retryDetectEdgesNatType(eRetryNodes)
-		}
-
-		cList := m.retryCandidateList
-		var cRetryNodes []*retryNode
-		for len(cList) > 0 {
-			cRetryNodes, cList = m.candidatesFromHead(m.schedulerCfg.NatDetectConcurrency, cList)
-			m.retryDetectCandidatesNatType(cRetryNodes)
+		if m.nodeManager.Candidates >= miniCandidateCount {
+			m.retryDetectCandidatesNatType(m.getCandidateList())
+			m.retryDetectEdgesNatType(m.getEdgeList())
 		}
 	}
-}
-
-func (m *Manager) edgesFromHead(n int, eList []*retryNode) ([]*retryNode, []*retryNode) {
-	m.retryEdgeLock.Lock()
-	defer m.retryEdgeLock.Unlock()
-
-	if len(eList) == 0 {
-		return nil, eList
-	}
-
-	if len(eList) < n {
-		n = len(eList)
-	}
-
-	retryNodes := eList[0:n]
-	eList = eList[n:]
-	return retryNodes, eList
-}
-
-func (m *Manager) candidatesFromHead(n int, eList []*retryNode) ([]*retryNode, []*retryNode) {
-	m.retryCandidateLock.Lock()
-	defer m.retryCandidateLock.Unlock()
-
-	if len(eList) == 0 {
-		return nil, eList
-	}
-
-	if len(eList) < n {
-		n = len(eList)
-	}
-
-	retryNodes := eList[0:n]
-	eList = eList[n:]
-	return retryNodes, eList
 }
 
 func (m *Manager) addEdgeNode(n *retryNode) {
@@ -127,27 +84,6 @@ func (m *Manager) addEdgeNode(n *retryNode) {
 	m.retryEdgeList = append(m.retryEdgeList, n)
 }
 
-func (m *Manager) deleteEdgeNode(n *retryNode) {
-	m.retryEdgeLock.Lock()
-	defer m.retryEdgeLock.Unlock()
-	index := -1
-	for i, node := range m.retryEdgeList {
-		if node.id == n.id {
-			index = i
-			break
-		}
-	}
-
-	if index < 0 {
-		return
-	}
-
-	endIndex := len(m.retryEdgeList) - 1
-
-	m.retryEdgeList[index] = m.retryEdgeList[endIndex]
-	m.retryEdgeList = m.retryEdgeList[:endIndex]
-}
-
 func (m *Manager) addCandidateNode(n *retryNode) {
 	m.retryCandidateLock.Lock()
 	defer m.retryCandidateLock.Unlock()
@@ -158,27 +94,6 @@ func (m *Manager) addCandidateNode(n *retryNode) {
 	}
 
 	m.retryCandidateList = append(m.retryCandidateList, n)
-}
-
-func (m *Manager) deleteCandidateNode(n *retryNode) {
-	m.retryCandidateLock.Lock()
-	defer m.retryCandidateLock.Unlock()
-	index := -1
-	for i, node := range m.retryCandidateList {
-		if node.id == n.id {
-			index = i
-			break
-		}
-	}
-
-	if index < 0 {
-		return
-	}
-
-	endIndex := len(m.retryCandidateList) - 1
-
-	m.retryCandidateList[index] = m.retryCandidateList[endIndex]
-	m.retryCandidateList = m.retryCandidateList[:endIndex]
 }
 
 func (m *Manager) isInRetryEdgeList(nodeID string) bool {
@@ -213,32 +128,36 @@ func (m *Manager) delayCandidateDetectNatType(n *retryNode) {
 	m.addCandidateNode(n)
 }
 
-func (m *Manager) retryDetectEdgesNatType(nodes []*retryNode) {
-	wg := &sync.WaitGroup{}
+func (m *Manager) getEdgeList() []*retryNode {
+	m.retryEdgeLock.Lock()
+	defer m.retryEdgeLock.Unlock()
 
-	for _, node := range nodes {
-		wg.Add(1)
-		go func(n *retryNode) {
-			defer wg.Done()
-			m.retryEdgeDetectNatType(n)
-		}(node)
-	}
+	eList := m.retryEdgeList
+	m.retryEdgeList = make([]*retryNode, 0)
 
-	wg.Wait()
+	return eList
 }
 
-func (m *Manager) retryDetectCandidatesNatType(nodes []*retryNode) {
-	wg := &sync.WaitGroup{}
-
-	for _, node := range nodes {
-		wg.Add(1)
-		go func(n *retryNode) {
-			defer wg.Done()
-			m.retryCandidateDetectNatType(n)
-		}(node)
+func (m *Manager) retryDetectEdgesNatType(eList []*retryNode) {
+	for _, node := range eList {
+		m.retryEdgeDetectNatType(node)
 	}
+}
 
-	wg.Wait()
+func (m *Manager) getCandidateList() []*retryNode {
+	m.retryCandidateLock.Lock()
+	defer m.retryCandidateLock.Unlock()
+
+	cList := m.retryCandidateList
+	m.retryCandidateList = make([]*retryNode, 0)
+
+	return cList
+}
+
+func (m *Manager) retryDetectCandidatesNatType(cList []*retryNode) {
+	for _, node := range cList {
+		m.retryCandidateDetectNatType(node)
+	}
 }
 
 func (m *Manager) retryCandidateDetectNatType(rInfo *retryNode) {
@@ -254,7 +173,6 @@ func (m *Manager) retryCandidateDetectNatType(rInfo *retryNode) {
 
 	cNode := m.nodeManager.GetNode(nodeID)
 	if cNode == nil {
-		m.deleteCandidateNode(rInfo)
 		return
 	}
 
@@ -272,10 +190,10 @@ func (m *Manager) retryCandidateDetectNatType(rInfo *retryNode) {
 		}
 	}
 
-	cNode.NATType = determineNodeNATType(context.Background(), cNode, cNodes, m.http3Client)
+	cNode.NATType = determineNodeNATType(cNode, cNodes, m.http3Client)
 
-	if cNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= (maxRetry*2) {
-		m.deleteCandidateNode(rInfo)
+	if cNode.NATType == types.NatTypeUnknown.String() {
+		m.addCandidateNode(rInfo)
 	}
 	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, cNode.NATType, rInfo.retry)
 }
@@ -293,16 +211,15 @@ func (m *Manager) retryEdgeDetectNatType(rInfo *retryNode) {
 
 	eNode := m.nodeManager.GetNode(nodeID)
 	if eNode == nil {
-		m.deleteEdgeNode(rInfo)
 		return
 	}
 
 	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount)
 
-	eNode.NATType = determineNodeNATType(context.Background(), eNode, cNodes, m.http3Client)
+	eNode.NATType = determineNodeNATType(eNode, cNodes, m.http3Client)
 
-	if eNode.NATType != types.NatTypeUnknown.String() || rInfo.retry >= maxRetry {
-		m.deleteEdgeNode(rInfo)
+	if eNode.NATType == types.NatTypeUnknown.String() && rInfo.retry < maxRetry {
+		m.addEdgeNode(rInfo)
 	}
 	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, eNode.NATType, rInfo.retry)
 }
@@ -339,7 +256,7 @@ func (m *Manager) DetermineCandidateNATType(ctx context.Context, nodeID string) 
 		}
 	}
 
-	eNode.NATType = determineNodeNATType(ctx, eNode, cNodes, m.http3Client)
+	eNode.NATType = determineNodeNATType(eNode, cNodes, m.http3Client)
 
 	if eNode.NATType == types.NatTypeUnknown.String() {
 		m.delayCandidateDetectNatType(&retryNode{id: nodeID, retry: 0})
@@ -355,7 +272,7 @@ func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 
 	_, ok := m.edgeMap.LoadOrStore(nodeID, struct{}{})
 	if ok {
-		log.Warnf("node %s determining nat type")
+		log.Warnf("node %s determining nat type", nodeID)
 		return
 	}
 	defer m.edgeMap.Delete(nodeID)
@@ -368,7 +285,7 @@ func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 
 	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount)
 
-	eNode.NATType = determineNodeNATType(ctx, eNode, cNodes, m.http3Client)
+	eNode.NATType = determineNodeNATType(eNode, cNodes, m.http3Client)
 
 	if eNode.NATType == types.NatTypeUnknown.String() {
 		m.delayEdgeDetectNatType(&retryNode{id: nodeID, retry: 0})

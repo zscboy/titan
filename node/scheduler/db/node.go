@@ -775,7 +775,7 @@ func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {
 	}()
 
 	// add profit details
-	sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid)`, profitDetailsTable)
+	sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
 	_, err = tx.NamedExec(sqlString, profitInfo)
 	if err != nil {
 		return err
@@ -942,6 +942,12 @@ func (n *SQLDB) CleanData() error {
 		return err
 	}
 
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, onlineCountTable)
+	_, err = n.db.Exec(query)
+	if err != nil {
+		return err
+	}
+
 	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, projectEventTable)
 	_, err = n.db.Exec(query)
 	return err
@@ -1049,7 +1055,7 @@ func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time)
 
 	for _, nodeID := range nodes {
 		query := fmt.Sprintf(
-			`INSERT INTO %s (node_id, create_time, online_count)
+			`INSERT INTO %s (node_id, created_time, online_count)
 			    VALUES (?, ?, ?)
 				ON DUPLICATE KEY UPDATE online_count=online_count+?`, onlineCountTable)
 
@@ -1065,7 +1071,7 @@ func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time)
 // GetOnlineCount
 func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {
 	count := 0
-	query := fmt.Sprintf("SELECT online_count FROM %s WHERE node_id=? AND create_time=? ", onlineCountTable)
+	query := fmt.Sprintf("SELECT online_count FROM %s WHERE node_id=? AND created_time=? ", onlineCountTable)
 
 	err := n.db.Get(&count, query, node, date)
 	if err != nil {

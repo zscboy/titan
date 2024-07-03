@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
@@ -81,7 +82,10 @@ func analyzeNodeNATType(ctx context.Context, eNode *node.Node, candidateNodes []
 }
 
 // determineNATType detect the NAT type of an edge node
-func determineNodeNATType(ctx context.Context, edgeNode *node.Node, candidateNodes []*node.Node, http3Client *http.Client) string {
+func determineNodeNATType(edgeNode *node.Node, candidateNodes []*node.Node, http3Client *http.Client) string {
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	defer cancel()
+
 	natType, err := analyzeNodeNATType(ctx, edgeNode, candidateNodes, http3Client)
 	if err != nil {
 		log.Warnf("determineNATType, %s error: %s", edgeNode.NodeID, err.Error())

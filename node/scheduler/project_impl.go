@@ -107,8 +107,8 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 			}
 
 			dInfo.WsURL = vNode.WsURL()
-			dInfo.IP = vNode.ExternalIP
-			dInfo.GeoID = vNode.GeoInfo.Geo
+			dInfo.IP = node.ExternalIP
+			dInfo.GeoID = node.GeoInfo.Geo
 		}
 
 		pInfo.DetailsList = list

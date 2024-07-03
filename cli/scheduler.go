@@ -23,7 +23,6 @@ var SchedulerCMDs = []*cli.Command{
 	startElectionCmd,
 	// other
 	edgeUpdaterCmd,
-	electValidatorsCmd,
 	loadWorkloadCmd,
 	loadCandidateCodeCmd,
 	reNatCmd,
@@ -243,43 +242,6 @@ var startElectionCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.TriggerElection(ctx)
-	},
-}
-
-var electValidatorsCmd = &cli.Command{
-	Name:  "elect",
-	Usage: "elect validators",
-	Flags: []cli.Flag{
-		&cli.StringSliceFlag{
-			Name:  "nodes",
-			Usage: "node id list",
-			Value: &cli.StringSlice{},
-		},
-		&cli.BoolFlag{
-			Name:  "clean",
-			Usage: "Whether to clean up old validators",
-			Value: false,
-		},
-	},
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeIDs := cctx.StringSlice("nodes")
-		if len(nodeIDs) == 0 {
-			return nil
-		}
-
-		clean := cctx.Bool("clean")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.ElectValidators(ctx, nodeIDs, clean)
 	},
 }
 

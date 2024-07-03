@@ -285,8 +285,4 @@ type Scheduler interface {
 	SetEdgeUpdateConfig(ctx context.Context, info *EdgeUpdateConfig) error //perm:admin
 	// DeleteEdgeUpdateConfig deletes the edge update configuration for the specified node type
 	DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error //perm:admin
-	// GetValidationInfo get information related to validation and election
-	GetValidationInfo(ctx context.Context) (*types.ValidationInfo, error) //perm:web,admin
-	// ElectValidators
-	ElectValidators(ctx context.Context, nodeIDs []string, cleanOld bool) error //perm:admin
 }

@@ -274,6 +274,7 @@ var cProfitDetailsTable = `
 		profit_type   INT            NOT NULL,
 		note          VARCHAR(1024)  DEFAULT '', 
 		cid           VARCHAR(128)   DEFAULT '',
+		rate          DECIMAL(5, 4)  DEFAULT 0,
 		PRIMARY KEY (id),
 	    KEY idx_node_id (node_id),
 	    KEY idx_time (created_time)
@@ -345,7 +346,7 @@ var cProjectEventTable = `
 var cOnlineCountTable = `
 	CREATE TABLE if not exists %s (
 		node_id         VARCHAR(128)  NOT NULL,
-		create_time     DATETIME      NOT NULL,
+		created_time    DATETIME      NOT NULL,
 		online_count    INT           DEFAULT 0,
-		PRIMARY KEY (node_id,create_time)
+		PRIMARY KEY (node_id,created_time)
 	) ENGINE=InnoDB COMMENT='node and server online count';`

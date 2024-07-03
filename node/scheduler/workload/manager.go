@@ -17,14 +17,6 @@ import (
 var log = logging.Logger("workload")
 
 const (
-	workloadInterval = 24 * time.Hour
-	confirmationTime = 7 * 24 * time.Hour
-
-	// Process 500 pieces of workload result data at a time
-	vWorkloadLimit = 500
-
-	handlerWorkers = 50
-
 	l2ProfitLimit = 5000
 )
 

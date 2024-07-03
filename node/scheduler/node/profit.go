@@ -209,6 +209,7 @@ func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuratio
 		NodeID: nodeID,
 		Profit: -pn,
 		PType:  types.ProfitTypeOfflinePenalty,
+		Rate:   pr,
 		Note:   fmt.Sprintf("pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", pn, profit, pr, od, offlineDuration),
 	}
 }

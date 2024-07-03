@@ -460,8 +460,6 @@ type SchedulerStruct struct {
 
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) (error) `perm:"admin"`
 
-		ElectValidators func(p0 context.Context, p1 []string, p2 bool) (error) `perm:"admin"`
-
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
 		GetNodePublicKey func(p0 context.Context, p1 string) (string, error) `perm:"web,admin"`
@@ -469,8 +467,6 @@ type SchedulerStruct struct {
 		GetRetrieveEventRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) `perm:"web,admin"`
 
 		GetSchedulerPublicKey func(p0 context.Context) (string, error) `perm:"edge,candidate"`
-
-		GetValidationInfo func(p0 context.Context) (*types.ValidationInfo, error) `perm:"web,admin"`
 
 		GetValidationResults func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListValidationResultRsp, error) `perm:"web,admin"`
 
@@ -2111,17 +2107,6 @@ func (s *SchedulerStub) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) (erro
 	return ErrNotSupported
 }
 
-func (s *SchedulerStruct) ElectValidators(p0 context.Context, p1 []string, p2 bool) (error) {
-	if s.Internal.ElectValidators == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ElectValidators(p0, p1, p2)
-}
-
-func (s *SchedulerStub) ElectValidators(p0 context.Context, p1 []string, p2 bool) (error) {
-	return ErrNotSupported
-}
-
 func (s *SchedulerStruct) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
 	if s.Internal.GetEdgeUpdateConfigs == nil {
 		return *new(map[int]*EdgeUpdateConfig), ErrNotSupported
@@ -2164,17 +2149,6 @@ func (s *SchedulerStruct) GetSchedulerPublicKey(p0 context.Context) (string, err
 
 func (s *SchedulerStub) GetSchedulerPublicKey(p0 context.Context) (string, error) {
 	return "", ErrNotSupported
-}
-
-func (s *SchedulerStruct) GetValidationInfo(p0 context.Context) (*types.ValidationInfo, error) {
-	if s.Internal.GetValidationInfo == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetValidationInfo(p0)
-}
-
-func (s *SchedulerStub) GetValidationInfo(p0 context.Context) (*types.ValidationInfo, error) {
-	return nil, ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetValidationResults(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListValidationResultRsp, error) {
