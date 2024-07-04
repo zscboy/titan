@@ -412,7 +412,7 @@ func (l *Locator) GetUserAccessPoint(ctx context.Context, userIP string) (*api.A
 		return nil, err
 	}
 
-	if geoInfo.Longitude == 0 && geoInfo.Longitude == 0 {
+	if geoInfo.Longitude == 0 && geoInfo.Latitude == 0 {
 		return nil, fmt.Errorf("Can not get geo info for user %s", userIP)
 	}
 
