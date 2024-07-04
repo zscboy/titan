@@ -8,9 +8,10 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net"
-	"net/url"
+	"net/http"
 	"strings"
 	"time"
 
@@ -126,21 +127,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.TCPPort = opts.TcpServerPort
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
 
-	if nodeType == types.NodeCandidate {
-		err := checkDomain(cNode.ExternalURL)
-		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
-
-		// cNode.IsStorageNode = domain
-		if len(s.SchedulerCfg.StorageCandidates) > 0 {
-			for _, nID := range s.SchedulerCfg.StorageCandidates {
-				if nID == nodeID {
-					cNode.IsStorageNode = true
-					break
-				}
-			}
-		}
-	}
-
 	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v , opts.ExternalURL:%s", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly, opts.ExternalURL)
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
@@ -233,6 +219,21 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		s.ProjectManager.CheckProjectReplicasFromNode(nodeID)
 	}
 
+	if nodeType == types.NodeCandidate {
+		err := checkDomain(cNode.ExternalURL)
+		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
+		cNode.IsStorageNode = err == nil
+		// cNode.IsStorageNode = domain
+		if len(s.SchedulerCfg.StorageCandidates) > 0 {
+			for _, nID := range s.SchedulerCfg.StorageCandidates {
+				if nID == nodeID {
+					cNode.IsStorageNode = true
+					break
+				}
+			}
+		}
+	}
+
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
 	} else {
@@ -248,21 +249,24 @@ func checkDomain(domain string) error {
 		return xerrors.New("domain is nil")
 	}
 
-	u, err := url.Parse(domain)
-	if err != nil {
-		return xerrors.Errorf("domain Parse err:%s", err.Error())
-	}
+	// u, err := url.Parse(domain)
+	// if err != nil {
+	// 	return xerrors.Errorf("domain Parse err:%s", err.Error())
+	// }
 
-	host := u.Host
+	// host := u.Host
 
-	timeout := time.Second * 3
-	conn, err := net.DialTimeout("tcp", host, timeout)
-	if err != nil {
-		return xerrors.Errorf("DialTimeout err:%s", err.Error())
-	}
-	defer conn.Close()
+	url := fmt.Sprintf("%s/abc", domain)
+	_, err := http.Get(url)
 
-	return nil
+	// timeout := time.Second * 3
+	// conn, err := net.DialTimeout("tcp", host, timeout)
+	// if err != nil {
+	// 	return xerrors.Errorf("DialTimeout err:%s", err.Error())
+	// }
+	// defer conn.Close()
+
+	return err
 }
 
 func (s *Scheduler) getNodeLastValidateTime(nodeID string) int64 {

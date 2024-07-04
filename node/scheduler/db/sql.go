@@ -127,14 +127,14 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 }
 
 func doExec(d *SQLDB, serverID dtypes.ServerID) {
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE create_time created_time    DATETIME      NOT NULL", onlineCountTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD rate    DECIMAL(5, 4)  DEFAULT 0;", profitDetailsTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE create_time created_time    DATETIME      NOT NULL", onlineCountTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD rate    DECIMAL(5, 4)  DEFAULT 0;", profitDetailsTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

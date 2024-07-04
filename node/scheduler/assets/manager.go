@@ -140,7 +140,7 @@ func (m *Manager) startCheckCandidateBackupTimer() {
 func (m *Manager) startCheckAssetsTimer() {
 	now := time.Now()
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 10, 0, 0, 0, time.UTC)
+	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, time.UTC)
 	if now.After(nextTime) {
 		nextTime = nextTime.Add(24 * time.Hour)
 	}
@@ -212,10 +212,19 @@ func (m *Manager) retrieveCandidateBackupOfAssets() {
 	}
 
 	for _, hash := range hashes {
-		exist, err := m.AssetExists(hash, m.nodeMgr.ServerID)
-		if err != nil || !exist {
+		stateInfo, err := m.LoadAssetStateInfo(hash, m.nodeMgr.ServerID)
+		if err != nil {
 			continue
 		}
+
+		if stateInfo.State == Remove.String() {
+			continue
+		}
+
+		// exist, err := m.AssetExists(hash, m.nodeMgr.ServerID)
+		// if err != nil || !exist {
+		// 	continue
+		// }
 
 		if m.isAssetTaskExist(hash) {
 			continue
@@ -897,15 +906,22 @@ func (m *Manager) processMissingAssetReplicas(offset int) int {
 			continue
 		}
 
-		effectiveEdges, err := m.checkAssetReliability(cInfo.Hash)
+		effectiveEdges, deleteNodes, err := m.checkAssetReliability(cInfo.Hash)
 		if err != nil {
 			log.Errorf("checkAssetReliability err: %s", err.Error())
 			continue
 		}
 
+		for _, nodeID := range deleteNodes {
+			err = m.RemoveReplica(cInfo.CID, cInfo.Hash, nodeID)
+			if err != nil {
+				log.Errorf("RemoveReplica %s err: %s", nodeID, err.Error())
+			}
+		}
+
 		missingEdges := cInfo.NeedEdgeReplica - int64(effectiveEdges)
 
-		if missingEdges <= 0 && cInfo.State == Servicing.String() {
+		if missingEdges <= 0 && cInfo.State == Servicing.String() && len(deleteNodes) == 0 {
 			// Asset are healthy and do not need to be replenish replicas
 			continue
 		}
@@ -928,7 +944,7 @@ func (m *Manager) processMissingAssetReplicas(offset int) int {
 }
 
 // Check the reliability of assets
-func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr error) {
+func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, deleteNodes []string, outErr error) {
 	// loading asset replicas
 	replicas, outErr := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if outErr != nil {
@@ -936,10 +952,9 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr
 		return
 	}
 
+	deleteNodes = make([]string, 0)
+
 	for _, rInfo := range replicas {
-		if rInfo.IsCandidate {
-			continue
-		}
 		// Are the nodes unreliable
 		nodeID := rInfo.NodeID
 		lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
@@ -950,6 +965,10 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, outErr
 
 		if lastSeen.Add(maxNodeOfflineTime).After(time.Now()) {
 			effectiveEdges++
+		}
+
+		if lastSeen.Add(maxNodeOfflineTime * 5).After(time.Now()) {
+			deleteNodes = append(deleteNodes, nodeID)
 		}
 	}
 
