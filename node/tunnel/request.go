@@ -3,6 +3,7 @@ package tunnel
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 type Request struct {
@@ -10,6 +11,12 @@ type Request struct {
 	tag    uint16
 	inused bool
 	conn   net.Conn
+
+	startTime time.Time
+	// upload data count of L2
+	dataCountUp int64
+	// download data count of L2
+	dataCountDown int64
 }
 
 func newRequest(idx uint16) *Request {
@@ -20,6 +27,7 @@ func (r *Request) write(data []byte) error {
 	if r.conn == nil {
 		return fmt.Errorf("request idx %d, writer is nil", r.idx)
 	}
+
 	return r.writeAll(data)
 }
 
@@ -45,6 +53,22 @@ func (r *Request) dofree() {
 		r.conn.Close()
 		r.conn = nil
 	}
+
+	r.dataCountUp = 0
+	r.dataCountDown = 0
+	r.startTime = time.Time{}
+}
+
+func (r *Request) setStartTimeNow() {
+	r.startTime = time.Now()
+}
+
+func (r *Request) countDataUp(incre int) {
+	r.dataCountUp += int64(incre)
+}
+
+func (r *Request) countDataDown(incre int) {
+	r.dataCountDown += int64(incre)
 }
 
 func (r *Request) proxy(tunclient *Tunclient) {

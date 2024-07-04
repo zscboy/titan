@@ -73,6 +73,9 @@ func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
 	if req == nil {
 		return fmt.Errorf("can not find request, idx %d, tag %d", idx, tag)
 	}
+
+	req.countDataUp(len(data))
+
 	return req.write(data)
 }
 
@@ -146,6 +149,12 @@ func (t *Tunnel) onClientClose(idx, tag uint16) error {
 }
 
 func (t *Tunnel) onClientRecvData(idx, tag uint16, data []byte) error {
+	// count data
+	req := t.reqq.getReq(idx, tag)
+	if req != nil {
+		req.countDataDown(len(data))
+	}
+
 	buf := make([]byte, 5+len(data))
 	buf[0] = byte(cMDReqData)
 	binary.LittleEndian.PutUint16(buf[1:], idx)
