@@ -104,6 +104,8 @@ type CandidateCfg struct {
 	MinioConfig
 	WebRedirect string
 	ExternalURL string
+	// AcmeUrl automatically issue certificates for L1 node
+	AcmeUrl string
 	// Let the scheduler know that this node does not do tasks
 	IsPrivate bool
 }

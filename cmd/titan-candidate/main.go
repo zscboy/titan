@@ -364,17 +364,26 @@ var daemonStartCmd = &cli.Command{
 		// }
 
 		var tlsConfig *tls.Config
-		tlsCert, domainSuffix := fetchTlsConfig()
+		tlsCert, domainSuffix := fetchTlsConfig(candidateCfg.AcmeUrl)
 		if tlsCert != nil {
+			log.Info("TLS cert/key pair fetched, using remote tls config")
 			tlsConfig = &tls.Config{
 				MinVersion:         tls.VersionTLS12,
 				Certificates:       []tls.Certificate{*tlsCert},
 				NextProtos:         []string{"h2", "h3"},
 				InsecureSkipVerify: false,
 			}
+		} else {
+			log.Info("No remote tls config, using default tls config")
+			tlsConfig, err = defaultTLSConfig()
+			if err != nil {
+				return xerrors.Errorf("get tls config error: %w", err)
+			}
 		}
 		if domainSuffix != "" {
-			candidateCfg.ExternalURL = strings.Replace(domainSuffix, "*", nodeID, 1)
+			nodeVal := nodeID[2:]
+			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
+			candidateCfg.ExternalURL = fmt.Sprintf("%s:%s", "https://"+strings.Replace(domainSuffix, "*", nodeVal, 1), port)
 		}
 		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
 			return xerrors.Errorf("flush tls config error: %w", err)
@@ -684,37 +693,35 @@ func setEndpointAPI(lr repo.LockedRepo, address string) error {
 }
 
 func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *tls.Config) error {
-	var tlsConfig *tls.Config
-
+	var err error
 	if config == nil {
-		config, err := defaultTLSConfig()
+		config, err = defaultTLSConfig()
 		if err != nil {
 			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
 		}
-		tlsConfig = config
 	}
 
-	ln, err := transport.ListenEarly(tlsConfig, nil)
+	ln, err := transport.ListenEarly(config, nil)
 	if err != nil {
+		log.Errorf("startUDPServer, ListenEarly error:%s", err.Error())
 		return err
 	}
 
 	srv := http3.Server{
-		TLSConfig: tlsConfig,
+		TLSConfig: config,
 		Handler:   handler,
 	}
 	return srv.ServeListener(ln)
 }
 
-func fetchTlsConfig() (crt *tls.Certificate, domainSuffix string) {
+func fetchTlsConfig(acmeAddress string) (crt *tls.Certificate, domainSuffix string) {
 	type Acme struct {
 		Certificate string    `json:"certificate"`
 		PrivateKey  string    `json:"private_key"`
 		CreatedAt   time.Time `json:"created_at"`
 		ExpireAt    time.Time `json:"expire_at"`
 	}
-	acmeAddress := "http://120.79.221.36:10090/api/v2/acme"
 	resp, err := http.Get(acmeAddress)
 	if err != nil {
 		log.Errorf("fetch tls config failed, error:%s", err.Error())
@@ -750,7 +757,7 @@ func fetchTlsConfig() (crt *tls.Certificate, domainSuffix string) {
 	}
 
 	for _, v := range parsedCert.DNSNames {
-		if strings.HasPrefix("*", v) {
+		if strings.HasPrefix(v, "*") {
 			return &cert, v
 		}
 	}
@@ -759,6 +766,6 @@ func fetchTlsConfig() (crt *tls.Certificate, domainSuffix string) {
 }
 
 func flushConfig(lr repo.LockedRepo, tlsConfig *tls.Config, cfg *config.CandidateCfg) error {
-	// TODO flush cert/key pair to certain place, external to config
+	// TODO flush cert/key pair to external to disk config
 	return nil
 }

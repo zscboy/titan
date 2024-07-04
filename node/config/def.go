@@ -127,6 +127,7 @@ func DefaultCandidateCfg() *CandidateCfg {
 		MetadataPath: "",
 		AssetsPaths:  []string{},
 		WebRedirect:  "https://storage.titannet.io/#/redirect",
+		AcmeUrl:      "https://api-test1.container1.titannet.io/api/v2/acme",
 		IsPrivate:    false,
 	}
 }
