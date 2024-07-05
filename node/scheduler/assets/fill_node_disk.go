@@ -221,11 +221,6 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64,
 			break
 		}
 
-		// Merge L1 nodes
-		// if node.Type == types.NodeValidator {
-		// 	continue
-		// }
-
 		if !node.DiskEnough(size) {
 			continue
 		}

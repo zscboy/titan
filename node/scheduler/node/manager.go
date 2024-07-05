@@ -17,7 +17,12 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 )
 
-var log = logging.Logger("node")
+var (
+	log = logging.Logger("node")
+
+	levelSelectWeight = []int{1, 2, 3, 4, 5}
+	nodeScoreLevel    = []int{20, 50, 70, 90, 100}
+)
 
 const (
 	// keepaliveTime is the interval between keepalive requests
@@ -52,8 +57,7 @@ type Manager struct {
 	nodeIPs   map[string][]string
 	ipMapLock *sync.RWMutex
 
-	nodeScoreLevel map[string][]int
-	geoMgr         *GeoMgr
+	geoMgr *GeoMgr
 
 	serverOnlineCounts map[time.Time]int
 
@@ -79,17 +83,11 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	}
 
 	nodeManager.ipLimit = nodeManager.getIPLimit()
-	nodeManager.initLevelScale()
 	nodeManager.updateServerOnlineCounts()
 
 	go nodeManager.startNodeKeepaliveTimer()
 	go nodeManager.startSaveNodeDataTimer()
 	go nodeManager.startNodePenaltyTimer()
-	// go nodeManager.startSyncEdgeCountTimer()
-	// go nodeManager.startCalculatePointsTimer()
-
-	// go nodeManager.startMxTimer()
-
 	go nodeManager.startCheckNodeTimer()
 
 	return nodeManager
@@ -315,13 +313,8 @@ func (m *Manager) DistributeNodeWeight(node *Node) {
 		return
 	}
 
-	// Merge L1 nodes
-	// if node.Type == types.NodeValidator {
-	// 	return
-	// }
-
-	score := m.getNodeScoreLevel(node.NodeID)
-	wNum := m.weightMgr.getWeightNum(score)
+	node.Level = m.getNodeScoreLevel(node)
+	wNum := m.weightMgr.getWeightNum(node.Level)
 	if node.Type == types.NodeCandidate {
 		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
 	} else if node.Type == types.NodeEdge {
@@ -482,13 +475,8 @@ func (m *Manager) redistributeNodeSelectWeights() {
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, node.FirstTime)
 
-		// Merge L1 nodes
-		// if node.Type == types.NodeValidator {
-		// 	return true
-		// }
-
-		score := m.getNodeScoreLevel(node.NodeID)
-		wNum := m.weightMgr.getWeightNum(score)
+		node.Level = m.getNodeScoreLevel(node)
+		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
 
 		return true
@@ -503,8 +491,8 @@ func (m *Manager) redistributeNodeSelectWeights() {
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, node.FirstTime)
 
-		score := m.getNodeScoreLevel(node.NodeID)
-		wNum := m.weightMgr.getWeightNum(score)
+		node.Level = m.getNodeScoreLevel(node)
+		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeEdgeWeight(node.NodeID, wNum)
 
 		return true

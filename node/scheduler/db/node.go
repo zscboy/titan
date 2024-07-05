@@ -942,7 +942,7 @@ func (n *SQLDB) CleanData() error {
 		return err
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, onlineCountTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, onlineCountTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		return err

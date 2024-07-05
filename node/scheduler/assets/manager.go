@@ -959,7 +959,8 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, delete
 		nodeID := rInfo.NodeID
 		lastSeen, err := m.LoadNodeLastSeenTime(nodeID)
 		if err != nil {
-			log.Errorf("checkAssetReliability LoadLastSeenOfNode err: %s", err.Error())
+			log.Errorf("checkAssetReliability %s LoadLastSeenOfNode err: %s", nodeID, err.Error())
+			deleteNodes = append(deleteNodes, nodeID)
 			continue
 		}
 
@@ -968,7 +969,6 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges int, delete
 		}
 
 		if lastSeen.Add(maxNodeOfflineTime * 5).After(time.Now()) {
-			deleteNodes = append(deleteNodes, nodeID)
 		}
 	}
 
@@ -1109,10 +1109,6 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 			continue
 		}
 
-		// Merge L1 nodes
-		// if node.Type == types.NodeValidator {
-		// 	continue
-		// }
 		nodeID := node.NodeID
 
 		if !node.DiskEnough(size) {

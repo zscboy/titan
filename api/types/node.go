@@ -40,6 +40,7 @@ type NodeInfo struct {
 	ClientType      NodeClientType
 	BackProjectTime int64
 	RemoteAddr      string
+	Level           int
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	GeoInfo         *region.GeoInfo
 	AssetCount      int64 `db:"asset_count"`
