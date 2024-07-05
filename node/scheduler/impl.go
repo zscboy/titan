@@ -22,6 +22,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	"github.com/Filecoin-Titan/titan/region"
 	"github.com/docker/go-units"
+	"github.com/google/uuid"
 	"github.com/quic-go/quic-go"
 
 	"go.uber.org/fx"
@@ -588,4 +589,53 @@ func (s *Scheduler) ReDetermineNodeNATType(ctx context.Context, nodeID string) e
 	}
 
 	return nil
+}
+
+func (s *Scheduler) GenerateCandidateCodes(ctx context.Context, count int, nodeType types.NodeType, isTest bool) ([]string, error) {
+	infos := make([]*types.CandidateCodeInfo, 0)
+	out := make([]string, 0)
+	for i := 0; i < count; i++ {
+		code := uuid.NewString()
+		code = strings.Replace(code, "-", "", -1)
+
+		infos = append(infos, &types.CandidateCodeInfo{
+			Code:       code,
+			NodeType:   nodeType,
+			Expiration: time.Now().Add(time.Hour * 24),
+			IsTest:     isTest,
+		})
+		out = append(out, code)
+	}
+
+	return out, s.db.SaveCandidateCodeInfo(infos)
+}
+
+func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) {
+	if nodeID != "" {
+		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
+		if err != nil {
+			return nil, err
+		}
+
+		return []*types.CandidateCodeInfo{info}, nil
+	}
+
+	if code != "" {
+		info, err := s.db.GetCandidateCodeInfo(code)
+		if err != nil {
+			return nil, err
+		}
+
+		return []*types.CandidateCodeInfo{info}, nil
+	}
+
+	return s.db.GetCandidateCodeInfos()
+}
+
+func (s *Scheduler) ResetCandidateCode(ctx context.Context, nodeID, code string) error {
+	return s.db.ResetCandidateCodeInfo(code, nodeID)
+}
+
+func (s *Scheduler) RemoveCandidateCode(ctx context.Context, code string) error {
+	return s.db.DeleteCandidateCodeInfo(code)
 }

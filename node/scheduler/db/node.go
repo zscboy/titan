@@ -1033,6 +1033,22 @@ func (n *SQLDB) UpdateCandidateCodeInfo(code, nodeID string) error {
 	return err
 }
 
+// ResetCandidateCodeInfo code info
+func (n *SQLDB) ResetCandidateCodeInfo(code, nodeID string) error {
+	query := fmt.Sprintf(`UPDATE %s SET node_id=? WHERE code=? `, candidateCodeTable)
+	result, err := n.db.Exec(query, nodeID, code)
+	if err != nil {
+		return err
+	}
+
+	r, err := result.RowsAffected()
+	if r < 1 {
+		return xerrors.New("nothing to update")
+	}
+
+	return err
+}
+
 // DeleteCandidateCodeInfo code info
 func (n *SQLDB) DeleteCandidateCodeInfo(code string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE code=?`, candidateCodeTable)

@@ -20,11 +20,11 @@ var SchedulerCMDs = []*cli.Command{
 	WithCategory("config", sConfigCmds),
 	WithCategory("user", userCmds),
 	WithCategory("project", projectCmds),
+	WithCategory("codes", codesCmds),
 	startElectionCmd,
 	// other
 	edgeUpdaterCmd,
 	loadWorkloadCmd,
-	loadCandidateCodeCmd,
 	reNatCmd,
 }
 
@@ -131,41 +131,6 @@ var loadWorkloadCmd = &cli.Command{
 
 		for _, w := range ws {
 			fmt.Println(w.SourceID)
-		}
-
-		return nil
-	},
-}
-
-var loadCandidateCodeCmd = &cli.Command{
-	Name:  "codes",
-	Usage: "load candidate code info",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-		&cli.StringFlag{
-			Name:  "code",
-			Usage: "code id",
-			Value: "",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-		code := cctx.String("code")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		infos, err := schedulerAPI.GetCandidateCodeInfos(ctx, nodeID, code)
-		if err != nil {
-			return err
-		}
-
-		for _, info := range infos {
-			fmt.Printf("code:%s node:%s type:%s\n", info.Code, info.NodeID, info.NodeType.String())
 		}
 
 		return nil

@@ -314,8 +314,6 @@ type NodeAPIStruct struct {
 
 		CalculateExitProfit func(p0 context.Context, p1 string) (types.ExitProfitRsp, error) `perm:"web,admin,candidate"`
 
-		CandidateCodeExist func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
-
 		CandidateConnect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"candidate"`
 
 		CheckIpUsage func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
@@ -328,15 +326,11 @@ type NodeAPIStruct struct {
 
 		FreeUpDiskSpace func(p0 context.Context, p1 string, p2 int64) (*types.FreeUpDiskResp, error) `perm:"edge,candidate,admin"`
 
-		GenerateCandidateCode func(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) `perm:"admin"`
-
 		GetAssetSourceDownloadInfo func(p0 context.Context, p1 string) (*types.AssetSourceDownloadInfoRsp, error) `perm:"edge,candidate,web,locator"`
 
 		GetAssetView func(p0 context.Context, p1 string, p2 bool) (*types.AssetView, error) `perm:"admin"`
 
 		GetAssetsInBucket func(p0 context.Context, p1 string, p2 int, p3 bool) ([]string, error) `perm:"admin"`
-
-		GetCandidateCodeInfos func(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) `perm:"admin,web,locator"`
 
 		GetCandidateDownloadInfos func(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) `perm:"edge,candidate,web,locator"`
 
@@ -395,6 +389,8 @@ type NodeAPIStruct struct {
 		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) (*types.ActivationDetail, error) `perm:"default"`
 
 		RequestActivationCodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeActivation, error) `perm:"web,admin"`
+
+		SetTunserverURL func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin,web,locator"`
 
 		UndoNodeDeactivation func(p0 context.Context, p1 string) (error) `perm:"web,admin"`
 
@@ -458,7 +454,13 @@ type SchedulerStruct struct {
 
 	Internal struct {
 
+		CandidateCodeExist func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
+
 		DeleteEdgeUpdateConfig func(p0 context.Context, p1 int) (error) `perm:"admin"`
+
+		GenerateCandidateCodes func(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) `perm:"admin"`
+
+		GetCandidateCodeInfos func(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) `perm:"admin,web,locator"`
 
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
@@ -475,6 +477,10 @@ type SchedulerStruct struct {
 		GetWorkloadRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListWorkloadRecordRsp, error) `perm:"web,admin"`
 
 		NodeValidationResult func(p0 context.Context, p1 io.Reader, p2 string) (error) `perm:"edge,candidate"`
+
+		RemoveCandidateCode func(p0 context.Context, p1 string) (error) `perm:"admin,web,locator"`
+
+		ResetCandidateCode func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin,web,locator"`
 
 		SetEdgeUpdateConfig func(p0 context.Context, p1 *EdgeUpdateConfig) (error) `perm:"admin"`
 
@@ -1474,17 +1480,6 @@ func (s *NodeAPIStub) CalculateExitProfit(p0 context.Context, p1 string) (types.
 	return *new(types.ExitProfitRsp), ErrNotSupported
 }
 
-func (s *NodeAPIStruct) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {
-	if s.Internal.CandidateCodeExist == nil {
-		return false, ErrNotSupported
-	}
-	return s.Internal.CandidateCodeExist(p0, p1)
-}
-
-func (s *NodeAPIStub) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {
-	return false, ErrNotSupported
-}
-
 func (s *NodeAPIStruct) CandidateConnect(p0 context.Context, p1 *types.ConnectOptions) (error) {
 	if s.Internal.CandidateConnect == nil {
 		return ErrNotSupported
@@ -1551,17 +1546,6 @@ func (s *NodeAPIStub) FreeUpDiskSpace(p0 context.Context, p1 string, p2 int64) (
 	return nil, ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GenerateCandidateCode(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) {
-	if s.Internal.GenerateCandidateCode == nil {
-		return *new([]string), ErrNotSupported
-	}
-	return s.Internal.GenerateCandidateCode(p0, p1, p2, p3)
-}
-
-func (s *NodeAPIStub) GenerateCandidateCode(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) {
-	return *new([]string), ErrNotSupported
-}
-
 func (s *NodeAPIStruct) GetAssetSourceDownloadInfo(p0 context.Context, p1 string) (*types.AssetSourceDownloadInfoRsp, error) {
 	if s.Internal.GetAssetSourceDownloadInfo == nil {
 		return nil, ErrNotSupported
@@ -1593,17 +1577,6 @@ func (s *NodeAPIStruct) GetAssetsInBucket(p0 context.Context, p1 string, p2 int,
 
 func (s *NodeAPIStub) GetAssetsInBucket(p0 context.Context, p1 string, p2 int, p3 bool) ([]string, error) {
 	return *new([]string), ErrNotSupported
-}
-
-func (s *NodeAPIStruct) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
-	if s.Internal.GetCandidateCodeInfos == nil {
-		return *new([]*types.CandidateCodeInfo), ErrNotSupported
-	}
-	return s.Internal.GetCandidateCodeInfos(p0, p1, p2)
-}
-
-func (s *NodeAPIStub) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
-	return *new([]*types.CandidateCodeInfo), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) GetCandidateDownloadInfos(p0 context.Context, p1 string) ([]*types.CandidateDownloadInfo, error) {
@@ -1925,6 +1898,17 @@ func (s *NodeAPIStub) RequestActivationCodes(p0 context.Context, p1 types.NodeTy
 	return *new([]*types.NodeActivation), ErrNotSupported
 }
 
+func (s *NodeAPIStruct) SetTunserverURL(p0 context.Context, p1 string, p2 string) (error) {
+	if s.Internal.SetTunserverURL == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.SetTunserverURL(p0, p1, p2)
+}
+
+func (s *NodeAPIStub) SetTunserverURL(p0 context.Context, p1 string, p2 string) (error) {
+	return ErrNotSupported
+}
+
 func (s *NodeAPIStruct) UndoNodeDeactivation(p0 context.Context, p1 string) (error) {
 	if s.Internal.UndoNodeDeactivation == nil {
 		return ErrNotSupported
@@ -2096,6 +2080,17 @@ func (s *ProjectAPIStub) UpdateProjectStatus(p0 context.Context, p1 []*types.Pro
 
 
 
+func (s *SchedulerStruct) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {
+	if s.Internal.CandidateCodeExist == nil {
+		return false, ErrNotSupported
+	}
+	return s.Internal.CandidateCodeExist(p0, p1)
+}
+
+func (s *SchedulerStub) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {
+	return false, ErrNotSupported
+}
+
 func (s *SchedulerStruct) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) (error) {
 	if s.Internal.DeleteEdgeUpdateConfig == nil {
 		return ErrNotSupported
@@ -2105,6 +2100,28 @@ func (s *SchedulerStruct) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) (er
 
 func (s *SchedulerStub) DeleteEdgeUpdateConfig(p0 context.Context, p1 int) (error) {
 	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) GenerateCandidateCodes(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) {
+	if s.Internal.GenerateCandidateCodes == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GenerateCandidateCodes(p0, p1, p2, p3)
+}
+
+func (s *SchedulerStub) GenerateCandidateCodes(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) {
+	return *new([]string), ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
+	if s.Internal.GetCandidateCodeInfos == nil {
+		return *new([]*types.CandidateCodeInfo), ErrNotSupported
+	}
+	return s.Internal.GetCandidateCodeInfos(p0, p1, p2)
+}
+
+func (s *SchedulerStub) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) {
+	return *new([]*types.CandidateCodeInfo), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
@@ -2192,6 +2209,28 @@ func (s *SchedulerStruct) NodeValidationResult(p0 context.Context, p1 io.Reader,
 }
 
 func (s *SchedulerStub) NodeValidationResult(p0 context.Context, p1 io.Reader, p2 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) RemoveCandidateCode(p0 context.Context, p1 string) (error) {
+	if s.Internal.RemoveCandidateCode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RemoveCandidateCode(p0, p1)
+}
+
+func (s *SchedulerStub) RemoveCandidateCode(p0 context.Context, p1 string) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) ResetCandidateCode(p0 context.Context, p1 string, p2 string) (error) {
+	if s.Internal.ResetCandidateCode == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ResetCandidateCode(p0, p1, p2)
+}
+
+func (s *SchedulerStub) ResetCandidateCode(p0 context.Context, p1 string, p2 string) (error) {
 	return ErrNotSupported
 }
 

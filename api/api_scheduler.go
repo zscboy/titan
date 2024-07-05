@@ -166,18 +166,14 @@ type NodeAPI interface {
 	GetNextFreeTime(ctx context.Context, nodeID string) (int64, error) //perm:edge,candidate,admin
 	// UpdateNodeDynamicInfo
 	UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error //perm:admin
-	// GenerateCandidateCode
-	GenerateCandidateCode(ctx context.Context, count int, nodeType types.NodeType, isTest bool) ([]string, error) //perm:admin
-	// CandidateCodeExist
-	CandidateCodeExist(ctx context.Context, code string) (bool, error) //perm:admin,web,locator
-	// GetCandidateCodeInfos
-	GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
 	// ReDetermineNodeNATType
 	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
 	// AssignTunserverURL
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
 	// UpdateTunserverURL
 	UpdateTunserverURL(ctx context.Context, nodeID string) error //perm:edge
+	// SetTunserverURL
+	SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error //perm:admin,web,locator
 }
 
 // UserAPI is an interface for user
@@ -285,4 +281,14 @@ type Scheduler interface {
 	SetEdgeUpdateConfig(ctx context.Context, info *EdgeUpdateConfig) error //perm:admin
 	// DeleteEdgeUpdateConfig deletes the edge update configuration for the specified node type
 	DeleteEdgeUpdateConfig(ctx context.Context, nodeType int) error //perm:admin
+
+	// code
+	// GenerateCandidateCodes
+	GenerateCandidateCodes(ctx context.Context, count int, nodeType types.NodeType, isTest bool) ([]string, error) //perm:admin
+	// CandidateCodeExist
+	CandidateCodeExist(ctx context.Context, code string) (bool, error) //perm:admin,web,locator
+	// GetCandidateCodeInfos
+	GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
+	ResetCandidateCode(ctx context.Context, nodeID, code string) error                                  //perm:admin,web,locator
+	RemoveCandidateCode(ctx context.Context, code string) error                                         //perm:admin,web,locator
 }

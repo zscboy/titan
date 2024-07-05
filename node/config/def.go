@@ -198,7 +198,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		AndroidSymbol:            "+android-",
 		IOSSymbol:                "+ios-",
 		WindowsSymbol:            "+windows-",
-		MacosSymbol:              "+macos-",
+		MacosSymbol:              "+mac-",
 	}
 }
 

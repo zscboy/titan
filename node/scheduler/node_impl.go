@@ -733,12 +733,6 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 		}
 
 		if rInfo.IsCandidate {
-			// if aInfo.Source == int64(types.AssetSourceStorage) {
-			// 	if !cNode.IsStorageOnly {
-			// 		continue
-			// 	}
-			// }
-
 			source := s.getSource(cNode, cid, titanRsa)
 			if source != nil {
 				sources = append(sources, source)
@@ -1257,47 +1251,6 @@ func (s *Scheduler) UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeD
 	return nil
 }
 
-func (s *Scheduler) GenerateCandidateCode(ctx context.Context, count int, nodeType types.NodeType, isTest bool) ([]string, error) {
-	infos := make([]*types.CandidateCodeInfo, 0)
-	out := make([]string, 0)
-	for i := 0; i < count; i++ {
-		code := uuid.NewString()
-		code = strings.Replace(code, "-", "", -1)
-
-		infos = append(infos, &types.CandidateCodeInfo{
-			Code:       code,
-			NodeType:   nodeType,
-			Expiration: time.Now().Add(time.Hour * 24),
-			IsTest:     isTest,
-		})
-		out = append(out, code)
-	}
-
-	return out, s.db.SaveCandidateCodeInfo(infos)
-}
-
-func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) {
-	if nodeID != "" {
-		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
-		if err != nil {
-			return nil, err
-		}
-
-		return []*types.CandidateCodeInfo{info}, nil
-	}
-
-	if code != "" {
-		info, err := s.db.GetCandidateCodeInfo(code)
-		if err != nil {
-			return nil, err
-		}
-
-		return []*types.CandidateCodeInfo{info}, nil
-	}
-
-	return s.db.GetCandidateCodeInfos()
-}
-
 func (s *Scheduler) CandidateCodeExist(ctx context.Context, code string) (bool, error) {
 	info, err := s.db.GetCandidateCodeInfo(code)
 	if err != nil {
@@ -1473,6 +1426,15 @@ func (s *Scheduler) UpdateTunserverURL(ctx context.Context, nodeID string) error
 	}
 
 	return s.db.SaveWSServerID(nID, nodeID)
+}
+
+func (s *Scheduler) SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error {
+	node := s.NodeManager.GetEdgeNode(nodeID)
+	if node != nil {
+		node.WSServerID = wsNodeID
+	}
+
+	return s.db.SaveWSServerID(nodeID, wsNodeID)
 }
 
 // GetProjectsForNode

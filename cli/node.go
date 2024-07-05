@@ -35,6 +35,33 @@ var nodeCmds = &cli.Command{
 		generateCandidateCodeCmd,
 		nodeFromGeoCmd,
 		getRegionInfosCmd,
+		setTunserverURLCmd,
+	},
+}
+
+var setTunserverURLCmd = &cli.Command{
+	Name:  "sts",
+	Usage: "set node tun server url",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+		&cli.StringFlag{
+			Name:  "ws-node",
+			Usage: "ws node id",
+			Value: "",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		wsNodeID := cctx.String("ws-node")
+		nodeID := cctx.String("node-id")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.SetTunserverURL(ctx, nodeID, wsNodeID)
 	},
 }
 
@@ -94,55 +121,6 @@ var freeUpDiskSpaceCmd = &cli.Command{
 
 		_, err = schedulerAPI.FreeUpDiskSpace(ctx, nodeID, size)
 		return err
-	},
-}
-
-var generateCandidateCodeCmd = &cli.Command{
-	Name:  "gcodes",
-	Usage: "generate code",
-	Flags: []cli.Flag{
-		// nodeTypeFlag,
-		&cli.Int64Flag{
-			Name:  "count",
-			Usage: "code count",
-			Value: 0,
-		},
-		&cli.BoolFlag{
-			Name:  "test",
-			Usage: "is test",
-			Value: false,
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		// nodeType := cctx.Int("node-type")
-		count := cctx.Int("count")
-		isTest := cctx.Bool("test")
-
-		ctx := ReqContext(cctx)
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		// if nodeType != int(types.NodeCandidate) && nodeType != int(types.NodeValidator) {
-		// 	return nil
-		// }
-
-		if count <= 0 {
-			return nil
-		}
-
-		list, err := schedulerAPI.GenerateCandidateCode(ctx, count, types.NodeCandidate, isTest)
-		if err != nil {
-			return err
-		}
-
-		for _, code := range list {
-			fmt.Println(code)
-		}
-
-		return nil
 	},
 }
 

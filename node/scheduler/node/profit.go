@@ -22,8 +22,8 @@ const (
 	exitRate = 0.6
 
 	l2PhoneRate = 500.0 / 17280.0 // every 5s
-	l2PCRate    = 200.0 / 17280.0 // every 5s
-	l2OtherRate = 50.0 / 17280.0  // every 5s
+	l2PCRate    = 300.0 / 17280.0 // every 5s
+	l2OtherRate = 150.0 / 17280.0 // every 5s
 )
 
 var (
