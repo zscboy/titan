@@ -187,12 +187,7 @@ func (tc *Tunclient) handlRequestData(idx, tag uint16, data []byte) error {
 
 func (tc *Tunclient) handlRequestClosed(idx, tag uint16) error {
 	log.Debugf("handlRequestClosed idx:%d tag:%d", idx, tag)
-	req := tc.reqq.getReq(idx, tag)
-	if req == nil {
-		return fmt.Errorf("get req idx:%d tag:%d failed", idx, tag)
-	}
-	req.dofree()
-	return nil
+	return tc.reqq.free(idx, tag)
 }
 
 func (tc *Tunclient) onRequestTerminate(idx, tag uint16) error {

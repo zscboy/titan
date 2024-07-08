@@ -3,24 +3,21 @@ package tunnel
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
 
 type Request struct {
-	idx    uint16
-	tag    uint16
-	inused bool
-	conn   net.Conn
-
-	startTime time.Time
-	// upload data count of L2
-	dataCountUp int64
-	// download data count of L2
-	dataCountDown int64
+	idx         uint16
+	tag         uint16
+	inused      bool
+	conn        net.Conn
+	trafficstat *TrafficStat
+	projectID   string
 }
 
 func newRequest(idx uint16) *Request {
-	return &Request{idx: idx}
+	return &Request{idx: idx, trafficstat: &TrafficStat{lock: sync.Mutex{}, dataCountStartTime: time.Time{}}}
 }
 
 func (r *Request) write(data []byte) error {
@@ -48,27 +45,21 @@ func (r *Request) writeAll(buf []byte) error {
 	return nil
 }
 
+func (r *Request) countDataUp(count int) {
+	r.trafficstat.countDataUp(count)
+}
+
+func (r *Request) countDataDown(count int) {
+	r.trafficstat.countDataDown(count)
+}
+
 func (r *Request) dofree() {
 	if r.conn != nil {
 		r.conn.Close()
 		r.conn = nil
 	}
 
-	r.dataCountUp = 0
-	r.dataCountDown = 0
-	r.startTime = time.Time{}
-}
-
-func (r *Request) setStartTimeNow() {
-	r.startTime = time.Now()
-}
-
-func (r *Request) countDataUp(incre int) {
-	r.dataCountUp += int64(incre)
-}
-
-func (r *Request) countDataDown(incre int) {
-	r.dataCountDown += int64(incre)
+	r.trafficstat.clean()
 }
 
 func (r *Request) proxy(tunclient *Tunclient) {

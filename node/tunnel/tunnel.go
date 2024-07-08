@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api"
 	"github.com/gorilla/websocket"
 )
 
@@ -24,18 +26,35 @@ const (
 	cMDReqServerClosed
 )
 
-const maxCap = 100
+const (
+	maxCap = 100
+)
 
 type Tunnel struct {
-	ID              string
+	ctx             context.Context
+	id              string
 	conn            *websocket.Conn
 	lastActivitTime time.Time
 	reqq            *Reqq
 	writeLock       sync.Mutex
+
+	scheduler api.Scheduler
 }
 
-func newTunnel(id string, conn *websocket.Conn) *Tunnel {
-	return &Tunnel{conn: conn, ID: id, reqq: newReqq(maxCap), writeLock: sync.Mutex{}, lastActivitTime: time.Now()}
+func newTunnel(ctx context.Context, scheduler api.Scheduler, id string, conn *websocket.Conn) *Tunnel {
+	t := &Tunnel{
+		ctx:             ctx,
+		conn:            conn,
+		id:              id,
+		scheduler:       scheduler,
+		reqq:            newReqq(maxCap),
+		writeLock:       sync.Mutex{},
+		lastActivitTime: time.Now(),
+		// trafficStat:     &TrafficStat{lock: sync.Mutex{}, dataCountStartTime: time.Now()},
+	}
+
+	go t.handleTrafficStat()
+	return t
 }
 
 func (t *Tunnel) onPing(data string) error {
@@ -44,7 +63,7 @@ func (t *Tunnel) onPing(data string) error {
 }
 
 func (t *Tunnel) onClose() {
-	log.Debugf("tunnel close %s", t.ID)
+	log.Debugf("tunnel close %s", t.id)
 	t.reqq.cleanup()
 }
 
@@ -68,7 +87,6 @@ func (t *Tunnel) onTunnelMessage(message []byte) error {
 
 func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
 	log.Infof("onServerRequestData, idx:%d tag:%d, data len:%d", idx, tag, len(data))
-
 	req := t.reqq.getReq(idx, tag)
 	if req == nil {
 		return fmt.Errorf("can not find request, idx %d, tag %d", idx, tag)
@@ -82,12 +100,7 @@ func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
 func (t *Tunnel) onServerRequestClose(idx, tag uint16) error {
 	log.Infof("onServerRequestClose, idx:%d tag:%d", idx, tag)
 
-	req := t.reqq.getReq(idx, tag)
-	if req == nil {
-		return fmt.Errorf("can not find request, idx %d, tag %d", idx, tag)
-	}
-	req.dofree()
-	return nil
+	return t.reqq.free(idx, tag)
 }
 
 func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
@@ -117,8 +130,9 @@ func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
 
 	req.tag = req.tag + 1
 	req.conn = conn
+	req.projectID = serviceID
 	// send req create
-	t.sendCreate2Server(req, serviceID)
+	t.sendCreate2Server(req)
 
 	headerString := t.getHeaderString(r, serviceID)
 	t.onClientRecvData(req.idx, req.tag, []byte(headerString))
@@ -164,12 +178,12 @@ func (t *Tunnel) onClientRecvData(idx, tag uint16, data []byte) error {
 	return t.write(buf)
 }
 
-func (t *Tunnel) sendCreate2Server(req *Request, serviceID string) error {
-	buf := make([]byte, 5+len(serviceID))
+func (t *Tunnel) sendCreate2Server(req *Request) error {
+	buf := make([]byte, 5+len(req.projectID))
 	buf[0] = uint8(cMDReqCreated)
 	binary.LittleEndian.PutUint16(buf[1:], uint16(req.idx))
 	binary.LittleEndian.PutUint16(buf[3:], uint16(req.tag))
-	copy(buf[5:], []byte(serviceID))
+	copy(buf[5:], []byte(req.projectID))
 
 	return t.write(buf)
 }
@@ -208,7 +222,7 @@ func (t *Tunnel) getServiceID(r *http.Request) string {
 func (t *Tunnel) getHeaderString(r *http.Request, serviceID string) string {
 	// path = /project/{nodeID}/{projectID}/{customPath}
 	urlString := r.URL.String()
-	prefix := fmt.Sprintf("%s%s/%s", projectPathPrefix, t.ID, serviceID)
+	prefix := fmt.Sprintf("%s%s/%s", projectPathPrefix, t.id, serviceID)
 	if strings.HasPrefix(urlString, prefix) {
 		urlString = strings.TrimPrefix(urlString, prefix)
 	}
@@ -228,4 +242,13 @@ func (t *Tunnel) getHeaderString(r *http.Request, serviceID string) string {
 	}
 	headerString += "\r\n"
 	return headerString
+}
+
+func (t *Tunnel) handleTrafficStat() {
+	timer := time.NewTimer(2 * time.Second)
+	for {
+		<-timer.C
+		t.reqq.submitProjectReport(t, t.scheduler)
+
+	}
 }

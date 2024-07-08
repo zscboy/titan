@@ -3,6 +3,8 @@ package tunnel
 import (
 	"fmt"
 	"sync"
+
+	"github.com/Filecoin-Titan/titan/api"
 )
 
 type Reqq struct {
@@ -97,4 +99,15 @@ func (r *Reqq) cleanup() {
 			}
 		}
 	}
+}
+
+func (r *Reqq) submitProjectReport(t *Tunnel, scheduler api.Scheduler) error {
+	for _, request := range r.requests {
+		if request.trafficstat.isTimeToSubmitProjectReport() {
+			if err := request.trafficstat.submitProjectReport(t, scheduler, request.projectID); err != nil {
+				log.Errorf("submitProjectReport idx:%d  tag:%d, error %s", request.idx, request.tag, err.Error())
+			}
+		}
+	}
+	return nil
 }

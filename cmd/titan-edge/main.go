@@ -21,7 +21,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/node/edge/clib"
 	"github.com/Filecoin-Titan/titan/node/httpserver"
-	"github.com/Filecoin-Titan/titan/node/tunnel"
 	"github.com/Filecoin-Titan/titan/node/validation"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -352,7 +351,7 @@ func buildSrvHandler(httpServer *httpserver.HttpServer, edgeApi api.Edge, cfg *c
 	handler := EdgeHandler(edgeApi.AuthVerify, edgeApi, true)
 	handler = httpServer.NewHandler(handler)
 	handler = validation.AppendHandler(handler, schedulerApi, privateKey, time.Duration(cfg.ValidateDuration)*time.Second)
-	handler = tunnel.NewTunserver(handler)
+	// handler = tunnel.NewTunserver(handler)
 
 	httpSrv := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,

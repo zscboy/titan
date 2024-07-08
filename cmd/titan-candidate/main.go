@@ -392,7 +392,7 @@ var daemonStartCmd = &cli.Command{
 		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
 		handler = httpServer.NewHandler(handler)
 		handler = validation.AppendHandler(handler, schedulerAPI, privateKey, time.Duration(candidateCfg.ValidateDuration)*time.Second)
-		handler = tunnel.NewTunserver(handler)
+		handler = tunnel.NewTunserver(handler, schedulerAPI)
 
 		httpSrv := &http.Server{
 			ReadHeaderTimeout: 30 * time.Second,

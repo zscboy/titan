@@ -1,12 +1,14 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/Filecoin-Titan/titan/api"
 	"github.com/gorilla/websocket"
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -27,8 +29,9 @@ var upgrader = websocket.Upgrader{
 }
 
 type Tunserver struct {
-	handler http.Handler
-	tunMgr  *TunManager
+	handler   http.Handler
+	tunMgr    *TunManager
+	scheduler api.Scheduler
 }
 
 // ServeHTTP checks if the request path starts with the IPFS path prefix and delegates to the appropriate handler
@@ -44,10 +47,11 @@ func (o *Tunserver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewTunserver creates a tunserver with the given HTTP handler
-func NewTunserver(handler http.Handler) http.Handler {
+func NewTunserver(handler http.Handler, scheduler api.Scheduler) http.Handler {
 	return &Tunserver{
-		handler: handler,
-		tunMgr:  &TunManager{tunnels: &sync.Map{}},
+		handler:   handler,
+		tunMgr:    &TunManager{tunnels: &sync.Map{}},
+		scheduler: scheduler,
 	}
 }
 
@@ -67,7 +71,10 @@ func (ts *Tunserver) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	tunnel := newTunnel(nodeID, conn)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tunnel := newTunnel(ctx, ts.scheduler, nodeID, conn)
 	defer tunnel.onClose()
 
 	ts.tunMgr.addTunnel(tunnel)
