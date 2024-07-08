@@ -86,7 +86,7 @@ func (t *Tunnel) onTunnelMessage(message []byte) error {
 }
 
 func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
-	log.Infof("onServerRequestData, idx:%d tag:%d, data len:%d", idx, tag, len(data))
+	log.Debugf("onServerRequestData, idx:%d tag:%d, data len:%d", idx, tag, len(data))
 	req := t.reqq.getReq(idx, tag)
 	if req == nil {
 		return fmt.Errorf("can not find request, idx %d, tag %d", idx, tag)
@@ -98,7 +98,7 @@ func (t *Tunnel) onServerRequestData(idx, tag uint16, data []byte) error {
 }
 
 func (t *Tunnel) onServerRequestClose(idx, tag uint16) error {
-	log.Infof("onServerRequestClose, idx:%d tag:%d", idx, tag)
+	log.Debugf("onServerRequestClose, idx:%d tag:%d", idx, tag)
 
 	return t.reqq.free(idx, tag)
 }
@@ -131,6 +131,7 @@ func (t *Tunnel) onAcceptRequest(w http.ResponseWriter, r *http.Request) error {
 	req.tag = req.tag + 1
 	req.conn = conn
 	req.projectID = serviceID
+	req.setCountDataTimeToNow()
 	// send req create
 	t.sendCreate2Server(req)
 
@@ -145,7 +146,7 @@ func (t *Tunnel) serveConn(conn net.Conn, idx uint16, tag uint16) error {
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Infof("serveConnection, read message failed: %s", err.Error())
+			log.Debugf("serveConnection, read message failed: %s", err.Error())
 			if !isNetErrUseOfCloseNetworkConnection(err) {
 				t.sendClose2Server(idx, tag)
 			}
@@ -158,7 +159,7 @@ func (t *Tunnel) serveConn(conn net.Conn, idx uint16, tag uint16) error {
 }
 
 func (t *Tunnel) onClientClose(idx, tag uint16) error {
-	log.Infof("onClientClose idx:%d tag:%d", idx, tag)
+	log.Debugf("onClientClose idx:%d tag:%d", idx, tag)
 	return t.reqq.free(idx, tag)
 }
 
@@ -245,7 +246,9 @@ func (t *Tunnel) getHeaderString(r *http.Request, serviceID string) string {
 }
 
 func (t *Tunnel) handleTrafficStat() {
-	timer := time.NewTimer(2 * time.Second)
+	timer := time.NewTicker(trafficStatIntervel / 2)
+	defer timer.Stop()
+
 	for {
 		<-timer.C
 		t.reqq.submitProjectReport(t, t.scheduler)

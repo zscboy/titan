@@ -53,6 +53,10 @@ func (r *Request) countDataDown(count int) {
 	r.trafficstat.countDataDown(count)
 }
 
+func (r *Request) setCountDataTimeToNow() {
+	r.trafficstat.setTimeToNow()
+}
+
 func (r *Request) dofree() {
 	if r.conn != nil {
 		r.conn.Close()
@@ -73,7 +77,7 @@ func (r *Request) proxy(tunclient *Tunclient) {
 		return
 	}
 
-	defer log.Infof("request idx %d tag %d close", r.idx, r.tag)
+	defer log.Debugf("request idx %d tag %d close", r.idx, r.tag)
 
 	conn := r.conn
 	buf := make([]byte, 4096)
@@ -85,7 +89,7 @@ func (r *Request) proxy(tunclient *Tunclient) {
 		}
 
 		if err != nil {
-			log.Infof("read server message failed: %s", err.Error())
+			log.Debugf("read server message failed: %s", err.Error())
 			if !isNetErrUseOfCloseNetworkConnection(err) {
 				tunclient.sendClose2Client(r.idx, r.tag)
 			}

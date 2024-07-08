@@ -102,7 +102,12 @@ func (r *Reqq) cleanup() {
 }
 
 func (r *Reqq) submitProjectReport(t *Tunnel, scheduler api.Scheduler) error {
+	// log.Debugf("submitProjectReport")
 	for _, request := range r.requests {
+		if !request.inused {
+			continue
+		}
+
 		if request.trafficstat.isTimeToSubmitProjectReport() {
 			if err := request.trafficstat.submitProjectReport(t, scheduler, request.projectID); err != nil {
 				log.Errorf("submitProjectReport idx:%d  tag:%d, error %s", request.idx, request.tag, err.Error())

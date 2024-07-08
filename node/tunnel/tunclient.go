@@ -34,7 +34,7 @@ func newTunclient(tunServerURL string, nodeID string, services *Services) (*Tunc
 		return nil, fmt.Errorf("dial %s failed %s", url, err.Error())
 	}
 
-	log.Infof("New tunclient %s", url)
+	log.Debugf("New tunclient %s", url)
 
 	reqq := newReqq(maxCap)
 	tunclient := &Tunclient{id: nodeID, conn: conn, reqq: reqq, writeLock: sync.Mutex{}, services: services}

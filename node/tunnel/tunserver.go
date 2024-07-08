@@ -56,7 +56,7 @@ func NewTunserver(handler http.Handler, scheduler api.Scheduler) http.Handler {
 }
 
 func (ts *Tunserver) handleTunnel(w http.ResponseWriter, r *http.Request) {
-	log.Infof("handleTunnel %s", r.URL.Path)
+	log.Debugf("handleTunnel %s", r.URL.Path)
 	// TODO: verify the auth of tunnel
 	nodeID := filepath.Base(r.URL.Path)
 	if isInvalidNodeID(nodeID) {
@@ -102,7 +102,7 @@ func (ts *Tunserver) handleTunnel(w http.ResponseWriter, r *http.Request) {
 
 // handleProject accept user connect to project
 func (ts *Tunserver) handleProject(w http.ResponseWriter, r *http.Request) {
-	log.Infof("handleProject %s", r.URL.Path)
+	log.Debugf("handleProject %s", r.URL.Path)
 	// TODO: verify the auth of client
 	nodeID := ts.getNodeID(r)
 	if isInvalidNodeID(nodeID) {

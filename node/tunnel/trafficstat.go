@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 )
 
-const trafficStatIntervel = 10 * time.Minute
+const trafficStatIntervel = 10 * time.Second
 
 type TrafficStat struct {
 	lock               sync.Mutex
@@ -66,11 +67,11 @@ func (trafficStat *TrafficStat) isTimeToSubmitProjectReport() bool {
 	return false
 }
 
-func (trafficStat *TrafficStat) submitProjectReport(t *Tunnel, scheduler api.Scheduler, serviceID string) error {
+func (trafficStat *TrafficStat) submitProjectReport(t *Tunnel, scheduler api.Scheduler, projectID string) error {
 	trafficStat.lock.Lock()
 	req := &types.ProjectRecordReq{
 		NodeID:            t.id,
-		ProjectID:         serviceID,
+		ProjectID:         projectID,
 		BandwidthUpSize:   float64(trafficStat.dataCountUp),
 		BandwidthDownSize: float64(trafficStat.dataCountUp),
 		StartTime:         trafficStat.dataCountStartTime,
@@ -84,6 +85,8 @@ func (trafficStat *TrafficStat) submitProjectReport(t *Tunnel, scheduler api.Sch
 	trafficStat.lock.Unlock()
 
 	if scheduler != nil {
+		buf, _ := json.Marshal(req)
+		log.Debugf("submitProjectReport projectID %s %s", projectID, string(buf))
 		return scheduler.SubmitProjectReport(context.Background(), req)
 	}
 	return fmt.Errorf("scheduler == nil")
