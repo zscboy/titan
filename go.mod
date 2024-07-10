@@ -52,7 +52,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa
 	go.opencensus.io v0.24.0
 	go.uber.org/fx v1.19.2
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.22.0
 	golang.org/x/time v0.5.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 )
@@ -142,6 +142,7 @@ require (
 	github.com/secure-io/sio-go v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
+	github.com/sqs/goreturns v0.0.0-20231030191505-16fc3d8edd91 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
@@ -158,13 +159,13 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
-	golang.org/x/mod v0.11.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
+	golang.org/x/mod v0.19.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/sync v0.7.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

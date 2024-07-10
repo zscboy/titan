@@ -169,7 +169,7 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string)
 		PType:  types.ProfitTypeDownload,
 		Size:   int64(size),
 		CID:    pid,
-		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f]GB, [%.4f], mn:[%.4f]", lip, mr, mx, mo, d, downloadTrafficProfit, mn),
+		Note:   fmt.Sprintf("lip:[%d] ; mr:[%.4f], mx:[%.4f], mo:[%.4f], d:[%.4f]GB, [%.4f], mn:[%.4f], Profit:[%.4f]", lip, mr, mx, mo, d, downloadTrafficProfit, mn, ms),
 	}
 }
 
@@ -192,7 +192,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 		PType:  types.ProfitTypeUpload,
 		Size:   int64(size),
 		CID:    pid,
-		Note:   fmt.Sprintf("lip:[%d] mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d] mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%.4f], mip:[%.4f], mn:[%.4f], Profit:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn, ms),
 	}
 }
 

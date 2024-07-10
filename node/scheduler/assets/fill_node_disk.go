@@ -208,11 +208,7 @@ func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64,
 	_, nodes := m.nodeMgr.GetAllCandidateNodes()
 
 	sort.Slice(nodes, func(i, j int) bool {
-		if nodes[i].Type == nodes[j].Type {
-			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-		}
-
-		return nodes[i].Type == types.NodeCandidate
+		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
 	})
 
 	cCount := 0

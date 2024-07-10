@@ -478,44 +478,44 @@ func (s *Scheduler) GetNodePublicKey(ctx context.Context, nodeID string) (string
 func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error {
 	candidateID := handler.GetNodeID(ctx)
 	if len(candidateID) == 0 {
-		return xerrors.New("invalid request")
+		return xerrors.New("SubmitProjectReport invalid request")
 	}
 
 	if req.NodeID == "" {
-		return xerrors.New("node id is nil")
+		return xerrors.New("SubmitProjectReport node id is nil")
 	}
 
 	if req.ProjectID == "" {
-		return xerrors.New("project id is nil")
+		return xerrors.New("SubmitProjectReport project id is nil")
 	}
 
 	rInfo, err := s.db.LoadProjectReplicaInfo(req.ProjectID, req.NodeID)
 	if err != nil {
-		return err
+		return xerrors.Errorf("SubmitProjectReport LoadProjectReplicaInfo err:%s", err.Error())
 	}
 
 	if rInfo.Status != types.ProjectReplicaStatusStarted {
-		return xerrors.Errorf("project status is %s", rInfo.Status.String())
+		return xerrors.Errorf("SubmitProjectReport project status is %s", rInfo.Status.String())
 	}
 
 	wID, err := s.db.LoadWSServerID(req.NodeID)
 	if err != nil {
-		return err
+		return xerrors.Errorf("SubmitProjectReport LoadWSServerID err:%s", err.Error())
 	}
 
 	if wID != candidateID {
-		return xerrors.Errorf("candidate id %s != %s", candidateID, wID)
+		return xerrors.Errorf("SubmitProjectReport candidate id %s != %s", candidateID, wID)
 	}
 
 	node := s.NodeManager.GetEdgeNode(req.NodeID)
 	if node == nil {
-		return xerrors.Errorf("node %s offline", req.NodeID)
+		return xerrors.Errorf("SubmitProjectReport node %s offline", req.NodeID)
 	}
 
 	if req.BandwidthDownSize > 0 {
 		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthDownSize, req.ProjectID)
-		pInfo.Profit = 0 // TODO test
 		if pInfo != nil {
+			pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfit(pInfo)
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
@@ -525,8 +525,8 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 
 	if req.BandwidthUpSize > 0 {
 		pInfo := s.NodeManager.GetUploadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
-		pInfo.Profit = 0 // TODO test
 		if pInfo != nil {
+			pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfit(pInfo)
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())

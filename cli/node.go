@@ -218,7 +218,6 @@ var listNodeCmd = &cli.Command{
 
 		tw := tablewriter.New(
 			tablewriter.Col("NodeID"),
-			tablewriter.Col("NodeType"),
 			tablewriter.Col("Status"),
 			tablewriter.Col("Nat"),
 			tablewriter.Col("IP"),
@@ -226,7 +225,8 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("OnlineDuration"),
 			tablewriter.Col("OfflineDuration"),
 			tablewriter.Col("Geo"),
-			tablewriter.Col("Disk"),
+			// tablewriter.Col("Test"),
+			// tablewriter.Col("Ver"),
 		)
 
 		for w := 0; w < len(r.Data); w++ {
@@ -239,7 +239,6 @@ var listNodeCmd = &cli.Command{
 
 			m := map[string]interface{}{
 				"NodeID":          info.NodeID,
-				"NodeType":        info.Type.String(),
 				"Status":          colorOnline(info.Status),
 				"Nat":             info.NATType,
 				"IP":              info.ExternalIP,
@@ -248,7 +247,8 @@ var listNodeCmd = &cli.Command{
 				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
 				"OfflineDuration": fmt.Sprintf("%d", info.OfflineDuration),
 				"Geo":             fmt.Sprintf("%s", geo),
-				"Disk":            fmt.Sprintf("%s/%s   %.4f", units.BytesSize(info.TitanDiskUsage), units.BytesSize(info.AvailableDiskSpace), info.DiskUsage),
+				// "Test":            info.IsTestNode,
+				// "Ver":             info.SystemVersion,
 			}
 
 			tw.Write(m)

@@ -200,13 +200,13 @@ func (n *SQLDB) LoadProjectReplicaInfos(id string) ([]*types.ProjectReplicas, er
 
 // LoadProjectReplicaInfo load project replica information based on id
 func (n *SQLDB) LoadProjectReplicaInfo(id, nodeID string) (*types.ProjectReplicas, error) {
-	var out *types.ProjectReplicas
+	var out types.ProjectReplicas
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE id=? AND node_id=?`, projectReplicasTable)
 	if err := n.db.Get(&out, sQuery, id, nodeID); err != nil {
 		return nil, err
 	}
 
-	return out, nil
+	return &out, nil
 }
 
 // LoadProjectReplicasForNode load project replica  information based on node
