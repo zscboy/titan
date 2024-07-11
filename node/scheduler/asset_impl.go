@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
+	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/handler"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
@@ -254,73 +258,104 @@ func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, 
 
 // CreateAsset creates an asset with car CID, car name, and car size.
 func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) {
-	uID := handler.GetUserID(ctx)
-	if len(uID) > 0 {
-		req.UserID = uID
-	}
-
-	u := s.newUser(req.UserID)
-	return u.CreateAsset(ctx, req)
-}
-
-// ListAssets lists the assets of the user.
-func (s *Scheduler) ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) {
-	uID := handler.GetUserID(ctx)
-	if len(uID) > 0 {
-		userID = uID
-	}
-
-	u := s.newUser(userID)
-	info, err := u.ListAssets(ctx, limit, offset, s.SchedulerCfg.MaxCountOfVisitShareLink, groupID)
+	hash, err := cidutil.CIDToHash(req.AssetCID)
 	if err != nil {
-		return nil, xerrors.Errorf("ListAssets err:%s", err.Error())
+		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
 	}
 
-	return info, nil
+	return s.AssetManager.CreateAssetUploadTask(hash, req)
 }
 
-// DeleteAsset deletes the assets of the user.
-func (s *Scheduler) DeleteAsset(ctx context.Context, userID, assetCID string) error {
-	uID := handler.GetUserID(ctx)
-	if len(uID) > 0 {
-		userID = uID
-	}
+// // ListAssets lists the assets of the user.
+// func (s *Scheduler) ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) {
+// 	uID := handler.GetUserID(ctx)
+// 	if len(uID) > 0 {
+// 		userID = uID
+// 	}
 
-	u := s.newUser(userID)
-	return u.DeleteAsset(ctx, assetCID)
-}
+// 	u := s.newUser(userID)
+// 	info, err := u.ListAssets(ctx, limit, offset, s.SchedulerCfg.MaxCountOfVisitShareLink, groupID)
+// 	if err != nil {
+// 		return nil, xerrors.Errorf("ListAssets err:%s", err.Error())
+// 	}
+
+// 	return info, nil
+// }
+
+// // DeleteAsset deletes the assets of the user.
+// func (s *Scheduler) DeleteAsset(ctx context.Context, userID, assetCID string) error {
+// 	uID := handler.GetUserID(ctx)
+// 	if len(uID) > 0 {
+// 		userID = uID
+// 	}
+
+// 	u := s.newUser(userID)
+// 	return u.DeleteAsset(ctx, assetCID)
+// }
 
 // ShareAssets shares the assets of the user.
 func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string) (map[string]string, error) {
-	uID := handler.GetUserID(ctx)
-	if len(uID) > 0 {
-		userID = uID
+	urls := make(map[string]string)
+	for _, assetCID := range assetCIDs {
+		// hash, err := cidutil.CIDToHash(assetCID)
+		// if err != nil {
+		// 	return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int()}
+		// }
+
+		assetName := ""
+		// assetName, err := u.GetAssetName(hash, u.ID)
+		// if err != nil {
+		// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+		// }
+
+		rsp, err := s.GetAssetSourceDownloadInfo(ctx, assetCID)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+		}
+
+		if len(rsp.SourceList) == 0 {
+			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
+		}
+
+		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: userID, AssetCID: assetCID}, s)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
+		}
+
+		var node *node.Node
+		for _, info := range rsp.SourceList {
+			n := s.NodeManager.GetCandidateNode(info.NodeID)
+			if n != nil {
+				node = n
+				break
+			}
+		}
+
+		url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", rsp.SourceList[0].Address, assetCID, tk, assetName)
+		if node != nil && len(node.ExternalURL) > 0 {
+			url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", node.ExternalURL, assetCID, tk, assetName)
+		}
+		urls[assetCID] = url
 	}
 
-	u := s.newUser(userID)
-	info, err := u.ShareAssets(ctx, assetCIDs, s, s.NodeManager)
-	if err != nil {
-		return nil, xerrors.Errorf("ShareAssets err:%s", err.Error())
-	}
-
-	return info, nil
+	return urls, nil
 }
 
-// GetAssetStatus retrieves a asset status
-func (s *Scheduler) GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) {
-	uID := handler.GetUserID(ctx)
-	if len(uID) > 0 {
-		userID = uID
-	}
+// // GetAssetStatus retrieves a asset status
+// func (s *Scheduler) GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) {
+// 	uID := handler.GetUserID(ctx)
+// 	if len(uID) > 0 {
+// 		userID = uID
+// 	}
 
-	u := s.newUser(userID)
-	status, err := u.GetAssetStatus(ctx, assetCID, s.SchedulerCfg)
-	if err != nil {
-		return nil, err
-	}
+// 	u := s.newUser(userID)
+// 	status, err := u.GetAssetStatus(ctx, assetCID, s.SchedulerCfg)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return status, nil
-}
+// 	return status, nil
+// }
 
 func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error {
 	// TODO limit rate or verify valid data
@@ -411,4 +446,19 @@ func (s *Scheduler) RemoveNodeFailedReplica(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, commonAPI api.Common) (string, error) {
+	buf, err := json.Marshal(auth)
+	if err != nil {
+		return "", err
+	}
+
+	payload := types.JWTPayload{Extend: string(buf)}
+	tk, err := commonAPI.AuthNew(context.Background(), &payload)
+	if err != nil {
+		return "", err
+	}
+
+	return tk, nil
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto"
 	cRand "crypto/rand"
-	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
@@ -919,36 +918,36 @@ func (s *Scheduler) VerifyTokenWithLimitCount(ctx context.Context, token string)
 		return nil, fmt.Errorf("token is expiration")
 	}
 
-	assetHash, err := cidutil.CIDToHash(payload.AssetCID)
-	if err != nil {
-		return nil, err
-	}
+	// assetHash, err := cidutil.CIDToHash(payload.AssetCID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if _, err = s.db.GetAssetName(assetHash, payload.UserID); err == sql.ErrNoRows {
-		return nil, fmt.Errorf("asset %s does not exist", payload.AssetCID)
-	}
+	// if _, err = s.db.GetAssetName(assetHash, payload.UserID); err == sql.ErrNoRows {
+	// 	return nil, fmt.Errorf("asset %s does not exist", payload.AssetCID)
+	// }
 
-	userInfo, err := s.loadUserInfo(payload.UserID)
-	if err != nil {
-		return nil, err
-	}
+	// userInfo, err := s.loadUserInfo(payload.UserID)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if userInfo.EnableVIP {
-		return jwtPayload, nil
-	}
+	// if userInfo.EnableVIP {
+	// 	return jwtPayload, nil
+	// }
 
-	count, err := s.db.GetAssetVisitCount(assetHash)
-	if err != nil {
-		return nil, err
-	}
+	// count, err := s.db.GetAssetVisitCount(assetHash)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if count >= s.SchedulerCfg.MaxCountOfVisitShareLink {
-		return nil, &api.ErrWeb{Code: terrors.VisitShareLinkOutOfMaxCount.Int(), Message: fmt.Sprintf("visit share link is out of max count %d", s.SchedulerCfg.MaxCountOfVisitShareLink)}
-	}
+	// if count >= s.SchedulerCfg.MaxCountOfVisitShareLink {
+	// 	return nil, &api.ErrWeb{Code: terrors.VisitShareLinkOutOfMaxCount.Int(), Message: fmt.Sprintf("visit share link is out of max count %d", s.SchedulerCfg.MaxCountOfVisitShareLink)}
+	// }
 
-	if err = s.db.UpdateAssetVisitCount(assetHash); err != nil {
-		return nil, err
-	}
+	// if err = s.db.UpdateAssetVisitCount(assetHash); err != nil {
+	// 	return nil, err
+	// }
 
 	return jwtPayload, nil
 }

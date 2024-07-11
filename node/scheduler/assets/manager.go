@@ -378,14 +378,14 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add asset ", req.AssetCID)
-	exist, err := m.AssetExistsOfUser(hash, req.UserID)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-	}
+	// exist, err := m.AssetExistsOfUser(hash, req.UserID)
+	// if err != nil {
+	// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+	// }
 
-	if exist {
-		return nil, &api.ErrWeb{Code: terrors.NoDuplicateUploads.Int(), Message: fmt.Sprintf("Asset is exist, no duplicate uploads")}
-	}
+	// if exist {
+	// 	return nil, &api.ErrWeb{Code: terrors.NoDuplicateUploads.Int(), Message: fmt.Sprintf("Asset is exist, no duplicate uploads")}
+	// }
 
 	// if m.getPullingAssetLen() >= m.assetPullTaskLimit {
 	// 	return nil, &api.ErrWeb{Code: terrors.BusyServer.Int(), Message: fmt.Sprintf("The task has reached its limit. Please try again later.")}
@@ -407,10 +407,10 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
-		err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
-		if err != nil {
-			return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-		}
+		// err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
+		// if err != nil {
+		// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+		// }
 
 		info := &types.UploadInfo{AlreadyExists: true}
 		m.UpdateAssetRecordExpiration(hash, expiration)
@@ -458,10 +458,10 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 	}
 
-	err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-	}
+	// err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
+	// if err != nil {
+	// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+	// }
 
 	record := &types.AssetRecord{
 		Hash:                  hash,

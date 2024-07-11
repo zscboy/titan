@@ -26,17 +26,19 @@ func NewSQLDB(db *sqlx.DB) (*SQLDB, error) {
 }
 
 const (
+	// userAssetTable       = "user_asset"
+	// userInfoTable        = "user_info"
+	// userAssetGroupTable  = "user_asset_group"
+	// assetVisitCountTable = "asset_visit_count"
+
 	// Database table names.
 	nodeRegisterTable = "node_register_info"
 	nodeInfoTable     = "node_info"
 
-	userAssetTable      = "user_asset"
-	userInfoTable       = "user_info"
-	userAssetGroupTable = "user_asset_group"
-	assetRecordTable    = "asset_record"
-	replicaInfoTable    = "replica_info"
-	assetsViewTable     = "asset_view"
-	bucketTable         = "bucket"
+	assetRecordTable = "asset_record"
+	replicaInfoTable = "replica_info"
+	assetsViewTable  = "asset_view"
+	bucketTable      = "bucket"
 
 	edgeUpdateTable       = "edge_update_info"
 	validatorsTable       = "validators"
@@ -44,7 +46,6 @@ const (
 	workloadRecordTable   = "workload_record"
 	replicaEventTable     = "replica_event"
 	retrieveEventTable    = "retrieve_event"
-	assetVisitCountTable  = "asset_visit_count"
 	replenishBackupTable  = "replenish_backup"
 	awsDataTable          = "aws_data"
 	profitDetailsTable    = "profit_details"
@@ -107,13 +108,9 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cAssetViewTable, assetsViewTable))
 	tx.MustExec(fmt.Sprintf(cBucketTable, bucketTable))
 	tx.MustExec(fmt.Sprintf(cWorkloadTable, workloadRecordTable))
-	tx.MustExec(fmt.Sprintf(cUserAssetTable, userAssetTable))
-	tx.MustExec(fmt.Sprintf(cUserInfoTable, userInfoTable))
 	tx.MustExec(fmt.Sprintf(cReplicaEventTable, replicaEventTable))
 	tx.MustExec(fmt.Sprintf(cRetrieveEventTable, retrieveEventTable))
-	tx.MustExec(fmt.Sprintf(cAssetVisitCountTable, assetVisitCountTable))
 	tx.MustExec(fmt.Sprintf(cReplenishBackupTable, replenishBackupTable))
-	tx.MustExec(fmt.Sprintf(cUserAssetGroupTable, userAssetGroupTable))
 	tx.MustExec(fmt.Sprintf(cAWSDataTable, awsDataTable))
 	tx.MustExec(fmt.Sprintf(cProfitDetailsTable, profitDetailsTable))
 	tx.MustExec(fmt.Sprintf(cCandidateCodeTable, candidateCodeTable))

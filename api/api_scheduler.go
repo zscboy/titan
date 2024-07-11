@@ -47,16 +47,16 @@ type AssetAPI interface {
 	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 	// CreateAsset creates an asset with car CID, car name, and car size.
 	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) //perm:web,admin,user
-	// ListAssets lists the assets of the user.
-	ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
-	// DeleteAsset deletes the asset of the user.
-	DeleteAsset(ctx context.Context, userID, assetCID string) error //perm:web,admin,user
+	// // ListAssets lists the assets of the user.
+	// ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
+	// // DeleteAsset deletes the asset of the user.
+	// DeleteAsset(ctx context.Context, userID, assetCID string) error //perm:web,admin,user
 	// ShareAssets shares the assets of the user.
 	ShareAssets(ctx context.Context, userID string, assetCID []string) (map[string]string, error) //perm:web,admin,user
-	// UpdateShareStatus update share status of the user asset
-	UpdateShareStatus(ctx context.Context, userID, assetCID string) error //perm:web,admin
-	// GetAssetStatus retrieves a asset status
-	GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) //perm:web,admin
+	// // UpdateShareStatus update share status of the user asset
+	// UpdateShareStatus(ctx context.Context, userID, assetCID string) error //perm:web,admin
+	// // GetAssetStatus retrieves a asset status
+	// GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) //perm:web,admin
 	// MinioUploadFileEvent the event of minio upload file
 	MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error //perm:candidate
 	// AddAWSData add aws resource information
@@ -184,49 +184,49 @@ type NodeAPI interface {
 
 // UserAPI is an interface for user
 type UserAPI interface {
-	// UserAPIKeysExists checks if the user api key exists.
-	UserAPIKeysExists(ctx context.Context, userID string) error //perm:web
+	// // UserAPIKeysExists checks if the user api key exists.
+	// UserAPIKeysExists(ctx context.Context, userID string) error //perm:web
 
-	// User-related methods
-	// AllocateStorage allocates storage space.
-	AllocateStorage(ctx context.Context, userID string) (*types.UserInfo, error) //perm:web,admin
-	// GetUserInfo get user info
-	GetUserInfo(ctx context.Context, userID string) (*types.UserInfo, error) // perm:web,admin
-	// GetUserInfos get user infos
-	GetUserInfos(ctx context.Context, userIDs []string) (map[string]*types.UserInfo, error) // perm:web,admin
-	// CreateAPIKey creates a key for the client API.
-	CreateAPIKey(ctx context.Context, userID, keyName string, acl []types.UserAccessControl) (string, error) //perm:web,admin
-	// GetAPIKeys get all api key for user.
-	GetAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKeysInfo, error) //perm:web,admin
-	// DeleteAPIKey delete a api key for user
-	DeleteAPIKey(ctx context.Context, userID, name string) error //perm:web,admin
+	// // User-related methods
+	// // AllocateStorage allocates storage space.
+	// AllocateStorage(ctx context.Context, userID string) (*types.UserInfo, error) //perm:web,admin
+	// // GetUserInfo get user info
+	// GetUserInfo(ctx context.Context, userID string) (*types.UserInfo, error) // perm:web,admin
+	// // GetUserInfos get user infos
+	// GetUserInfos(ctx context.Context, userIDs []string) (map[string]*types.UserInfo, error) // perm:web,admin
+	// // CreateAPIKey creates a key for the client API.
+	// CreateAPIKey(ctx context.Context, userID, keyName string, acl []types.UserAccessControl) (string, error) //perm:web,admin
+	// // GetAPIKeys get all api key for user.
+	// GetAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKeysInfo, error) //perm:web,admin
+	// // DeleteAPIKey delete a api key for user
+	// DeleteAPIKey(ctx context.Context, userID, name string) error //perm:web,admin
 	// UserAssetDownloadResult After a user downloads a resource from a candidate node, the candidate node reports the download result
 	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error //perm:candidate
-	// SetUserVIP set user vip state
-	SetUserVIP(ctx context.Context, userID string, enableVIP bool) error //perm:admin
-	// GetUserAccessToken get access token for user
-	GetUserAccessToken(ctx context.Context, userID string) (string, error) //perm:web,admin
-	// GetUserStorageStats
-	GetUserStorageStats(ctx context.Context, userID string) (*types.StorageStats, error) //perm:web,admin
-	// GetUsersStorageStatistics
-	ListUserStorageStats(ctx context.Context, limit, offset int) (*types.ListStorageStatsRsp, error) //perm:web,admin
+	// // SetUserVIP set user vip state
+	// SetUserVIP(ctx context.Context, userID string, enableVIP bool) error //perm:admin
+	// // GetUserAccessToken get access token for user
+	// GetUserAccessToken(ctx context.Context, userID string) (string, error) //perm:web,admin
+	// // GetUserStorageStats
+	// GetUserStorageStats(ctx context.Context, userID string) (*types.StorageStats, error) //perm:web,admin
+	// // GetUsersStorageStatistics
+	// ListUserStorageStats(ctx context.Context, limit, offset int) (*types.ListStorageStatsRsp, error) //perm:web,admin
 
-	// CreateAssetGroup create Asset group
-	CreateAssetGroup(ctx context.Context, userID, name string, parent int) (*types.AssetGroup, error) //perm:user,web,admin
-	// ListAssetGroup list Asset group
-	ListAssetGroup(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetGroupRsp, error) //perm:user,web,admin
-	// ListAssetSummary list Asset and group
-	ListAssetSummary(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetSummaryRsp, error) //perm:user,web,admin
-	// DeleteAssetGroup delete Asset group
-	DeleteAssetGroup(ctx context.Context, userID string, gid int) error //perm:user,web,admin
-	// RenameAssetGroup rename group
-	RenameAssetGroup(ctx context.Context, userID, newName string, groupID int) error //perm:user,web,admin
-	// MoveAssetToGroup move a asset to group
-	MoveAssetToGroup(ctx context.Context, userID, cid string, groupID int) error //perm:user,web,admin
-	// MoveAssetGroup move a asset group
-	MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID int) error //perm:user,web,admin
-	// GetAPPKeyPermissions get the permissions of user app key
-	GetAPPKeyPermissions(ctx context.Context, userID, keyName string) ([]string, error) //perm:user,web,admin
+	// // CreateAssetGroup create Asset group
+	// CreateAssetGroup(ctx context.Context, userID, name string, parent int) (*types.AssetGroup, error) //perm:user,web,admin
+	// // ListAssetGroup list Asset group
+	// ListAssetGroup(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetGroupRsp, error) //perm:user,web,admin
+	// // ListAssetSummary list Asset and group
+	// ListAssetSummary(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetSummaryRsp, error) //perm:user,web,admin
+	// // DeleteAssetGroup delete Asset group
+	// DeleteAssetGroup(ctx context.Context, userID string, gid int) error //perm:user,web,admin
+	// // RenameAssetGroup rename group
+	// RenameAssetGroup(ctx context.Context, userID, newName string, groupID int) error //perm:user,web,admin
+	// // MoveAssetToGroup move a asset to group
+	// MoveAssetToGroup(ctx context.Context, userID, cid string, groupID int) error //perm:user,web,admin
+	// // MoveAssetGroup move a asset group
+	// MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID int) error //perm:user,web,admin
+	// // GetAPPKeyPermissions get the permissions of user app key
+	// GetAPPKeyPermissions(ctx context.Context, userID, keyName string) ([]string, error) //perm:user,web,admin
 	// GetNodeUploadInfo
 	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
 }
