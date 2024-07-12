@@ -220,24 +220,13 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		s.ProjectManager.CheckProjectReplicasFromNode(nodeID)
 	}
 
-	if nodeType == types.NodeCandidate {
-		err := checkDomain(cNode.ExternalURL)
-		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
-		cNode.IsStorageNode = err == nil
-		// cNode.IsStorageNode = domain
-		if len(s.SchedulerCfg.StorageCandidates) > 0 {
-			for _, nID := range s.SchedulerCfg.StorageCandidates {
-				if nID == nodeID {
-					cNode.IsStorageNode = true
-					break
-				}
-			}
-		}
-	}
-
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
 	} else {
+		err := checkDomain(cNode.ExternalURL)
+		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
+		cNode.IsStorageNode = err == nil
+
 		go s.NatManager.DetermineCandidateNATType(context.Background(), nodeID)
 	}
 
@@ -515,7 +504,6 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	if req.BandwidthDownSize > 0 {
 		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthDownSize, req.ProjectID)
 		if pInfo != nil {
-			pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfit(pInfo)
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
@@ -526,7 +514,6 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	if req.BandwidthUpSize > 0 {
 		pInfo := s.NodeManager.GetUploadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
 		if pInfo != nil {
-			pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfit(pInfo)
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())

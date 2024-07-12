@@ -175,7 +175,6 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		UploadAssetExpiration:   150,
 		IPLimit:                 5,
 		L2ValidatorCount:        0,
-		StorageCandidates:       []string{},
 		NodeScoreLevel: map[string][]int{
 			"A": {90, 100},
 			"B": {50, 89},

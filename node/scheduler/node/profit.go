@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 )
@@ -24,6 +25,8 @@ const (
 	l2PhoneRate = 500.0 / 17280.0 // every 5s
 	l2PCRate    = 300.0 / 17280.0 // every 5s
 	l2OtherRate = 150.0 / 17280.0 // every 5s
+
+	l2ProfitLimit = 7000
 )
 
 var (
@@ -60,7 +63,30 @@ var (
 // 	}
 // }
 
+func (m *Manager) isExceededLimit(nodeID string) bool {
+	start := time.Now()
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+	end := start.Add(24 * time.Hour)
+
+	todayProfit, err := m.LoadTodayProfitsForNode(nodeID, start, end)
+	if err != nil {
+		log.Errorf("%s LoadTodayProfitsForNode err:%s", nodeID, err.Error())
+		return true
+	}
+
+	if todayProfit > l2ProfitLimit {
+		log.Infof("%s LoadTodayProfitsForNode %.4f > %d", nodeID, todayProfit, l2ProfitLimit)
+		return true
+	}
+
+	return false
+}
+
 func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
+	if m.isExceededLimit(node.NodeID) {
+		return nil
+	}
+
 	u := bToGB(size)
 	mip := calculateMip(node.NATType)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
@@ -78,7 +104,7 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 		Profit: mbnu,
 		PType:  types.ProfitTypeBePull,
 		Size:   int64(size),
-		Note:   fmt.Sprintf("lip:[%d]  mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%d], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
+		Note:   fmt.Sprintf("lip:[%d]  mr:[%.4f], mx:[%.4f], mo:[%.4f], u:[%.6f]GB, [%.2f], mip:[%.4f], mn:[%.4f]", lip, mr, mx, mo, u, uploadTrafficProfit, mip, mn),
 	}
 }
 
@@ -152,6 +178,10 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 }
 
 func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
+	if m.isExceededLimit(node.NodeID) {
+		return nil
+	}
+
 	d := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	lip := len(m.GetNodeOfIP(node.ExternalIP))
@@ -174,6 +204,10 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string)
 }
 
 func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
+	if m.isExceededLimit(node.NodeID) {
+		return nil
+	}
+
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mip := calculateMip(node.NATType)
@@ -211,6 +245,19 @@ func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuratio
 		PType:  types.ProfitTypeOfflinePenalty,
 		Rate:   pr,
 		Note:   fmt.Sprintf("pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", pn, profit, pr, od, offlineDuration),
+	}
+}
+
+func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note string) *types.ProfitDetails {
+	if profit < 0.000001 {
+		return nil
+	}
+
+	return &types.ProfitDetails{
+		NodeID: nodeID,
+		Profit: profit,
+		PType:  types.ProfitTypeReimburse,
+		Note:   note,
 	}
 }
 

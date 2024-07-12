@@ -471,6 +471,8 @@ type ConnectOptions struct {
 	// private minio storage only, not public storage
 	IsPrivateMinioOnly bool
 	ExternalURL        string
+
+	AreaID string
 }
 
 type GeneratedCarInfo struct {
@@ -554,6 +556,8 @@ const (
 	ProfitTypeUpload
 	// ProfitTypeOfflinePenalty
 	ProfitTypeOfflinePenalty
+	// ProfitTypeReimburse
+	ProfitTypeReimburse
 )
 
 type ProfitDetails struct {

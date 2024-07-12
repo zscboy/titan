@@ -388,6 +388,8 @@ type NodeAPIStruct struct {
 
 		RegisterNode func(p0 context.Context, p1 string, p2 string, p3 types.NodeType) (*types.ActivationDetail, error) `perm:"default"`
 
+		ReimburseNodeProfit func(p0 context.Context, p1 string, p2 string, p3 float64) (error) `perm:"admin,web,locator"`
+
 		RequestActivationCodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeActivation, error) `perm:"web,admin"`
 
 		SetTunserverURL func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin,web,locator"`
@@ -1885,6 +1887,17 @@ func (s *NodeAPIStruct) RegisterNode(p0 context.Context, p1 string, p2 string, p
 
 func (s *NodeAPIStub) RegisterNode(p0 context.Context, p1 string, p2 string, p3 types.NodeType) (*types.ActivationDetail, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *NodeAPIStruct) ReimburseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
+	if s.Internal.ReimburseNodeProfit == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ReimburseNodeProfit(p0, p1, p2, p3)
+}
+
+func (s *NodeAPIStub) ReimburseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
+	return ErrNotSupported
 }
 
 func (s *NodeAPIStruct) RequestActivationCodes(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeActivation, error) {

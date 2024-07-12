@@ -355,7 +355,6 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 		incr, dInfo := m.GetEdgeBaseProfitDetails(node)
 		if dInfo != nil {
 			detailsList = append(detailsList, dInfo)
-			node.Profit += dInfo.Profit
 		}
 		oIncr := roundDivision((node.KeepaliveCount * 5), 60)
 		node.OnlineDuration += oIncr
@@ -385,7 +384,6 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 			dInfo := m.GetCandidateBaseProfitDetails(node)
 			if dInfo != nil {
 				detailsList = append(detailsList, dInfo)
-				node.Profit += dInfo.Profit
 			}
 		}
 

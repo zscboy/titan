@@ -36,6 +36,39 @@ var nodeCmds = &cli.Command{
 		nodeFromGeoCmd,
 		getRegionInfosCmd,
 		setTunserverURLCmd,
+		reimburseProfitCmd,
+	},
+}
+
+var reimburseProfitCmd = &cli.Command{
+	Name:  "rp",
+	Usage: "reimburse profit",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+		&cli.StringFlag{
+			Name:  "note",
+			Usage: "note",
+			Value: "",
+		},
+		&cli.Float64Flag{
+			Name:  "profit",
+			Usage: "profit",
+			Value: 0.0,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		note := cctx.String("note")
+		nodeID := cctx.String("node-id")
+		profit := cctx.Float64("profit")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.ReimburseNodeProfit(ctx, nodeID, note, profit)
 	},
 }
 

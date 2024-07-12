@@ -209,8 +209,6 @@ type SchedulerCfg struct {
 
 	IPLimit int
 
-	StorageCandidates []string
-
 	L2ValidatorCount int
 
 	AndroidSymbol string

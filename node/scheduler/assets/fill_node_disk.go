@@ -195,11 +195,11 @@ func (m *Manager) fillDiskTasks(candidateCount int64) {
 
 	m.autoRefillAssetReplicas()
 
-	if m.autoRestartAssetReplicas(false) {
+	if m.pullAssetFromAWSs(candidateCount) {
 		return
 	}
 
-	m.pullAssetFromAWSs(candidateCount)
+	m.autoRestartAssetReplicas(false)
 
 	return
 }

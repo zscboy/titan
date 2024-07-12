@@ -42,7 +42,7 @@ func (m *Manager) startValidationTicker() {
 		log.Infof("start validation ------------- %d:%d  (%d != 0)[%v] [%v] \n", hour, t.Minute(), hour%2, hour%2 != 0, t.Minute() == 0)
 
 		if hour%2 != 0 && t.Minute() == 0 {
-			log.Infoln("start validation 1------------- ")
+			log.Infoln("start validation 1------------- ", m.enableValidation)
 			m.doValidate()
 		} else {
 			log.Infoln("start validation 2------------- ")
@@ -93,9 +93,9 @@ func (m *Manager) computeNodeProfits() {
 func (m *Manager) doValidate() {
 	m.updateTimeoutResultInfo()
 
-	if !m.enableValidation {
-		return
-	}
+	// if !m.enableValidation {
+	// 	return
+	// }
 
 	if err := m.startValidate(); err != nil {
 		log.Errorf("start new round: %v", err)
@@ -124,7 +124,7 @@ func (m *Manager) startValidate() error {
 			continue
 		}
 
-		if candidate.NATType != types.NatTypeNo.String() || candidate.NATType != types.NatTypeUnknown.String() {
+		if candidate.NATType != types.NatTypeNo.String() && candidate.NATType != types.NatTypeUnknown.String() {
 			continue
 		}
 
@@ -145,6 +145,8 @@ func (m *Manager) startValidate() error {
 	sort.Slice(edges, func(i, j int) bool {
 		return edges[i].LastValidateTime < edges[j].LastValidateTime
 	})
+
+	log.Infoln("start validation validateReqs:%d, edges:%d", len(validateReqs), len(edges))
 
 	m.distributeEdges(edges, validateReqs)
 

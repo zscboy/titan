@@ -1474,3 +1474,15 @@ func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) (m
 	continent, country, province, _ := region.DecodeAreaID(areaID)
 	return s.NodeManager.GetGeoKey(continent, country, province), nil
 }
+
+func (s *Scheduler) ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error {
+	data := s.NodeManager.GetReimburseProfitDetails(nodeID, profit, note)
+	if data != nil {
+		err := s.db.AddNodeProfit(data)
+		if err != nil {
+			return xerrors.Errorf("AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
+		}
+	}
+
+	return nil
+}
