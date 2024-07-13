@@ -176,6 +176,8 @@ type NodeAPI interface {
 	SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error //perm:admin,web,locator
 	// ReimburseNodeProfit
 	ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error //perm:admin,web,locator
+	// GetTunserverURLFromUser
+	GetTunserverURLFromUser(ctx context.Context, req *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) //perm:admin,web,locator
 }
 
 // UserAPI is an interface for user

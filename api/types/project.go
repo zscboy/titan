@@ -86,6 +86,16 @@ type ProjectInfo struct {
 	ReplenishReplicas int64 `db:"replenish_replicas"`
 }
 
+type TunserverInfoReq struct {
+	IP     string
+	AreaID string
+}
+
+type TunserverInfoRsp struct {
+	NodeID string
+	WsURL  string
+}
+
 type ProjectReplicas struct {
 	Id          string               `db:"id"`
 	Status      ProjectReplicaStatus `db:"status"`

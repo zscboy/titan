@@ -118,7 +118,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		if err != nil {
 			s.NodeManager.RemoveNodeIP(nodeID, externalIP)
 			if cNode.NodeInfo != nil {
-				s.NodeManager.RemoveNodeGeo(nodeID, cNode.GeoInfo)
+				s.NodeManager.RemoveNodeGeo(nodeID, nodeType, cNode.GeoInfo)
 			}
 		}
 	}()
@@ -193,9 +193,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		if nodeType == types.NodeEdge {
 			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode)
 			cNode.IncomeIncr = incr
-
-			s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 		}
+		s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, cNode.FirstTime)
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)

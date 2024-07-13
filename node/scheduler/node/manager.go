@@ -93,20 +93,36 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	return nodeManager
 }
 
+// AddNodeGeo add node to map
 func (m *Manager) AddNodeGeo(nodeInfo *types.NodeInfo, geo *region.GeoInfo) {
-	m.geoMgr.AddNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
+	if nodeInfo.Type == types.NodeEdge {
+		m.geoMgr.AddEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
+	} else {
+		m.geoMgr.AddCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
+	}
 }
 
-func (m *Manager) RemoveNodeGeo(nodeID string, geo *region.GeoInfo) {
-	m.geoMgr.RemoveNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+// RemoveNodeGeo remove node from map
+func (m *Manager) RemoveNodeGeo(nodeID string, nodeType types.NodeType, geo *region.GeoInfo) {
+	if nodeType == types.NodeEdge {
+		m.geoMgr.RemoveEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+	} else {
+		m.geoMgr.RemoveCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+	}
 }
 
-func (m *Manager) FindNodesFromGeo(continent, country, province, city string) []*types.NodeInfo {
-	return m.geoMgr.FindNodes(continent, country, province, city)
+// FindNodesFromGeo find node from map
+func (m *Manager) FindNodesFromGeo(continent, country, province, city string, nodeType types.NodeType) []*types.NodeInfo {
+	if nodeType == types.NodeEdge {
+		return m.geoMgr.FindEdgeNodes(continent, country, province, city)
+	}
+
+	return m.geoMgr.FindCandidateNodes(continent, country, province, city)
 }
 
+// GetGeoKey get node geo key
 func (m *Manager) GetGeoKey(continent, country, province string) map[string]int {
-	return m.geoMgr.GetGeoKey(continent, country, province)
+	return m.geoMgr.GetEdgeGeoKey(continent, country, province)
 }
 
 func (m *Manager) getIPLimit() int {

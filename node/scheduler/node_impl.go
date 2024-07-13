@@ -1437,6 +1437,33 @@ func (s *Scheduler) SetTunserverURL(ctx context.Context, nodeID, wsNodeID string
 	return s.db.SaveWSServerID(nodeID, wsNodeID)
 }
 
+func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) {
+	geoInfo, err := s.GetGeoInfo(req.IP)
+
+	nodeID := ""
+	if err != nil {
+		log.Warnf("GetTunserverURLFromUser user ip:[%s], err:%s", req.IP, err.Error())
+
+		list := s.NodeManager.GetRandomCandidates(1)
+		for nID := range list {
+			nodeID = nID
+		}
+	} else {
+		list := s.NodeManager.FindNodesFromGeo(geoInfo.Continent, geoInfo.Country, geoInfo.Province, geoInfo.City, types.NodeCandidate)
+		for _, info := range list {
+			nodeID = info.NodeID
+			break
+		}
+	}
+
+	node := s.NodeManager.GetNode(nodeID)
+	if node == nil {
+		return nil, xerrors.Errorf("node not found")
+	}
+
+	return &types.TunserverInfoRsp{WsURL: node.WsURL(), NodeID: nodeID}, nil
+}
+
 // GetProjectsForNode
 func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) {
 	nID := handler.GetNodeID(ctx)
@@ -1464,7 +1491,7 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]*types.NodeInfo, error) {
 	continent, country, province, city := region.DecodeAreaID(areaID)
 	if continent != "" {
-		return s.NodeManager.FindNodesFromGeo(continent, country, province, city), nil
+		return s.NodeManager.FindNodesFromGeo(continent, country, province, city, types.NodeEdge), nil
 	}
 
 	return nil, xerrors.Errorf("continent is nil ; %s", areaID)
