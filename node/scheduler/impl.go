@@ -239,22 +239,8 @@ func checkDomain(domain string) error {
 		return xerrors.New("domain is nil")
 	}
 
-	// u, err := url.Parse(domain)
-	// if err != nil {
-	// 	return xerrors.Errorf("domain Parse err:%s", err.Error())
-	// }
-
-	// host := u.Host
-
 	url := fmt.Sprintf("%s/abc", domain)
 	_, err := http.Get(url)
-
-	// timeout := time.Second * 3
-	// conn, err := net.DialTimeout("tcp", host, timeout)
-	// if err != nil {
-	// 	return xerrors.Errorf("DialTimeout err:%s", err.Error())
-	// }
-	// defer conn.Close()
 
 	return err
 }

@@ -472,7 +472,7 @@ type ConnectOptions struct {
 	IsPrivateMinioOnly bool
 	ExternalURL        string
 
-	AreaID string
+	GeoInfo *region.GeoInfo
 }
 
 type GeneratedCarInfo struct {
