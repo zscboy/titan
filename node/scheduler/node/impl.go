@@ -1,6 +1,9 @@
 package node
 
 import (
+	"fmt"
+	"math/rand"
+
 	"github.com/Filecoin-Titan/titan/api/types"
 )
 
@@ -146,4 +149,36 @@ func (m *Manager) GetRandomCandidates(count int) map[string]int {
 // GetRandomEdges returns a random edge node
 func (m *Manager) GetRandomEdges(count int) map[string]int {
 	return m.weightMgr.getEdgeWeightRandom(count)
+}
+
+func (m *Manager) SetTunserverURL(edgeID, candidateID string) error {
+	node := m.GetEdgeNode(edgeID)
+	if node != nil {
+		node.WSServerID = candidateID
+	}
+
+	return m.SaveWSServerID(edgeID, candidateID)
+}
+
+func (m *Manager) UpdateTunserverURL(edgeID string) (*Node, error) {
+	var vNode *Node
+	// select candidate
+	_, list := m.GetAllCandidateNodes()
+	if len(list) > 0 {
+		index := rand.Intn(len(list))
+		vNode = list[index]
+	}
+
+	if vNode == nil {
+		return vNode, fmt.Errorf("node not found")
+	}
+
+	vID := vNode.NodeID
+
+	node := m.GetEdgeNode(edgeID)
+	if node != nil {
+		node.WSServerID = vID
+	}
+
+	return vNode, m.SaveWSServerID(edgeID, vID)
 }

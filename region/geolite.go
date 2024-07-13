@@ -39,6 +39,33 @@ type geoLite struct {
 	dbPath string
 }
 
+func (g geoLite) GetGeoInfoFromAreaID(areaID string) (*GeoInfo, error) {
+	if areaID == "" {
+		return nil, xerrors.New("areaID is nil")
+	}
+
+	areaID = strings.Replace(areaID, " ", "", -1)
+	geoInfo := &GeoInfo{
+		Latitude:  0,
+		Longitude: 0,
+		Geo:       areaID,
+
+		Continent: unknown,
+		Country:   unknown,
+		Province:  unknown,
+		City:      unknown,
+	}
+
+	continent, country, province, city := DecodeAreaID(areaID)
+
+	geoInfo.Continent = strings.ToLower(strings.Replace(continent, " ", "", -1))
+	geoInfo.Country = strings.ToLower(strings.Replace(country, " ", "", -1))
+	geoInfo.Province = strings.ToLower(strings.Replace(province, " ", "", -1))
+	geoInfo.City = strings.ToLower(strings.Replace(city, " ", "", -1))
+
+	return geoInfo, nil
+}
+
 // GetGeoInfo retrieves the geographic information of the given IP address using the GeoLite database
 func (g geoLite) GetGeoInfo(ip string) (*GeoInfo, error) {
 	geoInfo := DefaultGeoInfo(ip)

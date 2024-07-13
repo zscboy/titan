@@ -368,7 +368,7 @@ type NodeAPIStruct struct {
 
 		GetProfitDetailsForNode func(p0 context.Context, p1 string, p2 int, p3 int, p4 []int) (*types.ListNodeProfitDetailsRsp, error) `perm:"web,admin"`
 
-		GetTunserverURLFromUser func(p0 context.Context, p1 *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) `perm:"admin,web,locator"`
+		GetTunserverURLFromUser func(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) `perm:"admin,web,locator"`
 
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) (error) `perm:"default"`
 
@@ -1781,14 +1781,14 @@ func (s *NodeAPIStub) GetProfitDetailsForNode(p0 context.Context, p1 string, p2 
 	return nil, ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) {
+func (s *NodeAPIStruct) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) {
 	if s.Internal.GetTunserverURLFromUser == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetTunserverURLFromUser(p0, p1)
 }
 
-func (s *NodeAPIStub) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) {
+func (s *NodeAPIStub) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) {
 	return nil, ErrNotSupported
 }
 

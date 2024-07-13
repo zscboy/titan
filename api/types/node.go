@@ -595,3 +595,8 @@ type TunserverRsp struct {
 	URL    string
 	NodeID string
 }
+
+type TunserverReq struct {
+	IP     string
+	AreaID string
+}

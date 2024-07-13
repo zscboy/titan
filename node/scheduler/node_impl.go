@@ -1420,35 +1420,30 @@ func (s *Scheduler) UpdateTunserverURL(ctx context.Context, nodeID string) error
 		return fmt.Errorf("invalid request")
 	}
 
-	node := s.NodeManager.GetEdgeNode(nID)
-	if node != nil {
-		node.WSServerID = nodeID
-	}
-
-	return s.db.SaveWSServerID(nID, nodeID)
+	return s.NodeManager.SetTunserverURL(nID, nodeID)
 }
 
 func (s *Scheduler) SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error {
-	node := s.NodeManager.GetEdgeNode(nodeID)
-	if node != nil {
-		node.WSServerID = wsNodeID
-	}
-
-	return s.db.SaveWSServerID(nodeID, wsNodeID)
+	return s.NodeManager.SetTunserverURL(nodeID, wsNodeID)
 }
 
-func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.TunserverInfoReq) (*types.TunserverInfoRsp, error) {
-	geoInfo, err := s.GetGeoInfo(req.IP)
+func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.TunserverReq) (*types.TunserverRsp, error) {
+	geoInfo, err := s.GetGeoInfoFromAreaID(req.AreaID)
+	if geoInfo == nil {
+		geoInfo, err = s.GetGeoInfo(req.IP)
+	}
 
 	nodeID := ""
 	if err != nil {
-		log.Warnf("GetTunserverURLFromUser user ip:[%s], err:%s", req.IP, err.Error())
+		log.Warnf("GetTunserverURLFromUser user ip:[%s],area:[%s] err:%s", req.IP, req.AreaID, err.Error())
 
 		list := s.NodeManager.GetRandomCandidates(1)
 		for nID := range list {
 			nodeID = nID
 		}
 	} else {
+		log.Infof("GetTunserverURLFromUser %s get:%s", req.AreaID, geoInfo.Geo)
+
 		list := s.NodeManager.FindNodesFromGeo(geoInfo.Continent, geoInfo.Country, geoInfo.Province, geoInfo.City, types.NodeCandidate)
 		for _, info := range list {
 			nodeID = info.NodeID
@@ -1461,7 +1456,7 @@ func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.Tuns
 		return nil, xerrors.Errorf("node not found")
 	}
 
-	return &types.TunserverInfoRsp{WsURL: node.WsURL(), NodeID: nodeID}, nil
+	return &types.TunserverRsp{URL: node.WsURL(), NodeID: nodeID}, nil
 }
 
 // GetProjectsForNode
