@@ -466,6 +466,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 	if len(cNode.ExternalURL) > 0 {
 		uploadURL = fmt.Sprintf("%s/uploadv2", cNode.ExternalURL)
 	}
-
-	return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
+	_, _ = token, uploadURL
+	// return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
+	return nil, nil
 }

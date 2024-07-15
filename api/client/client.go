@@ -68,10 +68,13 @@ func NewCandidate(ctx context.Context, addr string, requestHeader http.Header, o
 		return nil, nil, err
 	}
 
-	rpcOpts := []jsonrpc.Option{rpcenc.ReaderParamEncoder(pushURL), jsonrpc.WithErrors(api.RPCErrors)}
+	rpcOpts := []jsonrpc.Option{rpcenc.ReaderParamEncoder(pushURL), jsonrpc.WithErrors(api.RPCErrors), jsonrpc.WithHTTPClient(NewHTTP3Client())}
 	if len(opts) > 0 {
 		rpcOpts = append(rpcOpts, opts...)
 	}
+
+	addr = strings.Replace(addr, "ws", "https", 1)
+	addr = strings.Replace(addr, "0.0.0.0", "localhost", 1)
 
 	var res api.CandidateStruct
 	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",

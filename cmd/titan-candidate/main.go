@@ -363,23 +363,7 @@ var daemonStartCmd = &cli.Command{
 		// 	return xerrors.Errorf("get tls config error: %w", err)
 		// }
 
-		var tlsConfig *tls.Config
-		tlsCert, domainSuffix := fetchTlsConfig(candidateCfg.AcmeUrl)
-		if tlsCert != nil {
-			log.Info("TLS cert/key pair fetched, using remote tls config")
-			tlsConfig = &tls.Config{
-				MinVersion:         tls.VersionTLS12,
-				Certificates:       []tls.Certificate{*tlsCert},
-				NextProtos:         []string{"h2", "h3"},
-				InsecureSkipVerify: false,
-			}
-		} else {
-			log.Info("No remote tls config, using default tls config")
-			tlsConfig, err = defaultTLSConfig()
-			if err != nil {
-				return xerrors.Errorf("get tls config error: %w", err)
-			}
-		}
+		tlsConfig, domainSuffix := fetchTlsConfig(candidateCfg.AcmeUrl)
 		if domainSuffix != "" {
 			nodeVal := nodeID[2:]
 			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
@@ -426,6 +410,8 @@ var daemonStartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
+
+		// dl := &dualListener{Listener: nl, tlsConfig: tlsConfig}
 
 		log.Infof("Candidate listen on %s", candidateCfg.Network.ListenAddress)
 
@@ -523,9 +509,6 @@ var daemonStartCmd = &cli.Command{
 		if tlsConfig != nil {
 			return httpSrv.ServeTLS(nl, "", "")
 		}
-		// if isEnableTLS(candidateCfg) {
-
-		// }
 		return httpSrv.Serve(nl)
 	},
 }
@@ -617,36 +600,16 @@ func newSchedulerAPI(cctx *cli.Context, tansport *quic.Transport, schedulerURL, 
 	return schedulerAPI, closer, nil
 }
 
-func isEnableTLS(candidateCfg *config.CandidateCfg) bool {
-	if len(candidateCfg.CertificatePath) > 0 && len(candidateCfg.PrivateKeyPath) > 0 {
-		return true
-	}
-	return false
-}
-
-func getTLSConfig(candidateCfg *config.CandidateCfg) (*tls.Config, error) {
-	if isEnableTLS(candidateCfg) {
-		cert, err := tls.LoadX509KeyPair(candidateCfg.CertificatePath, candidateCfg.PrivateKeyPath)
-		if err != nil {
-			log.Errorf("LoadX509KeyPair error:%s", err.Error())
-			return nil, err
-		}
-
-		return &tls.Config{
-			MinVersion:   tls.VersionTLS12,
-			Certificates: []tls.Certificate{cert},
-		}, nil
-	}
-
-	return defaultTLSConfig()
-}
-
 func defaultTLSConfig() (*tls.Config, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
-	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		// DNSNames:     []string{"localhost"},
+		// IPAddresses:  []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("0.0.0.0")},
+	}
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 	if err != nil {
 		return nil, err
@@ -701,7 +664,6 @@ func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *t
 			return err
 		}
 	}
-
 	ln, err := transport.ListenEarly(config, nil)
 	if err != nil {
 		log.Errorf("startUDPServer, ListenEarly error:%s", err.Error())
@@ -715,7 +677,24 @@ func startHTTP3Server(transport *quic.Transport, handler http.Handler, config *t
 	return srv.ServeListener(ln)
 }
 
-func fetchTlsConfig(acmeAddress string) (crt *tls.Certificate, domainSuffix string) {
+func fetchTlsConfig(acmeAddress string) (cfg *tls.Config, domainSuffix string) {
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: tls.VersionTLS13,
+		NextProtos: []string{"h2", "h3"},
+		// InsecureSkipVerify: true,
+		// GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		// 	return nil, nil
+		// },
+		// VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		// 	return nil
+		// },
+		// GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+		// 	return nil, nil
+		// },
+	}
+
 	type Acme struct {
 		Certificate string    `json:"certificate"`
 		PrivateKey  string    `json:"private_key"`
@@ -727,6 +706,11 @@ func fetchTlsConfig(acmeAddress string) (crt *tls.Certificate, domainSuffix stri
 		log.Errorf("fetch tls config failed, error:%s", err.Error())
 		return nil, ""
 	}
+	if resp.StatusCode != http.StatusOK {
+		log.Errorf("tls server error, code:%s", resp.Status)
+		return nil, ""
+	}
+
 	var acme Acme
 	err = json.NewDecoder(resp.Body).Decode(&acme)
 	if err != nil {
@@ -758,11 +742,26 @@ func fetchTlsConfig(acmeAddress string) (crt *tls.Certificate, domainSuffix stri
 
 	for _, v := range parsedCert.DNSNames {
 		if strings.HasPrefix(v, "*") {
-			return &cert, v
+			domainSuffix = v
+			tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 		}
 	}
 
-	return nil, ""
+	if err := mergeLocalTlsConfig(tlsConfig); err != nil {
+		log.Error("merge local tls config error", err)
+		return nil, ""
+	}
+
+	return tlsConfig, domainSuffix
+}
+
+func mergeLocalTlsConfig(tlsConfig *tls.Config) error {
+	localCfg, err := defaultTLSConfig()
+	if err != nil {
+		return err
+	}
+	tlsConfig.Certificates = append(tlsConfig.Certificates, localCfg.Certificates...)
+	return nil
 }
 
 func flushConfig(lr repo.LockedRepo, tlsConfig *tls.Config, cfg *config.CandidateCfg) error {

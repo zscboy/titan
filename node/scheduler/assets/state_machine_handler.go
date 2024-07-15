@@ -183,7 +183,7 @@ func (m *Manager) handleUploadInit(ctx statemachine.Context, info AssetPullingIn
 
 	m.startAssetTimeoutCounting(info.Hash.String(), 0, info.Size)
 
-	m.createSeedWorkload(info, cNode.NodeID)
+	// m.createSeedWorkload(info, cNode.NodeID)
 
 	return ctx.Send(PullRequestSent{})
 }

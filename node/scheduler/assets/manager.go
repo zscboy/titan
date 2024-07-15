@@ -58,6 +58,8 @@ const (
 	checkAssetReplicaLimit = 50
 
 	nodeProfitsLimitOfDay = 50000.0
+	// Maximum number of candidates for asset upload
+	maxCandidateForSelect = 5
 )
 
 // Manager manages asset replicas
@@ -418,31 +420,28 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		return info, nil
 	}
 
-	var cNode *node.Node
+	var cNodes []*node.Node
 	if req.NodeID != "" {
-		cNode = m.nodeMgr.GetCandidateNode(req.NodeID)
+		cNodes = append(cNodes, m.nodeMgr.GetCandidateNode(req.NodeID))
 	} else {
 		_, nodes := m.nodeMgr.GetAllCandidateNodes()
 		// sort.Slice(nodes, func(i, j int) bool {
 		// 	return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
 		// })
 
-		cNodes := make([]*node.Node, 0)
+		// mixup nodes
+		rand.Shuffle(len(nodes), func(i, j int) { nodes[i], nodes[j] = nodes[j], nodes[i] })
+
 		for _, node := range nodes {
-			if node.IsStorageNode {
+			if node.IsStorageNode && len(cNodes) <= maxCandidateForSelect {
 				cNodes = append(cNodes, node)
 			}
 		}
-
-		if len(cNodes) == 0 {
-			return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
-		}
-
-		index := rand.Intn(len(cNodes))
-		cNode = cNodes[index]
+		// index := rand.Intn(len(cNodes))
+		// cNode = cNodes[index]
 	}
 
-	if cNode == nil {
+	if len(cNodes) == 0 {
 		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
 	}
 
@@ -453,10 +452,23 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		Expiration: time.Now().Add(time.Hour),
 	}
 
-	token, err := cNode.API.CreateAsset(context.Background(), payload)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+	var ret = &types.UploadInfo{
+		Candidators:   make([]*types.CandidatorUploadInfo, len(cNodes)),
+		AlreadyExists: false,
 	}
+
+	for i, cNode := range cNodes {
+		token, err := cNode.API.CreateAsset(context.Background(), payload)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+		}
+		ret.Candidators[i].Token = token
+	}
+
+	// token, err := cNode.API.CreateAsset(context.Background(), payload)
+	// if err != nil {
+	// 	return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+	// }
 
 	// err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
 	// if err != nil {
@@ -482,24 +494,33 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
 	}
 
-	rInfo := AssetForceState{
-		State: UploadInit,
-		// Requester:  req.UserID,
-		SeedNodeID: cNode.NodeID,
-	}
-
 	// create asset task
-	err = m.assetStateMachines.Send(AssetHash(hash), rInfo)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	for _, cNode := range cNodes {
+		rInfo := AssetForceState{
+			State: UploadInit,
+			// Requester:  req.UserID,
+			SeedNodeID: cNode.NodeID,
+		}
+		if err := m.assetStateMachines.Send(AssetHash(hash), rInfo); err != nil {
+			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+		}
+	}
+	// err = m.assetStateMachines.Send(AssetHash(hash), rInfo)
+	// if err != nil {
+	// 	return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	// }
+
+	for i, cNode := range cNodes {
+		uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
+		if len(cNode.ExternalURL) > 0 {
+			uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
+		}
+		ret.Candidators[i].UploadURL = uploadURL
 	}
 
-	uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
-	if len(cNode.ExternalURL) > 0 {
-		uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
-	}
+	return ret, nil
 
-	return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
+	// return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
 }
 
 // CreateAssetPullTask create a new asset pull task

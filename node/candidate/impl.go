@@ -143,3 +143,11 @@ func (c *Candidate) verifyUDPConnectivity(targetURL string) (bool, error) {
 
 	return true, nil
 }
+
+func (c *Candidate) DeactivateNode(ctx context.Context) error {
+	return c.Scheduler.DeactivateNode(ctx, "", 1)
+}
+
+func (c *Candidate) CalculateExitProfit(ctx context.Context) (types.ExitProfitRsp, error) {
+	return c.Scheduler.CalculateExitProfit(ctx, "")
+}

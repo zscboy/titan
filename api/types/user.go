@@ -18,10 +18,14 @@ type CreateAssetReq struct {
 }
 
 type UploadInfo struct {
-	UploadURL     string
-	Token         string
-	NodeID        string
+	Candidators   []*CandidatorUploadInfo
 	AlreadyExists bool
+}
+
+type CandidatorUploadInfo struct {
+	UploadURL string
+	Token     string
+	NodeID    string
 }
 
 type AuthUserUploadDownloadAsset struct {

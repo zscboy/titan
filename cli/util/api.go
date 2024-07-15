@@ -191,6 +191,9 @@ func GetCandidateAPI(ctx *cli.Context) (api.Candidate, jsonrpc.ClientCloser, err
 	}
 
 	a, c, e := client.NewCandidate(ctx.Context, addr, headers)
+	if e != nil {
+		return nil, nil, e
+	}
 	v, err := a.Version(ctx.Context)
 	if err != nil {
 		return nil, nil, err

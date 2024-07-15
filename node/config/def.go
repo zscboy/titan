@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/docker/go-units"
 )
 
 const (
@@ -88,7 +90,7 @@ func DefaultCandidateCfg() *CandidateCfg {
 		TCPSrvAddr:          "0.0.0.0:9000",
 		IPFSAPIURL:          "http://127.0.0.1:5001",
 		ValidateDuration:    10,
-		MaxSizeOfUploadFile: 104857600, // 100 MB
+		MaxSizeOfUploadFile: 100 * units.GiB, // 100 GiB
 
 		Puller: Puller{
 			PullBlockTimeout:  180,
