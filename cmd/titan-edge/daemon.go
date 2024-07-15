@@ -29,6 +29,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
+const serverInternalError = "software caused connection abort"
+
 type daemon struct {
 	ID           string
 	httpServer   *httpserver.HttpServer
@@ -242,7 +244,13 @@ func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
 
 	handler, httpSrv := buildSrvHandler(d.httpServer, d.edgeAPI, d.edgeConfig, d.schedulerAPI, d.privateKey)
 
-	go startHTTP3Server(d.ctx, d.transport, handler, d.edgeConfig)
+	go func() {
+		err := startHTTP3Server(d.ctx, d.transport, handler, d.edgeConfig)
+		if err != nil && strings.Contains(err.Error(), serverInternalError) {
+			log.Warnf("http3 server was kill by system, daemon restart")
+			d.restartChan <- struct{}{}
+		}
+	}()
 
 	go startHTTPServer(d.ctx, httpSrv, d.edgeConfig.Network)
 
