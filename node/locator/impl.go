@@ -302,49 +302,67 @@ func (l *Locator) CandidateDownloadInfos(ctx context.Context, cid string) ([]*ty
 	}
 
 	log.Debugf("CandidateDownloadInfos, schedulerAPIs %#v", schedulerAPIs)
-	// TODO limit concurrency
-	return l.getCandidateDownloadInfoFromBestScheduler(schedulerAPIs, cid)
-}
 
-func (l *Locator) getCandidateDownloadInfoFromBestScheduler(apis []*SchedulerAPI, cid string) ([]*types.CandidateDownloadInfo, error) {
-	if len(apis) == 0 {
-		return nil, fmt.Errorf("scheduler api is empty")
-	}
-
-	timeout, err := time.ParseDuration(l.Timeout)
+	downloadInfos, err := l.GetAssetSourceDownloadInfos(ctx, cid)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
-	defer cancel()
-
-	infoList := make([]*types.CandidateDownloadInfo, 0)
-	lock := &sync.Mutex{}
-	wg := &sync.WaitGroup{}
-	for _, api := range apis {
-		wg.Add(1)
-
-		go func(ctx context.Context, s *SchedulerAPI) {
-			defer wg.Done()
-
-			if infos, err := s.GetCandidateDownloadInfos(ctx, cid); err == nil {
-				if len(infos) > 0 {
-					lock.Lock()
-					infoList = append(infoList, infos...)
-					lock.Unlock()
-				}
-			} else {
-				log.Errorf("GetCandidateDownloadInfos cid %s scheduler %s, error: %s", cid, s.config.SchedulerURL, err.Error())
+	candidateDownloadInfos := make([]*types.CandidateDownloadInfo, 0)
+	for _, downloadInfo := range downloadInfos {
+		for _, source := range downloadInfo.SourceList {
+			if !strings.HasPrefix("c_", source.NodeID) || len(source.Address) == 0 {
+				continue
 			}
 
-		}(ctx, api)
+			candidateDownloadInfo := &types.CandidateDownloadInfo{NodeID: source.NodeID, Address: source.Address}
+			candidateDownloadInfos = append(candidateDownloadInfos, candidateDownloadInfo)
+		}
 	}
 
-	wg.Wait()
-	return infoList, nil
-
+	// TODO limit concurrency
+	return candidateDownloadInfos, nil
 }
+
+// func (l *Locator) getCandidateDownloadInfoFromBestScheduler(apis []*SchedulerAPI, cid string) ([]*types.CandidateDownloadInfo, error) {
+// 	if len(apis) == 0 {
+// 		return nil, fmt.Errorf("scheduler api is empty")
+// 	}
+
+// 	timeout, err := time.ParseDuration(l.Timeout)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
+// 	defer cancel()
+
+// 	infoList := make([]*types.CandidateDownloadInfo, 0)
+// 	lock := &sync.Mutex{}
+// 	wg := &sync.WaitGroup{}
+// 	for _, api := range apis {
+// 		wg.Add(1)
+
+// 		go func(ctx context.Context, s *SchedulerAPI) {
+// 			defer wg.Done()
+
+// 			if infos, err := s.GetCandidateDownloadInfos(ctx, cid); err == nil {
+// 				if len(infos) > 0 {
+// 					lock.Lock()
+// 					infoList = append(infoList, infos...)
+// 					lock.Unlock()
+// 				}
+// 			} else {
+// 				log.Errorf("GetCandidateDownloadInfos cid %s scheduler %s, error: %s", cid, s.config.SchedulerURL, err.Error())
+// 			}
+
+// 		}(ctx, api)
+// 	}
+
+// 	wg.Wait()
+// 	return infoList, nil
+
+// }
 
 // GetAssetSourceDownloadInfo
 func (l *Locator) GetAssetSourceDownloadInfos(ctx context.Context, cid string) ([]*types.AssetSourceDownloadInfoRsp, error) {
@@ -356,7 +374,7 @@ func (l *Locator) GetAssetSourceDownloadInfos(ctx context.Context, cid string) (
 	}
 
 	if len(schedulerAPIs) == 0 {
-		return nil, fmt.Errorf("CandidateDownloadInfos no scheduler exist")
+		return nil, fmt.Errorf("GetAssetSourceDownloadInfos no scheduler exist")
 	}
 
 	timeout, err := time.ParseDuration(l.Timeout)
@@ -412,13 +430,17 @@ func (l *Locator) GetUserAccessPoint(ctx context.Context, userIP string) (*api.A
 		return nil, err
 	}
 
+	configs := l.GetAllSchedulerConfigs()
 	if geoInfo.Longitude == 0 && geoInfo.Latitude == 0 {
-		return nil, fmt.Errorf("Can not get geo info for user %s", userIP)
+		schedulers := l.getSchedulerWithDefaultArea(configs)
+		if len(schedulers) == 0 {
+			return nil, fmt.Errorf("Can not get scheduler for user %s, default areas %#v", userIP, l.DefaultAreas)
+		}
+		return &api.AccessPoint{AreaID: geoInfo.Geo, SchedulerURLs: []string{schedulers[0].SchedulerURL}}, nil
 	}
 
 	log.Infof("GetUserAccessPoint ip %s, areaID %s", userIP, geoInfo.Geo)
 
-	configs := l.GetAllSchedulerConfigs()
 	if cfg, err := l.getSchedulerWithUserLastEntry(configs, userIP); err != nil {
 		return nil, err
 	} else if cfg != nil {
