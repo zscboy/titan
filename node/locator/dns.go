@@ -248,7 +248,7 @@ func (h *dnsHandler) handlerAssetLocation(m *dns.Msg, domain, remoteAddr string)
 	targetIP := getUserNearestIP(userIP, ipList, h.dnsServer.reg)
 	rr := &dns.A{
 		Hdr: dns.RR_Header{
-			Name:   domain,
+			Name:   fmt.Sprintf("%s.", domain),
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
 			Ttl:    60, // 60s

@@ -301,8 +301,6 @@ func (l *Locator) CandidateDownloadInfos(ctx context.Context, cid string) ([]*ty
 		return nil, fmt.Errorf("CandidateDownloadInfos no scheduler exist")
 	}
 
-	log.Debugf("CandidateDownloadInfos, schedulerAPIs %#v", schedulerAPIs)
-
 	downloadInfos, err := l.GetAssetSourceDownloadInfos(ctx, cid)
 	if err != nil {
 		return nil, err
@@ -311,7 +309,8 @@ func (l *Locator) CandidateDownloadInfos(ctx context.Context, cid string) ([]*ty
 	candidateDownloadInfos := make([]*types.CandidateDownloadInfo, 0)
 	for _, downloadInfo := range downloadInfos {
 		for _, source := range downloadInfo.SourceList {
-			if !strings.HasPrefix("c_", source.NodeID) || len(source.Address) == 0 {
+
+			if !strings.HasPrefix(source.NodeID, "c_") || len(source.Address) == 0 {
 				continue
 			}
 
@@ -320,7 +319,6 @@ func (l *Locator) CandidateDownloadInfos(ctx context.Context, cid string) ([]*ty
 		}
 	}
 
-	// TODO limit concurrency
 	return candidateDownloadInfos, nil
 }
 
