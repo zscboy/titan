@@ -714,13 +714,13 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.SourceDownloadInfo, 0)
 
-	// Shuffle array
-	for i := len(replicas) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		replicas[i], replicas[j] = replicas[j], replicas[i]
-	}
+	// // Shuffle array
+	// for i := len(replicas) - 1; i > 0; i-- {
+	// 	j := rand.Intn(i + 1)
+	// 	replicas[i], replicas[j] = replicas[j], replicas[i]
+	// }
 
-	limit := 5
+	// limit := 5
 	for _, rInfo := range replicas {
 		nodeID := rInfo.NodeID
 		cNode := s.NodeManager.GetNode(nodeID)
@@ -741,25 +741,29 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			continue
 		}
 
-		// limit edge count
-		if len(sources) >= limit {
-			continue
-		}
+		// // limit edge count
+		// if len(sources) >= limit {
+		// 	continue
+		// }
 
-		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
-			continue
-		}
+		// if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
+		// 	continue
+		// }
 
-		source := s.getSource(cNode, cid, titanRsa)
-		if source != nil {
-			sources = append(sources, source)
-		}
+		// source := s.getSource(cNode, cid, titanRsa)
+		// if source != nil {
+		// 	sources = append(sources, source)
+		// }
 	}
-
-	out.SourceList = sources
 
 	// init workload
 	if len(sources) > 0 {
+		// Shuffle array
+		for i := len(sources) - 1; i > 0; i-- {
+			j := rand.Intn(i + 1)
+			sources[i], sources[j] = sources[j], sources[i]
+		}
+
 		out.WorkloadID = uuid.NewString()
 
 		ws := make([]*types.Workload, 0)
@@ -792,6 +796,8 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			}
 		}
 	}
+
+	out.SourceList = sources
 
 	return out, nil
 }

@@ -61,24 +61,35 @@ func (m *Manager) startValidationTicker() {
 func (m *Manager) computeNodeProfits() {
 	nodes := m.nodeMgr.GetAllEdgeNode()
 	for _, node := range nodes {
-		rsp, err := m.nodeMgr.LoadValidationResultInfos(node.NodeID, 10, 0)
+		rsp, err := m.nodeMgr.LoadValidationResultInfos(node.NodeID, 20, 0)
 		if err != nil || len(rsp.ValidationResultInfos) == 0 {
 			log.Warnf("%s LoadValidationResultInfos err:%v", node.NodeID, err)
 			continue
 		}
 
-		l := len(rsp.ValidationResultInfos)
-
+		limit := 10
+		useLen := 0
 		size := 0.0
+
 		for _, info := range rsp.ValidationResultInfos {
-			if info.Status == types.ValidationStatusCreate {
+			if info.Status != types.ValidationStatusSuccess &&
+				info.Status != types.ValidationStatusNodeTimeOut &&
+				info.Status != types.ValidationStatusValidateFail &&
+				info.Status != types.ValidationStatusNodeOffline {
 				continue
 			}
 
+			useLen++
 			size += info.Bandwidth * float64(info.Duration)
+
+			if useLen >= limit {
+				break
+			}
 		}
 
-		size = size / float64(l)
+		if useLen > 0 {
+			size = size / float64(useLen)
+		}
 
 		dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
 		if dInfo != nil {
