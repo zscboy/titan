@@ -31,10 +31,12 @@ func (m *Manager) initFillDiskTimer() {
 	}
 }
 
+// StartFillDiskTimer open
 func (m *Manager) StartFillDiskTimer() {
 	m.fillSwitch = true
 }
 
+// StopFillDiskTimer close
 func (m *Manager) StopFillDiskTimer() {
 	m.fillSwitch = false
 }
@@ -332,6 +334,7 @@ func (m *Manager) updateFillAssetInfo(bucket string, count int64, replica int) {
 	m.fillAssets.Store(bucket, info)
 }
 
+// UpdateFillAssetResponseCount update pull result from aws
 func (m *Manager) UpdateFillAssetResponseCount(bucket, cid, nodeID string, size int64) {
 	infoI, exist := m.fillAssets.Load(bucket)
 	if !exist || infoI == nil {

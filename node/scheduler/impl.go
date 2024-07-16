@@ -101,7 +101,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	if cNode.NodeInfo != nil {
 		// clean old info
 		if cNode.ExternalIP != "" {
-			s.NodeManager.RemoveNodeIP(nodeID, cNode.ExternalIP)
+			s.NodeManager.IPMgr.RemoveNodeIP(nodeID, cNode.ExternalIP)
 		}
 	}
 
@@ -110,20 +110,20 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
 	}
 
-	if !s.NodeManager.StoreNodeIP(nodeID, externalIP) {
+	if !s.NodeManager.IPMgr.StoreNodeIP(nodeID, externalIP) {
 		return xerrors.Errorf("%s The number of IPs exceeds the limit", externalIP)
 	}
 
 	defer func() {
 		if err != nil {
-			s.NodeManager.RemoveNodeIP(nodeID, externalIP)
+			s.NodeManager.IPMgr.RemoveNodeIP(nodeID, externalIP)
 			if cNode.NodeInfo != nil {
-				s.NodeManager.RemoveNodeGeo(nodeID, nodeType, cNode.GeoInfo)
+				s.NodeManager.GeoMgr.RemoveNodeGeo(nodeID, nodeType, cNode.GeoInfo)
 			}
 		}
 	}()
 
-	cNode.SetToken(opts.Token)
+	cNode.Token = opts.Token
 	cNode.ExternalURL = opts.ExternalURL
 	cNode.TCPPort = opts.TcpServerPort
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
@@ -194,7 +194,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode)
 			cNode.IncomeIncr = incr
 		}
-		s.NodeManager.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
+		s.NodeManager.GeoMgr.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
 		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, cNode.FirstTime)
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)

@@ -22,6 +22,7 @@ const (
 	maxRetry           = 100
 )
 
+// Manager nat Manager
 type Manager struct {
 	nodeManager  *node.Manager
 	schedulerCfg *config.SchedulerCfg
@@ -41,6 +42,7 @@ type retryNode struct {
 	retry int
 }
 
+// NewManager new manager
 func NewManager(nodeMgr *node.Manager, config *config.SchedulerCfg) *Manager {
 	http3Client := client.NewHTTP3Client()
 	http3Client.Timeout = 5 * time.Second
@@ -224,6 +226,7 @@ func (m *Manager) retryEdgeDetectNatType(rInfo *retryNode) {
 	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, eNode.NATType, rInfo.retry)
 }
 
+// DetermineCandidateNATType Determine node NATType
 func (m *Manager) DetermineCandidateNATType(ctx context.Context, nodeID string) {
 	if m.isInRetryCandidateList(nodeID) {
 		log.Debugf("node %s waiting to retry", nodeID)
@@ -264,6 +267,7 @@ func (m *Manager) DetermineCandidateNATType(ctx context.Context, nodeID string) 
 	log.Debugf("%s nat type %s", nodeID, eNode.NATType)
 }
 
+// DetermineEdgeNATType Determine node NATType
 func (m *Manager) DetermineEdgeNATType(ctx context.Context, nodeID string) {
 	if m.isInRetryEdgeList(nodeID) {
 		log.Debugf("node %s waiting to retry", nodeID)

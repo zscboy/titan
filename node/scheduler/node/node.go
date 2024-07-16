@@ -29,11 +29,12 @@ type Node struct {
 	*API
 	jsonrpc.ClientCloser
 	*types.NodeInfo
-	token string
 
-	selectWeights              []int // The select weights assigned by the scheduler to each online node
-	numberOfIPChanges          int64
-	resetNumberOfIPChangesTime time.Time
+	Token string
+
+	selectWeights             []int // The select weights assigned by the scheduler to each online node
+	countOfIPChanges          int64
+	resetCountOfIPChangesTime time.Time
 
 	// node info
 	PublicKey          *rsa.PublicKey
@@ -73,7 +74,7 @@ type API struct {
 // New creates a new node
 func New() *Node {
 	node := &Node{
-		resetNumberOfIPChangesTime: time.Now(),
+		resetCountOfIPChangesTime: time.Now(),
 	}
 
 	return node
@@ -111,16 +112,18 @@ func APIFromCandidate(api api.Candidate) *API {
 	return a
 }
 
-func (n *Node) SetNumberOfIPChanges(count int64) {
-	n.numberOfIPChanges = count
+// SetCountOfIPChanges node change ip count
+func (n *Node) SetCountOfIPChanges(count int64) {
+	n.countOfIPChanges = count
 
 	if count == 0 {
-		n.resetNumberOfIPChangesTime = time.Now()
+		n.resetCountOfIPChangesTime = time.Now()
 	}
 }
 
+// GetNumberOfIPChanges node change ip count
 func (n *Node) GetNumberOfIPChanges() (int64, time.Time) {
-	return n.numberOfIPChanges, n.resetNumberOfIPChangesTime
+	return n.countOfIPChanges, n.resetCountOfIPChangesTime
 }
 
 // ConnectRPC connects to the node RPC
@@ -133,7 +136,7 @@ func (n *Node) ConnectRPC(transport *quic.Transport, addr string, nodeType types
 	rpcURL := fmt.Sprintf("https://%s/rpc/v0", addr)
 
 	headers := http.Header{}
-	headers.Add("Authorization", "Bearer "+n.token)
+	headers.Add("Authorization", "Bearer "+n.Token)
 
 	if nodeType == types.NodeEdge {
 		// Connect to node
@@ -182,16 +185,6 @@ func (n *Node) SelectWeights() []int {
 	return n.selectWeights
 }
 
-// SetToken sets the token of the node
-func (n *Node) SetToken(t string) {
-	n.token = t
-}
-
-// GetToken get the token of the node
-func (n *Node) GetToken() string {
-	return n.token
-}
-
 // TCPAddr returns the tcp address of the node
 func (n *Node) TCPAddr() string {
 	index := strings.Index(n.RemoteAddr, ":")
@@ -204,6 +197,7 @@ func (n *Node) RPCURL() string {
 	return fmt.Sprintf("https://%s/rpc/v0", n.RemoteAddr)
 }
 
+// WsURL returns the ws url of the node
 func (n *Node) WsURL() string {
 	wsURL, err := transformURL(n.ExternalURL)
 	if err != nil {
@@ -258,8 +252,8 @@ func (n *Node) SetLastRequestTime(t time.Time) {
 	n.LastSeen = t
 }
 
-// Token returns the token of the node
-func (n *Node) Token(cid, clientID string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.Token, *types.TokenPayload, error) {
+// EncryptToken returns the token of the node
+func (n *Node) EncryptToken(cid, clientID string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.Token, *types.TokenPayload, error) {
 	tkPayload := &types.TokenPayload{
 		ID:          uuid.NewString(),
 		NodeID:      n.NodeID,
@@ -294,26 +288,7 @@ func (n *Node) encryptTokenPayload(tkPayload *types.TokenPayload, publicKey *rsa
 	return rsa.Encrypt(buffer.Bytes(), publicKey)
 }
 
-func bToGB(b float64) float64 {
-	return b / 1024 / 1024 / 1024
-}
-
-func bToMB(b float64) float64 {
-	return b / 1024 / 1024
-}
-
-func bToKB(b float64) float64 {
-	return b / 1024
-}
-
-func min(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-
-	return b
-}
-
+// DiskEnough Is there enough storage on the compute node
 func (n *Node) DiskEnough(size float64) bool {
 	residual := ((100 - n.DiskUsage) / 100) * n.DiskSpace
 	if residual <= size {
@@ -328,6 +303,7 @@ func (n *Node) DiskEnough(size float64) bool {
 	return true
 }
 
+// NetFlowUpExcess  Whether the upstream traffic exceeds the limit
 func (n *Node) NetFlowUpExcess(size float64) bool {
 	if n.NetFlowUp <= 0 {
 		return false
@@ -340,6 +316,7 @@ func (n *Node) NetFlowUpExcess(size float64) bool {
 	return true
 }
 
+// NetFlowDownExcess  Whether the downstream traffic exceeds the limit
 func (n *Node) NetFlowDownExcess(size float64) bool {
 	if n.NetFlowDown <= 0 {
 		return false

@@ -25,13 +25,13 @@ type NodePulledResult struct {
 type AssetSource int64
 
 const (
-	// AssetSourceIPFS
+	// AssetSourceIPFS from ipfs
 	AssetSourceIPFS AssetSource = iota
-	// AssetSourceAWS status
+	// AssetSourceAWS from aws
 	AssetSourceAWS
-	// AssetSourceStorage status
+	// AssetSourceStorage from user
 	AssetSourceStorage
-	// AssetSourceMinio status
+	// AssetSourceMinio minio
 	AssetSourceMinio
 )
 
@@ -54,8 +54,8 @@ type AssetPullingInfo struct {
 	RetryCount        int64
 	ReplenishReplicas int64
 
-	Details    string
-	SeedNodeID string
+	Details     string
+	SeedNodeIDs []string
 
 	Source AssetSource
 

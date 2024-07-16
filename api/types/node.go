@@ -171,26 +171,26 @@ type EdgeDownloadInfoList struct {
 	SchedulerKey string
 }
 
-type DownloadSource int
+// type DownloadSource int
 
-const (
-	DownloadSourceIPFS DownloadSource = iota
-	DownloadSourceAWS
-	DownloadSourceSDK
-)
+// const (
+// 	DownloadSourceIPFS DownloadSource = iota
+// 	DownloadSourceAWS
+// 	DownloadSourceSDK
+// )
 
-func (n DownloadSource) String() string {
-	switch n {
-	case DownloadSourceIPFS:
-		return "ipfs"
-	case DownloadSourceAWS:
-		return "aws"
-	case DownloadSourceSDK:
-		return "sdk"
-	}
+// func (n DownloadSource) String() string {
+// 	switch n {
+// 	case DownloadSourceIPFS:
+// 		return "ipfs"
+// 	case DownloadSourceAWS:
+// 		return "aws"
+// 	case DownloadSourceSDK:
+// 		return "sdk"
+// 	}
 
-	return ""
-}
+// 	return ""
+// }
 
 // CandidateDownloadInfo represents download information for a candidate
 type CandidateDownloadInfo struct {

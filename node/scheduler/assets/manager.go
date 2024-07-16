@@ -452,17 +452,19 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		Expiration: time.Now().Add(time.Hour),
 	}
 
-	var ret = &types.UploadInfo{
+	ret := &types.UploadInfo{
 		Candidators:   make([]*types.CandidatorUploadInfo, len(cNodes)),
 		AlreadyExists: false,
 	}
 
+	seedIDs := make([]string, 0)
 	for i, cNode := range cNodes {
 		token, err := cNode.API.CreateAsset(context.Background(), payload)
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 		}
 		ret.Candidators[i].Token = token
+		seedIDs = append(seedIDs, cNode.NodeID)
 	}
 
 	// token, err := cNode.API.CreateAsset(context.Background(), payload)
@@ -495,16 +497,14 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	// create asset task
-	for _, cNode := range cNodes {
-		rInfo := AssetForceState{
-			State: UploadInit,
-			// Requester:  req.UserID,
-			SeedNodeID: cNode.NodeID,
-		}
-		if err := m.assetStateMachines.Send(AssetHash(hash), rInfo); err != nil {
-			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
-		}
+	rInfo := AssetForceState{
+		State:       UploadInit,
+		SeedNodeIDs: seedIDs,
 	}
+	if err := m.assetStateMachines.Send(AssetHash(hash), rInfo); err != nil {
+		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	}
+
 	// err = m.assetStateMachines.Send(AssetHash(hash), rInfo)
 	// if err != nil {
 	// 	return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
@@ -581,7 +581,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 		rInfo := AssetForceState{
 			State: SeedSelect,
 			// Requester:  info.UserID,
-			SeedNodeID: info.SeedNodeID,
+			SeedNodeIDs: []string{info.SeedNodeID},
 		}
 
 		// create asset task
@@ -641,8 +641,8 @@ func (m *Manager) replenishAssetReplicas(assetRecord *types.AssetRecord, repleni
 	rInfo := AssetForceState{
 		State: state,
 		// Requester:  note,
-		Details:    details,
-		SeedNodeID: seedNodeID,
+		Details:     details,
+		SeedNodeIDs: []string{seedNodeID},
 	}
 
 	return m.assetStateMachines.Send(AssetHash(assetRecord.Hash), rInfo)
@@ -1100,17 +1100,7 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 			continue
 		}
 
-		if cNode.Type == types.NodeCandidate {
-			source := &types.SourceDownloadInfo{
-				NodeID:  nodeID,
-				Address: cNode.DownloadAddr(),
-			}
-
-			sources = append(sources, source)
-			continue
-		}
-
-		if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) && cNode.ExternalIP == "" {
+		if cNode.Type == types.NodeEdge && (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) && cNode.ExternalIP == "" {
 			continue
 		}
 
@@ -1141,14 +1131,6 @@ func (m *Manager) chooseCandidateNodes(count int, filterNodes []string, size flo
 	for _, nodeID := range filterNodes {
 		filterMap[nodeID] = struct{}{}
 	}
-
-	// sort.Slice(nodes, func(i, j int) bool {
-	// 	if nodes[i].Type == nodes[j].Type {
-	// 		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-	// 	}
-
-	// 	return nodes[i].Type == types.NodeCandidate
-	// })
 
 	num := count * selectNodeRetryLimit
 	nodes := m.nodeMgr.GetRandomCandidates(num)
@@ -1295,26 +1277,24 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 	return selectMap, str
 }
 
+// GetAssetCount get asset count
 func (m *Manager) GetAssetCount() (int, error) {
 	return m.LoadAssetCount(m.nodeMgr.ServerID, Remove.String())
 }
 
 func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloadInfo, titanRsa *titanrsa.Rsa, assetCID string, clientID string, size int64) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
-	ws := make([]*types.Workload, 0)
+	workloadList := make([]*types.Workload, 0)
 
 	downloadSources := make([]*types.SourceDownloadInfo, 0, len(sources))
 
 	for _, source := range sources {
-		ws = append(ws, &types.Workload{SourceID: source.NodeID})
-		if source.NodeID == types.DownloadSourceIPFS.String() {
-			continue
-		}
+		workloadList = append(workloadList, &types.Workload{SourceID: source.NodeID})
 
 		node := m.nodeMgr.GetNode(source.NodeID)
 		downloadSource := *source
 
 		if node != nil {
-			tk, _, err := node.Token(assetCID, clientID, titanRsa, m.nodeMgr.PrivateKey)
+			tk, _, err := node.EncryptToken(assetCID, clientID, titanRsa, m.nodeMgr.PrivateKey)
 			if err != nil {
 				continue
 			}
@@ -1324,46 +1304,43 @@ func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloa
 		downloadSources = append(downloadSources, &downloadSource)
 	}
 
-	var record *types.WorkloadRecord
+	record := &types.WorkloadRecord{
+		WorkloadID: uuid.NewString(),
+		AssetCID:   assetCID,
+		ClientID:   clientID,
+		AssetSize:  size,
+		Event:      types.WorkloadEventPull,
+		Status:     types.WorkloadStatusCreate,
+	}
 
-	if len(ws) > 0 {
+	if len(workloadList) > 0 {
 		buffer := &bytes.Buffer{}
 		enc := gob.NewEncoder(buffer)
-		err := enc.Encode(ws)
+		err := enc.Encode(workloadList)
 		if err != nil {
 			log.Errorf("encode error:%s", err.Error())
 			return downloadSources, record, nil
 		}
 
-		record = &types.WorkloadRecord{
-			WorkloadID: uuid.NewString(),
-			AssetCID:   assetCID,
-			ClientID:   clientID,
-			AssetSize:  size,
-			Workloads:  buffer.Bytes(),
-			Event:      types.WorkloadEventPull,
-			Status:     types.WorkloadStatusCreate,
-		}
+		record.Workloads = buffer.Bytes()
 	}
 
 	return downloadSources, record, nil
 }
 
-func (m *Manager) GenerateToken(assetCID string, sources []*types.SourceDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
+func (m *Manager) generateToken(assetCID string, sources []*types.SourceDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
 	ts := make([]*types.SourceDownloadInfo, 0)
-	if len(sources) > 2 {
+	if len(sources) > 1 {
 		firstIndex := rand.Intn(len(sources))
-		secondIndex := rand.Intn(len(sources))
-		ts = append(ts, sources[firstIndex], sources[secondIndex])
+		ts = append(ts, sources[firstIndex])
 	} else {
 		ts = sources
 	}
-	// ss := sources[index]
 
 	return m.generateTokenForDownloadSources(ts, titanRsa, assetCID, node.NodeID, size)
 }
 
-func (m *Manager) SaveTokenPayload(payloads []*types.WorkloadRecord) error {
+func (m *Manager) saveTokenPayload(payloads []*types.WorkloadRecord) error {
 	if len(payloads) == 0 {
 		return nil
 	}

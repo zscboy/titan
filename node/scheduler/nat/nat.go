@@ -16,7 +16,7 @@ func detectFullConeNAT(ctx context.Context, candidate *node.Node, eURL string) (
 }
 
 // checks if an edge node is behind a Restricted NAT
-func detectRestrictedNAT(ctx context.Context, http3Client *http.Client, eURL string) (bool, error) {
+func detectRestrictedNAT(http3Client *http.Client, eURL string) (bool, error) {
 	resp, err := http3Client.Get(eURL)
 	if err != nil {
 		log.Debugf("detectRestrictedNAT failed: %s", err.Error())
@@ -72,7 +72,7 @@ func analyzeNodeNATType(ctx context.Context, eNode *node.Node, candidateNodes []
 
 	log.Debugf("check candidate %s to edge %s udp connectivity failed", candidate2.NodeID, eURL)
 
-	if isBehindRestrictedNAT, err := detectRestrictedNAT(ctx, http3Client, eURL); err != nil {
+	if isBehindRestrictedNAT, err := detectRestrictedNAT(http3Client, eURL); err != nil {
 		return types.NatTypeUnknown, err
 	} else if isBehindRestrictedNAT {
 		return types.NatTypeRestricted, nil

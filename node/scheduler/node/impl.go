@@ -151,6 +151,7 @@ func (m *Manager) GetRandomEdges(count int) map[string]int {
 	return m.weightMgr.getEdgeWeightRandom(count)
 }
 
+// SetTunserverURL set node Tunserver URL
 func (m *Manager) SetTunserverURL(edgeID, candidateID string) error {
 	node := m.GetEdgeNode(edgeID)
 	if node != nil {
@@ -160,6 +161,7 @@ func (m *Manager) SetTunserverURL(edgeID, candidateID string) error {
 	return m.SaveWSServerID(edgeID, candidateID)
 }
 
+// UpdateTunserverURL update node Tunserver URL
 func (m *Manager) UpdateTunserverURL(edgeID string) (*Node, error) {
 	var vNode *Node
 	// select candidate

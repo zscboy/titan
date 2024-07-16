@@ -581,7 +581,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 			continue
 		}
 
-		token, _, err := eNode.Token(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
+		token, _, err := eNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
 		if err != nil {
 			continue
 		}
@@ -636,15 +636,15 @@ func (s *Scheduler) GetNodeToken(ctx context.Context, nodeID string) (string, er
 		return "", xerrors.Errorf("node %s not find ", nodeID)
 	}
 
-	return node.GetToken(), nil
+	return node.Token, nil
 }
 
 func (s *Scheduler) GetNodeOfIP(ctx context.Context, ip string) ([]string, error) {
-	return s.NodeManager.GetNodeOfIP(ip), nil
+	return s.NodeManager.IPMgr.GetNodeOfIP(ip), nil
 }
 
 func (s *Scheduler) CheckIpUsage(ctx context.Context, ip string) (bool, error) {
-	if s.NodeManager.CheckIPExist(ip) {
+	if s.NodeManager.IPMgr.CheckIPExist(ip) {
 		return true, nil
 	}
 
@@ -657,7 +657,7 @@ func (s *Scheduler) getEdgeDownloadRatio() float64 {
 }
 
 func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.Rsa) *types.SourceDownloadInfo {
-	token, _, err := cNode.Token(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
+	token, _, err := cNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
 	if err != nil {
 		return nil
 	}
@@ -713,12 +713,6 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.SourceDownloadInfo, 0)
 
-	// // Shuffle array
-	// for i := len(replicas) - 1; i > 0; i-- {
-	// 	j := rand.Intn(i + 1)
-	// 	replicas[i], replicas[j] = replicas[j], replicas[i]
-	// }
-
 	// limit := 5
 	for _, rInfo := range replicas {
 		nodeID := rInfo.NodeID
@@ -739,30 +733,21 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 
 			continue
 		}
-
-		// // limit edge count
-		// if len(sources) >= limit {
-		// 	continue
-		// }
-
-		// if (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) || cNode.ExternalIP == "" {
-		// 	continue
-		// }
-
-		// source := s.getSource(cNode, cid, titanRsa)
-		// if source != nil {
-		// 	sources = append(sources, source)
-		// }
 	}
 
-	// init workload
-	if len(sources) > 0 {
-		// Shuffle array
-		for i := len(sources) - 1; i > 0; i-- {
-			j := rand.Intn(i + 1)
-			sources[i], sources[j] = sources[j], sources[i]
-		}
+	if len(sources) == 0 {
+		return out, nil
+	}
+	// Shuffle array
+	for i := len(sources) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		sources[i], sources[j] = sources[j], sources[i]
+	}
 
+	out.SourceList = sources
+
+	// init workload
+	if event == types.WorkloadEventSync {
 		out.WorkloadID = uuid.NewString()
 
 		ws := make([]*types.Workload, 0)
@@ -778,25 +763,21 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 			return out, nil
 		}
 
-		if event == types.WorkloadEventSync {
-			record := &types.WorkloadRecord{
-				WorkloadID: out.WorkloadID,
-				AssetCID:   cid,
-				ClientID:   clientID,
-				AssetSize:  aInfo.TotalSize,
-				Workloads:  buffer.Bytes(),
-				Event:      event,
-				Status:     types.WorkloadStatusCreate,
-			}
+		record := &types.WorkloadRecord{
+			WorkloadID: out.WorkloadID,
+			AssetCID:   cid,
+			ClientID:   clientID,
+			AssetSize:  aInfo.TotalSize,
+			Workloads:  buffer.Bytes(),
+			Event:      event,
+			Status:     types.WorkloadStatusCreate,
+		}
 
-			if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
-				log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
-				return out, nil
-			}
+		if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
+			log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
+			return out, nil
 		}
 	}
-
-	out.SourceList = sources
 
 	return out, nil
 }
@@ -844,7 +825,7 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 				seconds := duration.Seconds()
 
 				if seconds > 10*6*20 {
-					node.SetNumberOfIPChanges(0)
+					node.SetCountOfIPChanges(0)
 
 					if count > 120 {
 						log.Infof("NodeKeepaliveV2 Exceeded expectations %s , ip:%s : %s, count:%d ,resetSeconds:%.2f ", nodeID, remoteAddr, node.RemoteAddr, count, seconds)
@@ -854,7 +835,7 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 				}
 
 				count++
-				node.SetNumberOfIPChanges(count)
+				node.SetCountOfIPChanges(count)
 			}
 
 			node.SetLastRequestTime(lastTime)
@@ -1449,7 +1430,7 @@ func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.Tuns
 	} else {
 		log.Infof("GetTunserverURLFromUser %s get:%s", req.AreaID, geoInfo.Geo)
 
-		list := s.NodeManager.FindNodesFromGeo(geoInfo.Continent, geoInfo.Country, geoInfo.Province, geoInfo.City, types.NodeCandidate)
+		list := s.NodeManager.GeoMgr.FindNodesFromGeo(geoInfo.Continent, geoInfo.Country, geoInfo.Province, geoInfo.City, types.NodeCandidate)
 		for _, info := range list {
 			nodeID = info.NodeID
 			break
@@ -1491,7 +1472,7 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]*types.NodeInfo, error) {
 	continent, country, province, city := region.DecodeAreaID(areaID)
 	if continent != "" {
-		return s.NodeManager.FindNodesFromGeo(continent, country, province, city, types.NodeEdge), nil
+		return s.NodeManager.GeoMgr.FindNodesFromGeo(continent, country, province, city, types.NodeEdge), nil
 	}
 
 	return nil, xerrors.Errorf("continent is nil ; %s", areaID)
@@ -1499,7 +1480,7 @@ func (s *Scheduler) GetNodesFromRegion(ctx context.Context, areaID string) ([]*t
 
 func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) (map[string]int, error) {
 	continent, country, province, _ := region.DecodeAreaID(areaID)
-	return s.NodeManager.GetGeoKey(continent, country, province), nil
+	return s.NodeManager.GeoMgr.GetGeoKey(continent, country, province), nil
 }
 
 func (s *Scheduler) ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error {

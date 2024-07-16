@@ -9,7 +9,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/etcdcli"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
-	"github.com/Filecoin-Titan/titan/region"
 	"github.com/docker/go-units"
 	"github.com/filecoin-project/pubsub"
 
@@ -51,24 +50,22 @@ type Manager struct {
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
 
-	ipLimit int
 	// TotalNetworkEdges int // Number of edge nodes in the entire network (including those on other schedulers)
 
-	nodeIPs   map[string][]string
-	ipMapLock *sync.RWMutex
-
-	geoMgr *GeoMgr
+	GeoMgr *GeoMgr
+	IPMgr  *IPMgr
 
 	serverOnlineCounts map[time.Time]int
-
-	candidateOnlineCounts map[string]int
-	cOnlineCountsLock     sync.RWMutex
-	edgeOnlineCounts      map[string]int
-	eOnlineCountsLock     sync.RWMutex
 }
 
 // NewManager creates a new instance of the node manager
 func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb *pubsub.PubSub, config dtypes.GetSchedulerConfigFunc, ec *etcdcli.Client) *Manager {
+	ipLimit := 5
+	cfg, err := config()
+	if err == nil {
+		ipLimit = cfg.IPLimit
+	}
+
 	nodeManager := &Manager{
 		SQLDB:      sdb,
 		ServerID:   serverID,
@@ -77,12 +74,10 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 		config:     config,
 		etcdcli:    ec,
 		weightMgr:  newWeightManager(config),
-		geoMgr:     newMgr(),
-		ipMapLock:  new(sync.RWMutex),
-		nodeIPs:    make(map[string][]string),
+		GeoMgr:     newGeoMgr(),
+		IPMgr:      newIPMgr(ipLimit),
 	}
 
-	nodeManager.ipLimit = nodeManager.getIPLimit()
 	nodeManager.updateServerOnlineCounts()
 
 	go nodeManager.startNodeKeepaliveTimer()
@@ -92,128 +87,6 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 
 	return nodeManager
 }
-
-// AddNodeGeo add node to map
-func (m *Manager) AddNodeGeo(nodeInfo *types.NodeInfo, geo *region.GeoInfo) {
-	if nodeInfo.Type == types.NodeEdge {
-		m.geoMgr.AddEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
-	} else {
-		m.geoMgr.AddCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
-	}
-}
-
-// RemoveNodeGeo remove node from map
-func (m *Manager) RemoveNodeGeo(nodeID string, nodeType types.NodeType, geo *region.GeoInfo) {
-	if nodeType == types.NodeEdge {
-		m.geoMgr.RemoveEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
-	} else {
-		m.geoMgr.RemoveCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
-	}
-}
-
-// FindNodesFromGeo find node from map
-func (m *Manager) FindNodesFromGeo(continent, country, province, city string, nodeType types.NodeType) []*types.NodeInfo {
-	if nodeType == types.NodeEdge {
-		return m.geoMgr.FindEdgeNodes(continent, country, province, city)
-	}
-
-	return m.geoMgr.FindCandidateNodes(continent, country, province, city)
-}
-
-// GetGeoKey get node geo key
-func (m *Manager) GetGeoKey(continent, country, province string) map[string]int {
-	return m.geoMgr.GetEdgeGeoKey(continent, country, province)
-}
-
-func (m *Manager) getIPLimit() int {
-	cfg, err := m.config()
-	if err != nil {
-		log.Errorf("get config err:%s", err.Error())
-		return 0
-	}
-
-	return cfg.IPLimit
-}
-
-func (m *Manager) StoreNodeIP(nodeID, ip string) bool {
-	m.ipMapLock.Lock()
-	defer m.ipMapLock.Unlock()
-
-	list, exist := m.nodeIPs[ip]
-	if exist {
-		for _, nID := range list {
-			if nID == nodeID {
-				return true
-			}
-		}
-
-		if len(list) < m.ipLimit {
-			list = append(list, nodeID)
-			m.nodeIPs[ip] = list
-			return true
-		}
-
-		return false
-	} else {
-		m.nodeIPs[ip] = []string{nodeID}
-
-		return true
-	}
-}
-
-func (m *Manager) RemoveNodeIP(nodeID, ip string) {
-	m.ipMapLock.Lock()
-	defer m.ipMapLock.Unlock()
-
-	list, exist := m.nodeIPs[ip]
-	if exist {
-		nList := []string{}
-
-		for _, nID := range list {
-			if nID != nodeID {
-				nList = append(nList, nID)
-			}
-		}
-
-		m.nodeIPs[ip] = nList
-	}
-}
-
-func (m *Manager) GetNodeOfIP(ip string) []string {
-	return m.nodeIPs[ip]
-}
-
-func (m *Manager) CheckIPExist(ip string) bool {
-	_, exist := m.nodeIPs[ip]
-
-	return exist
-}
-
-// func (m *Manager) syncEdgeCountFromNetwork() {
-// 	err := m.etcdcli.PutEdgeCount(string(m.ServerID), m.Edges)
-// 	if err != nil {
-// 		log.Errorf("SyncEdgeCountFromNetwork PutEdgeCount err:%s", err.Error())
-// 	}
-
-// 	count, err := m.etcdcli.GetEdgeCounts(string(m.ServerID))
-// 	if err != nil {
-// 		log.Errorf("SyncEdgeCountFromNetwork GetEdgeCounts err:%s", err.Error())
-// 	}
-
-// 	m.TotalNetworkEdges = count + m.Edges
-// }
-
-// // startSyncEdgeCountTimer
-// func (m *Manager) startSyncEdgeCountTimer() {
-// 	ticker := time.NewTicker(syncEdgeCountTime)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		<-ticker.C
-
-// 		m.syncEdgeCountFromNetwork()
-// 	}
-// }
 
 func (m *Manager) startSaveNodeDataTimer() {
 	time.Sleep(penaltyFreeTime)
@@ -396,7 +269,7 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 			node.KeepaliveCount = 120
 		}
 
-		if isGoodNat(node.NATType) {
+		if qualifiedNAT(node.NATType) {
 			dInfo := m.GetCandidateBaseProfitDetails(node)
 			if dInfo != nil {
 				detailsList = append(detailsList, dInfo)
@@ -440,7 +313,7 @@ func roundDivision(a, b int) int {
 	return int(math.Round(result))
 }
 
-func isGoodNat(natType string) bool {
+func qualifiedNAT(natType string) bool {
 	if natType == types.NatTypeNo.String() || natType == types.NatTypeFullCone.String() || natType == types.NatTypeUnknown.String() {
 		return true
 	}
@@ -513,6 +386,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 	})
 }
 
+// ComputeNodeOnlineRate Compute node online rate
 func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) float64 {
 	nodeC := 0
 	serverC := 0
@@ -592,6 +466,7 @@ func (m *Manager) checkNodeDeactivate() {
 	}
 }
 
+// UpdateNodeDiskUsage update node disk usage
 func (m *Manager) UpdateNodeDiskUsage(nodeID string, diskUsage float64) {
 	node := m.GetNode(nodeID)
 	if node == nil {
@@ -613,10 +488,6 @@ func (m *Manager) UpdateNodeDiskUsage(nodeID string, diskUsage float64) {
 	}
 
 	node.TitanDiskUsage = float64(size)
-	// if node.DiskSpace <= 0 {
-	// 	node.DiskUsage = 100
-	// } else {
-	// 	node.DiskUsage = (float64(size) / node.DiskSpace) * 100
-	// }
+
 	log.Infof("LoadReplicaSizeByNodeID %s update:%v", nodeID, node.TitanDiskUsage)
 }

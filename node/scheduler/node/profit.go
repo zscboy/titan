@@ -82,6 +82,7 @@ func (m *Manager) isExceededLimit(nodeID string) bool {
 	return false
 }
 
+// GetNodeBePullProfitDetails Provide download rewards
 func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note string) *types.ProfitDetails {
 	if m.isExceededLimit(node.NodeID) {
 		return nil
@@ -89,7 +90,7 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 
 	u := bToGB(size)
 	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 	mx := rateOfL2Mx(node.OnlineDuration)
 
@@ -108,6 +109,7 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 	}
 }
 
+// GetNodeValidatableProfitDetails Rewards for random inspection
 func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *types.ProfitDetails {
 	ds := float64(node.TitanDiskUsage)
 	s := bToGB(ds)
@@ -115,7 +117,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mt := 1.0
 	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
 	ms := (mr * mx * mo * min(s, 50) * 1.5 * mt) + (u * validatableUploadTrafficProfit * mip * mn)
@@ -133,6 +135,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 	}
 }
 
+// GetEdgeBaseProfitDetails Basic Rewards
 func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDetails) {
 	// Every 5 s
 	mx := rateOfL2Mx(node.OnlineDuration)
@@ -156,6 +159,7 @@ func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDe
 	}
 }
 
+// GetCandidateBaseProfitDetails Basic Rewards
 func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails {
 	// Every 5 minutes
 	arR := rateOfAR(node.OnlineRate)
@@ -177,6 +181,7 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails
 	}
 }
 
+// GetDownloadProfitDetails Downstream traffic reward
 func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
 	if m.isExceededLimit(node.NodeID) {
 		return nil
@@ -184,7 +189,7 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string)
 
 	d := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
 	ms := mr * mx * mo * d * downloadTrafficProfit * mn
@@ -203,6 +208,7 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string)
 	}
 }
 
+// GetUploadProfitDetails Upstream traffic reward
 func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *types.ProfitDetails {
 	if m.isExceededLimit(node.NodeID) {
 		return nil
@@ -211,7 +217,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 	u := bToGB(size)
 	mx := rateOfL2Mx(node.OnlineDuration)
 	mip := calculateMip(node.NATType)
-	lip := len(m.GetNodeOfIP(node.ExternalIP))
+	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
 	ms := mr * mx * mo * u * uploadTrafficProfit * mn
@@ -230,6 +236,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 	}
 }
 
+// CalculatePenalty Penalty
 func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int) *types.ProfitDetails {
 	od := float64(offlineDuration / 200)
 	pr := (penaltyRate + penaltyRate*od)
@@ -248,6 +255,7 @@ func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuratio
 	}
 }
 
+// GetReimburseProfitDetails Reimburse
 func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note string) *types.ProfitDetails {
 	if profit < 0.000001 {
 		return nil
@@ -261,6 +269,7 @@ func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note 
 	}
 }
 
+// CalculateExitProfit Exit penalty calculation
 func (m *Manager) CalculateExitProfit(profit float64) (float64, float64) {
 	rExit := profit * (1 - exitRate)
 
@@ -299,19 +308,6 @@ func calculateMn(ipNum int) float64 {
 	return 0.1
 }
 
-func calculateB(upload int64) float64 {
-	mb := bToMB(float64(upload))
-	if mb >= 30 {
-		return 1.2
-	}
-
-	if mb >= 5 {
-		return 1
-	}
-
-	return 0.8
-}
-
 func rateOfAR(ar float64) float64 {
 	if ar >= 0.98 {
 		return 1.1
@@ -348,4 +344,20 @@ func rateOfL2Mx(onlineDuration int) float64 {
 	count := onlineDay - 7
 
 	return 1.0 + (float64(count) * 0.03)
+}
+
+func bToGB(b float64) float64 {
+	return b / 1024 / 1024 / 1024
+}
+
+func bToMB(b float64) float64 {
+	return b / 1024 / 1024
+}
+
+func min(a, b float64) float64 {
+	if a < b {
+		return a
+	}
+
+	return b
 }

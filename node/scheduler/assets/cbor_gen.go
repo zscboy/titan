@@ -255,27 +255,36 @@ func (t *AssetPullingInfo) MarshalCBOR(w io.Writer) error {
 		}
 	}
 
-	// t.SeedNodeID (string) (string)
-	if len("SeedNodeID") > cbg.MaxLength {
-		return xerrors.Errorf("Value in field \"SeedNodeID\" was too long")
+	// t.SeedNodeIDs ([]string) (slice)
+	if len("SeedNodeIDs") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"SeedNodeIDs\" was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("SeedNodeID"))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("SeedNodeIDs"))); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, string("SeedNodeID")); err != nil {
+	if _, err := io.WriteString(w, string("SeedNodeIDs")); err != nil {
 		return err
 	}
 
-	if len(t.SeedNodeID) > cbg.MaxLength {
-		return xerrors.Errorf("Value in field t.SeedNodeID was too long")
+	if len(t.SeedNodeIDs) > cbg.MaxLength {
+		return xerrors.Errorf("Slice value in field t.SeedNodeIDs was too long")
 	}
 
-	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(t.SeedNodeID))); err != nil {
+	if err := cw.WriteMajorTypeHeader(cbg.MajArray, uint64(len(t.SeedNodeIDs))); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, string(t.SeedNodeID)); err != nil {
-		return err
+	for _, v := range t.SeedNodeIDs {
+		if len(v) > cbg.MaxLength {
+			return xerrors.Errorf("Value in field v was too long")
+		}
+
+		if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len(v))); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, string(v)); err != nil {
+			return err
+		}
 	}
 
 	// t.EdgeReplicas (int64) (int64)
@@ -677,17 +686,38 @@ func (t *AssetPullingInfo) UnmarshalCBOR(r io.Reader) (err error) {
 
 				t.RetryCount = int64(extraI)
 			}
-			// t.SeedNodeID (string) (string)
-		case "SeedNodeID":
+			// t.SeedNodeIDs ([]string) (slice)
+		case "SeedNodeIDs":
 
-			{
-				sval, err := cbg.ReadString(cr)
-				if err != nil {
-					return err
-				}
-
-				t.SeedNodeID = string(sval)
+			maj, extra, err = cr.ReadHeader()
+			if err != nil {
+				return err
 			}
+
+			if extra > cbg.MaxLength {
+				return fmt.Errorf("t.SeedNodeIDs: array too large (%d)", extra)
+			}
+
+			if maj != cbg.MajArray {
+				return fmt.Errorf("expected cbor array")
+			}
+
+			if extra > 0 {
+				t.SeedNodeIDs = make([]string, extra)
+			}
+
+			for i := 0; i < int(extra); i++ {
+
+				{
+					sval, err := cbg.ReadString(cr)
+					if err != nil {
+						return err
+					}
+
+					t.SeedNodeIDs[i] = string(sval)
+				}
+			}
+
 			// t.EdgeReplicas (int64) (int64)
 		case "EdgeReplicas":
 			{

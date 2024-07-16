@@ -522,7 +522,7 @@ func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info
 	out := make([]*node.Node, 0)
 	continent, country, province, city := region.DecodeAreaID(info.AreaID)
 	if continent != "" {
-		list := m.nodeMgr.FindNodesFromGeo(continent, country, province, city, types.NodeEdge)
+		list := m.nodeMgr.GeoMgr.FindNodesFromGeo(continent, country, province, city, types.NodeEdge)
 		sort.Slice(list, func(i, j int) bool {
 			return list[i].BackProjectTime < list[j].BackProjectTime
 		})

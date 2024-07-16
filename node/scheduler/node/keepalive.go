@@ -78,8 +78,8 @@ func (m *Manager) checkNodeStatus(node *Node, t time.Time) bool {
 	lastTime := node.LastRequestTime()
 
 	if !lastTime.After(t) {
-		m.RemoveNodeIP(node.NodeID, node.ExternalIP)
-		m.RemoveNodeGeo(node.NodeID, node.Type, node.GeoInfo)
+		m.IPMgr.RemoveNodeIP(node.NodeID, node.ExternalIP)
+		m.GeoMgr.RemoveNodeGeo(node.NodeID, node.Type, node.GeoInfo)
 
 		if node.Type == types.NodeCandidate {
 			m.deleteCandidateNode(node)
