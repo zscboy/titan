@@ -150,7 +150,10 @@ func GetCommonAPI(ctx *cli.Context) (api.Common, jsonrpc.ClientCloser, error) {
 		return nil, nil, err
 	}
 
-	return client.NewCommonRPCV0(ctx.Context, addr, headers)
+	addr = strings.Replace(addr, "ws", "https", 1)
+	addr = strings.Replace(addr, "0.0.0.0", "localhost", 1)
+
+	return client.NewCommonRPCV0(ctx.Context, addr, headers, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
 }
 
 func GetSchedulerAPI(ctx *cli.Context, nodeID string) (api.Scheduler, jsonrpc.ClientCloser, error) {
