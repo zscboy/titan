@@ -18,11 +18,11 @@ type CreateAssetReq struct {
 }
 
 type UploadInfo struct {
-	Candidators   []*CandidatorUploadInfo
+	List          []*NodeUploadInfo
 	AlreadyExists bool
 }
 
-type CandidatorUploadInfo struct {
+type NodeUploadInfo struct {
 	UploadURL string
 	Token     string
 	NodeID    string

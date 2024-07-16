@@ -453,7 +453,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	ret := &types.UploadInfo{
-		Candidators:   make([]*types.CandidatorUploadInfo, len(cNodes)),
+		List:          make([]*types.NodeUploadInfo, len(cNodes)),
 		AlreadyExists: false,
 	}
 
@@ -463,7 +463,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 		}
-		ret.Candidators[i].Token = token
+		ret.List[i].Token = token
 		seedIDs = append(seedIDs, cNode.NodeID)
 	}
 
@@ -515,7 +515,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		if len(cNode.ExternalURL) > 0 {
 			uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
 		}
-		ret.Candidators[i].UploadURL = uploadURL
+		ret.List[i].UploadURL = uploadURL
 	}
 
 	return ret, nil
