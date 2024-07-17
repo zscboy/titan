@@ -735,7 +735,8 @@ func (m *Manager) AssetRemoveDone(key string) {
 // RemoveAsset removes an asset
 func (m *Manager) RemoveAsset(hash string, isWait bool) error {
 	if exist, _ := m.assetStateMachines.Has(AssetHash(hash)); !exist {
-		return xerrors.Errorf("not found asset %s", hash)
+		// return xerrors.Errorf("not found asset %s", hash)
+		return &api.ErrWeb{Code: terrors.HashNotFound.Int(), Message: fmt.Sprintf("not found asset %s", hash)}
 	}
 
 	wg := m.WaitAssetRemove(hash)
