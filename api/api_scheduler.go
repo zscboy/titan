@@ -202,6 +202,7 @@ type UserAPI interface {
 	// DeleteAPIKey(ctx context.Context, userID, name string) error //perm:web,admin
 	// UserAssetDownloadResult After a user downloads a resource from a candidate node, the candidate node reports the download result
 	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error //perm:candidate
+
 	// // SetUserVIP set user vip state
 	// SetUserVIP(ctx context.Context, userID string, enableVIP bool) error //perm:admin
 	// // GetUserAccessToken get access token for user

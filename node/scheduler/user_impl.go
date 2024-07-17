@@ -448,25 +448,30 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
 	}
 
-	index := rand.Intn(len(cNodes))
-	cNode := cNodes[index]
+	// mixup nodes
+	rand.Shuffle(len(cNodes), func(i, j int) { cNodes[i], cNodes[j] = cNodes[j], cNodes[i] })
 
-	if cNode == nil {
-		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+	ret := &types.UploadInfo{
+		List:          make([]*types.NodeUploadInfo, 0),
+		AlreadyExists: false,
 	}
 
 	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID}
 
-	token, err := cNode.API.AuthNew(context.Background(), payload)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+	for _, cNode := range cNodes {
+		token, err := cNode.API.AuthNew(context.Background(), payload)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+		}
+
+		uploadURL := fmt.Sprintf("http://%s/uploadv2", cNode.RemoteAddr)
+		if len(cNode.ExternalURL) > 0 {
+			uploadURL = fmt.Sprintf("%s/uploadv2", cNode.ExternalURL)
+		}
+
+		ret.List = append(ret.List, &types.NodeUploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID})
 	}
 
-	uploadURL := fmt.Sprintf("http://%s/uploadv2", cNode.RemoteAddr)
-	if len(cNode.ExternalURL) > 0 {
-		uploadURL = fmt.Sprintf("%s/uploadv2", cNode.ExternalURL)
-	}
-	_, _ = token, uploadURL
 	// return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
-	return nil, nil
+	return ret, nil
 }

@@ -453,17 +453,24 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	ret := &types.UploadInfo{
-		List:          make([]*types.NodeUploadInfo, len(cNodes)),
+		List:          make([]*types.NodeUploadInfo, 0),
 		AlreadyExists: false,
 	}
 
 	seedIDs := make([]string, 0)
-	for i, cNode := range cNodes {
+	for _, cNode := range cNodes {
 		token, err := cNode.API.CreateAsset(context.Background(), payload)
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 		}
-		ret.List[i].Token = token
+
+		uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
+		if len(cNode.ExternalURL) > 0 {
+			uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
+		}
+
+		ret.List = append(ret.List, &types.NodeUploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID})
+
 		seedIDs = append(seedIDs, cNode.NodeID)
 	}
 
@@ -510,13 +517,13 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	// 	return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 	// }
 
-	for i, cNode := range cNodes {
-		uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
-		if len(cNode.ExternalURL) > 0 {
-			uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
-		}
-		ret.List[i].UploadURL = uploadURL
-	}
+	// for i, cNode := range cNodes {
+	// 	uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
+	// 	if len(cNode.ExternalURL) > 0 {
+	// 		uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
+	// 	}
+	// 	ret.List[i].UploadURL = uploadURL
+	// }
 
 	return ret, nil
 
