@@ -36,6 +36,8 @@ const (
 	seedReplicaCount = 1
 	// Interval to get asset pull progress from node (Unit:Second)
 	pullProgressInterval = 30 * time.Second
+	// Interval to get asset pull progress from node (Unit:Second)
+	uploadProgressInterval = time.Second
 	// Interval to check candidate backup of asset (Unit:Minute)
 	checkCandidateBackupInterval = 10 * time.Minute
 	// Maximum number of replicas per asset
@@ -116,6 +118,7 @@ func (m *Manager) Start(ctx context.Context) {
 
 	go m.startCheckAssetsTimer()
 	go m.startCheckPullProgressesTimer()
+	go m.startCheckUploadProgressesTimer()
 	go m.startCheckCandidateBackupTimer()
 	go m.initFillDiskTimer()
 }
@@ -171,7 +174,24 @@ func (m *Manager) startCheckPullProgressesTimer() {
 
 	for {
 		<-ticker.C
-		m.retrieveNodePullProgresses()
+		m.retrieveNodePullProgresses(false)
+	}
+}
+
+// startCheckUploadProgressesTimer Periodically gets asset upload progress
+func (m *Manager) startCheckUploadProgressesTimer() {
+	// ticker := time.NewTicker(uploadProgressInterval)
+	// defer ticker.Stop()
+
+	// for {
+	// 	<-ticker.C
+	// 	m.retrieveNodePullProgresses(true)
+	// }
+
+	for {
+		time.Sleep(uploadProgressInterval)
+
+		m.retrieveNodePullProgresses(true)
 	}
 }
 
@@ -254,7 +274,7 @@ func (m *Manager) getPullingAssetList() []string {
 	return list
 }
 
-func (m *Manager) retrieveNodePullProgresses() {
+func (m *Manager) retrieveNodePullProgresses(isUpload bool) {
 	nodePulls := make(map[string][]string)
 
 	toMap := make(map[string]*pullingAssetsInfo)
@@ -273,8 +293,14 @@ func (m *Manager) retrieveNodePullProgresses() {
 			continue
 		}
 
-		if stateInfo.State != EdgesPulling.String() && stateInfo.State != CandidatesPulling.String() && stateInfo.State != SeedPulling.String() && stateInfo.State != SeedUploading.String() {
-			continue
+		if isUpload {
+			if stateInfo.State != SeedUploading.String() {
+				continue
+			}
+		} else {
+			if stateInfo.State != EdgesPulling.String() && stateInfo.State != CandidatesPulling.String() && stateInfo.State != SeedPulling.String() {
+				continue
+			}
 		}
 
 		if info.count >= assetTimeoutLimit {
@@ -294,6 +320,8 @@ func (m *Manager) retrieveNodePullProgresses() {
 			log.Errorf("retrieveNodePullProgresses %s HashString2CIDString err:%s", hash, err.Error())
 			continue
 		}
+
+		log.Infof("retrieveNodePullProgresses check %s \n", cid)
 
 		replicas, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusPulling, types.ReplicaStatusWaiting})
 		if err != nil {
