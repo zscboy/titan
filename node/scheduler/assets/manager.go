@@ -145,7 +145,7 @@ func (m *Manager) startCheckCandidateBackupTimer() {
 func (m *Manager) startCheckAssetsTimer() {
 	now := time.Now()
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 8, 0, 0, 0, time.UTC)
+	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 4, 0, 0, 0, time.UTC)
 	if now.After(nextTime) {
 		nextTime = nextTime.Add(24 * time.Hour)
 	}
@@ -164,6 +164,7 @@ func (m *Manager) startCheckAssetsTimer() {
 
 		// m.processExpiredAssets()
 		offset = m.processMissingAssetReplicas(offset)
+		m.cleanUploadFailedAssetReplicas()
 
 		timer.Reset(24 * time.Hour)
 	}
@@ -380,18 +381,6 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add asset ", req.AssetCID)
-	// exist, err := m.AssetExistsOfUser(hash, req.UserID)
-	// if err != nil {
-	// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-	// }
-
-	// if exist {
-	// 	return nil, &api.ErrWeb{Code: terrors.NoDuplicateUploads.Int(), Message: fmt.Sprintf("Asset is exist, no duplicate uploads")}
-	// }
-
-	// if m.getPullingAssetLen() >= m.assetPullTaskLimit {
-	// 	return nil, &api.ErrWeb{Code: terrors.BusyServer.Int(), Message: fmt.Sprintf("The task has reached its limit. Please try again later.")}
-	// }
 
 	replicaCount := int64(10)
 	bandwidth := int64(0)
@@ -409,11 +398,6 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	}
 
 	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
-		// err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
-		// if err != nil {
-		// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-		// }
-
 		info := &types.UploadInfo{AlreadyExists: true}
 		m.UpdateAssetRecordExpiration(hash, expiration)
 
@@ -425,10 +409,6 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		cNodes = append(cNodes, m.nodeMgr.GetCandidateNode(req.NodeID))
 	} else {
 		_, nodes := m.nodeMgr.GetAllCandidateNodes()
-		// sort.Slice(nodes, func(i, j int) bool {
-		// 	return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
-		// })
-
 		// mixup nodes
 		rand.Shuffle(len(nodes), func(i, j int) { nodes[i], nodes[j] = nodes[j], nodes[i] })
 
@@ -437,8 +417,6 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 				cNodes = append(cNodes, node)
 			}
 		}
-		// index := rand.Intn(len(cNodes))
-		// cNode = cNodes[index]
 	}
 
 	if len(cNodes) == 0 {
@@ -474,16 +452,6 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		seedIDs = append(seedIDs, cNode.NodeID)
 	}
 
-	// token, err := cNode.API.CreateAsset(context.Background(), payload)
-	// if err != nil {
-	// 	return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
-	// }
-
-	// err = m.SaveAssetUser(hash, req.UserID, req.AssetName, req.AssetType, req.AssetSize, expiration, req.Password, req.GroupID)
-	// if err != nil {
-	// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-	// }
-
 	record := &types.AssetRecord{
 		Hash:                  hash,
 		CID:                   req.AssetCID,
@@ -512,22 +480,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 	}
 
-	// err = m.assetStateMachines.Send(AssetHash(hash), rInfo)
-	// if err != nil {
-	// 	return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
-	// }
-
-	// for i, cNode := range cNodes {
-	// 	uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
-	// 	if len(cNode.ExternalURL) > 0 {
-	// 		uploadURL = fmt.Sprintf("%s/upload", cNode.ExternalURL)
-	// 	}
-	// 	ret.List[i].UploadURL = uploadURL
-	// }
-
 	return ret, nil
-
-	// return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
 }
 
 // CreateAssetPullTask create a new asset pull task
@@ -936,6 +889,31 @@ func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 	log.Infof("asset event %s, reset asset expiration:%s", cid, t.String())
 
 	return m.UpdateAssetRecordExpiration(hash, t)
+}
+
+// cleanUploadFailedAssetReplicas clean upload failed assets
+func (m *Manager) cleanUploadFailedAssetReplicas() {
+	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String()})
+	if err != nil {
+		log.Errorf("LoadAllAssetRecords err:%s", err.Error())
+		return
+	}
+	defer aRows.Close()
+
+	// loading asset records
+	for aRows.Next() {
+		cInfo := &types.AssetRecord{}
+		err = aRows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("asset StructScan err: %s", err.Error())
+			continue
+		}
+
+		err = m.RemoveAsset(cInfo.Hash, false)
+		if err != nil {
+			log.Errorf("RemoveAsset %s err:%s", cInfo.Hash, err.Error())
+		}
+	}
 }
 
 // processMissingAssetReplicas checks for missing replicas of assets and adds missing replicas

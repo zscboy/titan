@@ -16,7 +16,7 @@ type AssetAPI interface {
 	// PullAsset Pull an asset based on the provided PullAssetReq structure.
 	PullAsset(ctx context.Context, info *types.PullAssetReq) error //perm:web,admin
 	// RemoveAssetRecord removes the asset record with the specified CID from the scheduler
-	RemoveAssetRecord(ctx context.Context, cid string) error //perm:admin
+	RemoveAssetRecord(ctx context.Context, cid string) error //perm:admin,web
 	// StopAssetRecord stop asset
 	StopAssetRecord(ctx context.Context, cids []string) error //perm:admin
 	// RemoveAssetReplica deletes an asset replica with the specified CID and node from the scheduler
