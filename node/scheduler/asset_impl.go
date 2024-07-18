@@ -294,8 +294,8 @@ func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) 
 // }
 
 // ShareAssets shares the assets of the user.
-func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string) (map[string]string, error) {
-	urls := make(map[string]string)
+func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string) (map[string][]string, error) {
+	urls := make(map[string][]string)
 	for _, assetCID := range assetCIDs {
 		// hash, err := cidutil.CIDToHash(assetCID)
 		// if err != nil {
@@ -322,20 +322,22 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 		}
 
-		var node *node.Node
+		var nodes []*node.Node
 		for _, info := range rsp.SourceList {
 			n := s.NodeManager.GetCandidateNode(info.NodeID)
-			if n != nil {
-				node = n
+			if n != nil && len(nodes) <= 5 {
+				nodes = append(nodes, n)
 				break
 			}
 		}
 
-		url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", rsp.SourceList[0].Address, assetCID, tk, assetName)
-		if node != nil && len(node.ExternalURL) > 0 {
-			url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", node.ExternalURL, assetCID, tk, assetName)
+		for _, node := range nodes {
+			url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", rsp.SourceList[0].Address, assetCID, tk, assetName)
+			if len(node.ExternalURL) > 0 {
+				url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", node.ExternalURL, assetCID, tk, assetName)
+			}
+			urls[assetCID] = append(urls[assetCID], url)
 		}
-		urls[assetCID] = url
 	}
 
 	return urls, nil
