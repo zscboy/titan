@@ -15,7 +15,6 @@ import (
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/handler"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
-	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"golang.org/x/xerrors"
 )
 
@@ -322,21 +321,16 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 		}
 
-		var nodes []*node.Node
 		for _, info := range rsp.SourceList {
 			n := s.NodeManager.GetCandidateNode(info.NodeID)
-			if n != nil && len(nodes) <= 5 {
-				nodes = append(nodes, n)
+			if n != nil && len(urls[assetCID]) <= 5 {
+				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", info.Address, assetCID, tk, assetName)
+				if len(n.ExternalURL) > 0 {
+					url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", n.ExternalURL, assetCID, tk, assetName)
+				}
+				urls[assetCID] = append(urls[assetCID], url)
 				break
 			}
-		}
-
-		for _, node := range nodes {
-			url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", rsp.SourceList[0].Address, assetCID, tk, assetName)
-			if len(node.ExternalURL) > 0 {
-				url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", node.ExternalURL, assetCID, tk, assetName)
-			}
-			urls[assetCID] = append(urls[assetCID], url)
 		}
 	}
 
