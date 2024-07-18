@@ -20,7 +20,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/repo"
-	"github.com/Filecoin-Titan/titan/node/tunnel"
+	tunclient "github.com/Filecoin-Titan/titan/node/tunnel/client"
 	"github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -204,8 +204,8 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		}),
 		node.Override(new(api.Scheduler), func() api.Scheduler { return schedulerAPI }),
 
-		node.Override(new(*tunnel.Services), func(scheduler api.Scheduler, nid dtypes.NodeID) *tunnel.Services {
-			return tunnel.NewServices(ctx, scheduler, string(nid))
+		node.Override(new(*tunclient.Services), func(scheduler api.Scheduler, nid dtypes.NodeID) *tunclient.Services {
+			return tunclient.NewServices(ctx, scheduler, string(nid))
 		}),
 	)
 	if err != nil {

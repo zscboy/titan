@@ -62,6 +62,8 @@ type API struct {
 	// edge api
 	// ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
 	UserNATPunch func(ctx context.Context, sourceURL string, req *types.NatPunchReq) error
+	CreateTunnel func(ctx context.Context, req *types.CreateTunnelReq) error
+
 	// candidate api
 	GetBlocksOfAsset        func(ctx context.Context, assetCID string, randomSeed int64, randomCount int) ([]string, error)
 	CheckNetworkConnectable func(ctx context.Context, network, targetURL string) (bool, error)
@@ -88,6 +90,7 @@ func APIFromEdge(api api.Edge) *API {
 		WaitQuiet:    api.WaitQuiet,
 		UserNATPunch: api.UserNATPunch,
 		Workerd:      api,
+		CreateTunnel: api.CreateTunnel,
 	}
 	return a
 }

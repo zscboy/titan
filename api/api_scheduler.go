@@ -178,6 +178,8 @@ type NodeAPI interface {
 	ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error //perm:admin,web,locator
 	// GetTunserverURLFromUser
 	GetTunserverURLFromUser(ctx context.Context, req *types.TunserverReq) (*types.TunserverRsp, error) //perm:admin,web,locator
+	// CreateTunnel create tunnel for workerd communication
+	CreateTunnel(ctx context.Context, req *types.CreateTunnelReq) error // perm:candidate
 }
 
 // UserAPI is an interface for user

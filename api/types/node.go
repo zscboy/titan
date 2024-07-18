@@ -600,3 +600,10 @@ type TunserverReq struct {
 	IP     string
 	AreaID string
 }
+
+type CreateTunnelReq struct {
+	NodeID    string
+	ProjectID string
+	WsURL     string
+	TunnelID  string
+}

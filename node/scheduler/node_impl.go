@@ -1514,3 +1514,25 @@ func (s *Scheduler) ReimburseNodeProfit(ctx context.Context, nodeID, note string
 
 	return nil
 }
+
+// CreateTunnel create tunnel for workerd communication
+func (s *Scheduler) CreateTunnel(ctx context.Context, req *types.CreateTunnelReq) error {
+	nodeID := handler.GetNodeID(ctx)
+	if len(nodeID) == 0 {
+		return fmt.Errorf("invalid request")
+	}
+
+	cNode := s.NodeManager.GetCandidateNode(nodeID)
+	if cNode == nil {
+		return fmt.Errorf("can not find node %s", nodeID)
+	}
+
+	req.WsURL = cNode.WsURL()
+
+	eNode := s.NodeManager.GetEdgeNode(req.NodeID)
+	if eNode == nil {
+		return fmt.Errorf("can not find node %s", nodeID)
+	}
+
+	return eNode.CreateTunnel(ctx, req)
+}
