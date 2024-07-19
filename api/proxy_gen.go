@@ -67,6 +67,10 @@ type AssetAPIStruct struct {
 
 		CreateAsset func(p0 context.Context, p1 *types.CreateAssetReq) (*types.UploadInfo, error) `perm:"web,admin,user"`
 
+		CreateSyncAsset func(p0 context.Context, p1 *types.CreateSyncAssetReq) (error) `perm:"web,admin,user"`
+
+		GenerateTokenForDownloadSource func(p0 context.Context, p1 string, p2 string) (*types.SourceDownloadInfo, error) `perm:"web,admin,user"`
+
 		GetAssetCount func(p0 context.Context) (int, error) `perm:"web,admin"`
 
 		GetAssetListForBucket func(p0 context.Context, p1 uint32) ([]string, error) `perm:"edge,candidate"`
@@ -749,6 +753,28 @@ func (s *AssetAPIStruct) CreateAsset(p0 context.Context, p1 *types.CreateAssetRe
 }
 
 func (s *AssetAPIStub) CreateAsset(p0 context.Context, p1 *types.CreateAssetReq) (*types.UploadInfo, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) CreateSyncAsset(p0 context.Context, p1 *types.CreateSyncAssetReq) (error) {
+	if s.Internal.CreateSyncAsset == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.CreateSyncAsset(p0, p1)
+}
+
+func (s *AssetAPIStub) CreateSyncAsset(p0 context.Context, p1 *types.CreateSyncAssetReq) (error) {
+	return ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GenerateTokenForDownloadSource(p0 context.Context, p1 string, p2 string) (*types.SourceDownloadInfo, error) {
+	if s.Internal.GenerateTokenForDownloadSource == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GenerateTokenForDownloadSource(p0, p1, p2)
+}
+
+func (s *AssetAPIStub) GenerateTokenForDownloadSource(p0 context.Context, p1 string, p2 string) (*types.SourceDownloadInfo, error) {
 	return nil, ErrNotSupported
 }
 

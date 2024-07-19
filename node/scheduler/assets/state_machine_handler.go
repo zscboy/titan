@@ -38,6 +38,61 @@ func failedCoolDown(ctx statemachine.Context, info AssetPullingInfo, t time.Dura
 	return nil
 }
 
+func (m *Manager) handleSeedSync(ctx statemachine.Context, info AssetPullingInfo) error {
+	log.Debugf("handle seed sync: %s", info.Hash)
+	needCount := info.CandidateReplicas - int64(len(info.CandidateReplicaSucceeds))
+	if needCount < 1 {
+		// The number of candidate node replicas has reached the requirement
+		return ctx.Send(SkipStep{})
+	}
+
+	downloadSource := info.DownloadSource
+	if downloadSource == nil {
+		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
+	}
+
+	nodes, str := m.chooseCandidateNodes(seedReplicaCount, info.CandidateReplicaSucceeds, float64(info.Size))
+	if len(nodes) < 1 {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
+	}
+
+	var cNode *node.Node
+	for _, node := range nodes {
+		cNode = node
+	}
+
+	if cNode == nil {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
+	}
+
+	ds := &types.DownloadSources{Nodes: []*types.SourceDownloadInfo{downloadSource.ToSourceDownloadInfo()}}
+
+	// err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
+	err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, Dss: ds})
+	if err != nil {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node pullAssetV2 error; %s", err.Error())})
+	}
+
+	err = m.SaveReplicaStatus(&types.ReplicaInfo{
+		NodeID:      cNode.NodeID,
+		Status:      types.ReplicaStatusWaiting,
+		Hash:        info.Hash.String(),
+		IsCandidate: true,
+	})
+	if err != nil {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node SaveReplicaStatus error; %s", err.Error())})
+	}
+
+	// Wait send to node
+	if err := failedCoolDown(ctx, info, waitTime); err != nil {
+		return err
+	}
+
+	m.startAssetTimeoutCounting(info.Hash.String(), 0, info.Size)
+
+	return ctx.Send(PullRequestSent{})
+}
+
 // handleSeedSelect handles the selection of seed nodes for asset pull
 func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Debugf("handle select seed: %s", info.Hash)

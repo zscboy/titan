@@ -45,8 +45,9 @@ func (evt PullAssetFatalError) applyGlobal(state *AssetPullingInfo) bool {
 type AssetForceState struct {
 	State AssetState
 	// Requester  string
-	Details     string
-	SeedNodeIDs []string
+	Details        string
+	SeedNodeIDs    []string
+	DownloadSource *SourceDownloadInfo
 }
 
 func (evt AssetForceState) applyGlobal(state *AssetPullingInfo) bool {
@@ -55,6 +56,7 @@ func (evt AssetForceState) applyGlobal(state *AssetPullingInfo) bool {
 	state.Details = evt.Details
 	state.SeedNodeIDs = evt.SeedNodeIDs
 	state.RetryCount = 0
+	state.DownloadSource = evt.DownloadSource
 	return true
 }
 

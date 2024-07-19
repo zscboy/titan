@@ -47,6 +47,10 @@ type AssetAPI interface {
 	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 	// CreateAsset creates an asset with car CID, car name, and car size.
 	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) //perm:web,admin,user
+	// CreateSyncAsset Synchronizing assets from other schedulers
+	CreateSyncAsset(ctx context.Context, req *types.CreateSyncAssetReq) error //perm:web,admin,user
+	// GenerateTokenForDownloadSource Generate Token For Download Source
+	GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) (*types.SourceDownloadInfo, error) //perm:web,admin,user
 	// // ListAssets lists the assets of the user.
 	// ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
 	// // DeleteAsset deletes the asset of the user.

@@ -253,7 +253,7 @@ func (n *Node) SetLastRequestTime(t time.Time) {
 }
 
 // EncryptToken returns the token of the node
-func (n *Node) EncryptToken(cid, clientID string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.Token, *types.TokenPayload, error) {
+func (n *Node) EncryptToken(cid, clientID string, titanRsa *titanrsa.Rsa, privateKey *rsa.PrivateKey) (*types.Token, error) {
 	tkPayload := &types.TokenPayload{
 		ID:          uuid.NewString(),
 		NodeID:      n.NodeID,
@@ -265,15 +265,15 @@ func (n *Node) EncryptToken(cid, clientID string, titanRsa *titanrsa.Rsa, privat
 
 	b, err := n.encryptTokenPayload(tkPayload, n.PublicKey, titanRsa)
 	if err != nil {
-		return nil, nil, xerrors.Errorf("%s encryptTokenPayload err:%s", n.NodeID, err.Error())
+		return nil, xerrors.Errorf("%s encryptTokenPayload err:%s", n.NodeID, err.Error())
 	}
 
 	sign, err := titanRsa.Sign(privateKey, b)
 	if err != nil {
-		return nil, nil, xerrors.Errorf("%s Sign err:%s", n.NodeID, err.Error())
+		return nil, xerrors.Errorf("%s Sign err:%s", n.NodeID, err.Error())
 	}
 
-	return &types.Token{ID: tkPayload.ID, CipherText: hex.EncodeToString(b), Sign: hex.EncodeToString(sign)}, tkPayload, nil
+	return &types.Token{ID: tkPayload.ID, CipherText: hex.EncodeToString(b), Sign: hex.EncodeToString(sign)}, nil
 }
 
 // encryptTokenPayload encrypts a token payload object using the given public key and RSA instance.

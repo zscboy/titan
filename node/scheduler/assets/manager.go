@@ -3,6 +3,7 @@ package assets
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"database/sql"
 	"encoding/gob"
 	"fmt"
@@ -374,6 +375,89 @@ func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (resul
 
 	result, err = node.GetAssetProgresses(context.Background(), cids)
 	return
+}
+
+// GenerateTokenForDownloadSource Generate Token
+func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) (*types.SourceDownloadInfo, error) {
+	node := m.nodeMgr.GetNode(nodeID)
+	if node == nil {
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	tk, err := node.EncryptToken(cid, uuid.NewString(), titanRsa, m.nodeMgr.PrivateKey)
+	if err != nil {
+		return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
+	}
+
+	out := &types.SourceDownloadInfo{
+		NodeID:  nodeID,
+		Address: node.DownloadAddr(),
+		Tk:      tk,
+	}
+
+	return out, nil
+}
+
+// CreateSyncAssetTask Synchronizing assets from other schedulers
+func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq) error {
+	m.stateMachineWait.Wait()
+	log.Infof("asset event: %s, add sync asset ", req.AssetCID)
+
+	if req.DownloadInfo == nil {
+		return &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}
+	}
+
+	replicaCount := int64(10)
+	bandwidth := int64(0)
+	expiration := time.Now().Add(150 * 24 * time.Hour)
+
+	cfg, err := m.config()
+	if err == nil {
+		replicaCount = int64(cfg.UploadAssetReplicaCount)
+		expiration = time.Now().Add(time.Duration(cfg.UploadAssetExpiration) * 24 * time.Hour)
+	}
+
+	assetRecord, err := m.LoadAssetRecord(hash)
+	if err != nil && err != sql.ErrNoRows {
+		return &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+	}
+
+	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
+		m.UpdateAssetRecordExpiration(hash, expiration)
+
+		return nil
+	}
+
+	record := &types.AssetRecord{
+		Hash:                  hash,
+		CID:                   req.AssetCID,
+		ServerID:              m.nodeMgr.ServerID,
+		NeedEdgeReplica:       replicaCount,
+		NeedCandidateReplicas: int64(m.candidateReplicaCount),
+		Expiration:            expiration,
+		NeedBandwidth:         bandwidth,
+		State:                 UploadInit.String(),
+		TotalSize:             req.AssetSize,
+		CreatedTime:           time.Now(),
+		Source:                int64(AssetSourceStorage),
+	}
+
+	err = m.SaveAssetRecord(record)
+	if err != nil {
+		return &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
+	}
+
+	// create asset task
+	rInfo := AssetForceState{
+		State:          SeedSync,
+		DownloadSource: sourceDownloadInfoFrom(req.DownloadInfo),
+	}
+	if err := m.assetStateMachines.Send(AssetHash(hash), rInfo); err != nil {
+		return &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	}
+
+	return nil
 }
 
 // CreateAssetUploadTask create a new asset upload task
@@ -1270,7 +1354,6 @@ func (m *Manager) GetAssetCount() (int, error) {
 
 func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloadInfo, titanRsa *titanrsa.Rsa, assetCID string, clientID string, size int64) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
 	workloadList := make([]*types.Workload, 0)
-
 	downloadSources := make([]*types.SourceDownloadInfo, 0, len(sources))
 
 	for _, source := range sources {
@@ -1280,7 +1363,7 @@ func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloa
 		downloadSource := *source
 
 		if node != nil {
-			tk, _, err := node.EncryptToken(assetCID, clientID, titanRsa, m.nodeMgr.PrivateKey)
+			tk, err := node.EncryptToken(assetCID, clientID, titanRsa, m.nodeMgr.PrivateKey)
 			if err != nil {
 				continue
 			}

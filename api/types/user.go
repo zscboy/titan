@@ -12,6 +12,13 @@ type AssetProperty struct {
 	GroupID   int
 }
 
+type CreateSyncAssetReq struct {
+	AssetCID  string
+	AssetSize int64
+
+	DownloadInfo *SourceDownloadInfo
+}
+
 type CreateAssetReq struct {
 	UserID string
 	AssetProperty

@@ -265,93 +265,63 @@ func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) 
 	return s.AssetManager.CreateAssetUploadTask(hash, req)
 }
 
-// // ListAssets lists the assets of the user.
-// func (s *Scheduler) ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) {
-// 	uID := handler.GetUserID(ctx)
-// 	if len(uID) > 0 {
-// 		userID = uID
-// 	}
+// CreateSyncAsset Synchronizing assets from other schedulers
+func (s *Scheduler) CreateSyncAsset(ctx context.Context, req *types.CreateSyncAssetReq) error {
+	hash, err := cidutil.CIDToHash(req.AssetCID)
+	if err != nil {
+		return &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
+	}
 
-// 	u := s.newUser(userID)
-// 	info, err := u.ListAssets(ctx, limit, offset, s.SchedulerCfg.MaxCountOfVisitShareLink, groupID)
-// 	if err != nil {
-// 		return nil, xerrors.Errorf("ListAssets err:%s", err.Error())
-// 	}
+	return s.AssetManager.CreateSyncAssetTask(hash, req)
+}
 
-// 	return info, nil
-// }
+// GenerateTokenForDownloadSource Generate Token For Download Source
+func (s *Scheduler) GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) (*types.SourceDownloadInfo, error) {
+	_, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
+	}
 
-// // DeleteAsset deletes the assets of the user.
-// func (s *Scheduler) DeleteAsset(ctx context.Context, userID, assetCID string) error {
-// 	uID := handler.GetUserID(ctx)
-// 	if len(uID) > 0 {
-// 		userID = uID
-// 	}
-
-// 	u := s.newUser(userID)
-// 	return u.DeleteAsset(ctx, assetCID)
-// }
+	return s.AssetManager.GenerateTokenForDownloadSource(nodeID, cid)
+}
 
 // ShareAssets shares the assets of the user.
 func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string) (map[string][]string, error) {
 	urls := make(map[string][]string)
 	for _, assetCID := range assetCIDs {
-		// hash, err := cidutil.CIDToHash(assetCID)
-		// if err != nil {
-		// 	return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int()}
-		// }
 
 		assetName := ""
-		// assetName, err := u.GetAssetName(hash, u.ID)
-		// if err != nil {
-		// 	return nil, &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
-		// }
-
 		rsp, err := s.GetAssetSourceDownloadInfo(ctx, assetCID)
 		if err != nil {
+			log.Errorf("ShareAssets GetAssetSourceDownloadInfo err:%s", err.Error())
 			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 		}
 
 		if len(rsp.SourceList) == 0 {
+			log.Errorln("ShareAssets rsp.SourceList == 0")
 			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 		}
 
 		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: userID, AssetCID: assetCID}, s)
 		if err != nil {
+			log.Errorf("ShareAssets generateAccessToken err:%s", err.Error())
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 		}
 
 		for _, info := range rsp.SourceList {
 			n := s.NodeManager.GetCandidateNode(info.NodeID)
-			if n != nil && len(urls[assetCID]) <= 5 {
+			if n != nil {
 				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", info.Address, assetCID, tk, assetName)
 				if len(n.ExternalURL) > 0 {
 					url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", n.ExternalURL, assetCID, tk, assetName)
 				}
 				urls[assetCID] = append(urls[assetCID], url)
-				break
 			}
 		}
 	}
 
 	return urls, nil
 }
-
-// // GetAssetStatus retrieves a asset status
-// func (s *Scheduler) GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) {
-// 	uID := handler.GetUserID(ctx)
-// 	if len(uID) > 0 {
-// 		userID = uID
-// 	}
-
-// 	u := s.newUser(userID)
-// 	status, err := u.GetAssetStatus(ctx, assetCID, s.SchedulerCfg)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return status, nil
-// }
 
 func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error {
 	// TODO limit rate or verify valid data

@@ -581,7 +581,7 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 			continue
 		}
 
-		token, _, err := eNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
+		token, err := eNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
 		if err != nil {
 			continue
 		}
@@ -657,7 +657,7 @@ func (s *Scheduler) getEdgeDownloadRatio() float64 {
 }
 
 func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.Rsa) *types.SourceDownloadInfo {
-	token, _, err := cNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
+	token, err := cNode.EncryptToken(cid, uuid.NewString(), titanRsa, s.NodeManager.PrivateKey)
 	if err != nil {
 		return nil
 	}
