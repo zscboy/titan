@@ -506,15 +506,6 @@ func (m *Manager) handleRemove(ctx statemachine.Context, info AssetPullingInfo) 
 		}
 	}
 
-	// // remove user asset
-	// users, err := m.ListUsersForAsset(hash)
-	// for _, user := range users {
-	// 	err = m.DeleteAssetUser(hash, user)
-	// 	if err != nil {
-	// 		log.Errorf("DeleteAssetUser: %s", info.Hash)
-	// 	}
-	// }
-
 	return nil
 }
 

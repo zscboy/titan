@@ -563,10 +563,6 @@ func (s *Scheduler) GetEdgeDownloadInfos(ctx context.Context, cid string) (*type
 	// ws := make([]*types.Workload, 0)
 
 	for _, rInfo := range replicas {
-		if rInfo.IsCandidate {
-			continue
-		}
-
 		nodeID := rInfo.NodeID
 		eNode := s.NodeManager.GetEdgeNode(nodeID)
 		if eNode == nil {
@@ -713,31 +709,23 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.SourceDownloadInfo, 0)
 
-	// limit := 5
 	for _, rInfo := range replicas {
 		nodeID := rInfo.NodeID
-		cNode := s.NodeManager.GetNode(nodeID)
+		cNode := s.NodeManager.GetCandidateNode(nodeID)
 		if cNode == nil {
 			continue
 		}
 
-		if cNode.NetFlowUpExcess(float64(rInfo.DoneSize)) {
-			continue
-		}
-
-		if rInfo.IsCandidate {
-			source := s.getSource(cNode, cid, titanRsa)
-			if source != nil {
-				sources = append(sources, source)
-			}
-
-			continue
+		source := s.getSource(cNode, cid, titanRsa)
+		if source != nil {
+			sources = append(sources, source)
 		}
 	}
 
 	if len(sources) == 0 {
 		return out, nil
 	}
+
 	// Shuffle array
 	for i := len(sources) - 1; i > 0; i-- {
 		j := rand.Intn(i + 1)

@@ -195,10 +195,6 @@ type SchedulerCfg struct {
 	AssetPullTaskLimit int
 
 	NatDetectConcurrency int
-	// Default number of backups for user uploaded files
-	UploadAssetReplicaCount int
-	// Default expiration time for user uploaded files
-	UploadAssetExpiration int // (Unit:day)
 	// Non vip user
 	MaxCountOfVisitShareLink int
 	// if the area has several scheduler, node will connect to the scheduler which weight is bigger

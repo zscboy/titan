@@ -38,7 +38,7 @@ func (m *Manager) penaltyNode() {
 			continue
 		}
 
-		if info.Profit <= 0.00001 {
+		if info.Profit <= 0.0001 {
 			continue
 		}
 

@@ -34,7 +34,7 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 		on(SkipStep{}, CandidatesSelect),
 	),
 	SeedSync: planOne(
-		on(PullRequestSent{}, SeedPulling),
+		on(PullRequestSent{}, SeedUploading),
 		on(SelectFailed{}, SyncFailed),
 		on(SkipStep{}, CandidatesSelect),
 	),

@@ -2,26 +2,22 @@ package types
 
 import "time"
 
-type AssetProperty struct {
-	AssetCID  string
-	AssetName string
-	AssetSize int64
-	AssetType string
-	NodeID    string
-	Password  string
-	GroupID   int
-}
-
 type CreateSyncAssetReq struct {
 	AssetCID  string
 	AssetSize int64
 
 	DownloadInfo *SourceDownloadInfo
+
+	ExpirationDay int
 }
 
 type CreateAssetReq struct {
-	UserID string
-	AssetProperty
+	UserID    string
+	AssetCID  string
+	AssetSize int64
+	NodeID    string
+
+	ExpirationDay int
 }
 
 type UploadInfo struct {
