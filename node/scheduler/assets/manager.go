@@ -63,6 +63,8 @@ const (
 	maxCandidateForSelect = 5
 
 	expirationOfStorageAsset = 150 // day
+
+	defaultReplicaCount = 200
 )
 
 // Manager manages asset replicas
@@ -79,8 +81,8 @@ type Manager struct {
 
 	fillSwitch bool
 
-	fillAssets     sync.Map // Data being downloaded from aws
-	fillAssetNodes sync.Map // The node that is downloading data from aws
+	fillAssets sync.Map // Data being downloaded from aws
+	// fillAssetNodes sync.Map // The node that is downloading data from aws
 
 	isPullSpecifyAsset bool
 	sortEdges          bool
@@ -418,15 +420,18 @@ func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq
 		return &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}
 	}
 
-	replicaCount := int64(20)
 	bandwidth := int64(0)
 
 	day := req.ExpirationDay
 	if day <= 0 || day > 365*5 {
 		day = expirationOfStorageAsset
 	}
-
 	expiration := time.Now().Add(time.Duration(day) * 24 * time.Hour)
+
+	replicaCount := req.ReplicaCount
+	if replicaCount <= 0 || replicaCount > 1000 {
+		replicaCount = defaultReplicaCount
+	}
 
 	assetRecord, err := m.LoadAssetRecord(hash)
 	if err != nil && err != sql.ErrNoRows {
@@ -476,15 +481,18 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add asset ", req.AssetCID)
 
-	replicaCount := int64(20)
 	bandwidth := int64(0)
 
 	day := req.ExpirationDay
 	if day <= 0 || day > 365*5 {
 		day = expirationOfStorageAsset
 	}
-
 	expiration := time.Now().Add(time.Duration(day) * 24 * time.Hour)
+
+	replicaCount := req.ReplicaCount
+	if replicaCount <= 0 || replicaCount > 1000 {
+		replicaCount = defaultReplicaCount
+	}
 
 	assetRecord, err := m.LoadAssetRecord(hash)
 	if err != nil && err != sql.ErrNoRows {
@@ -987,7 +995,7 @@ func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 
 // cleanUploadFailedAssetReplicas clean upload failed assets
 func (m *Manager) cleanUploadFailedAssetReplicas() {
-	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String()})
+	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String(), SyncFailed.String()})
 	if err != nil {
 		log.Errorf("LoadAllAssetRecords err:%s", err.Error())
 		return

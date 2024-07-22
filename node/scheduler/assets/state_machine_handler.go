@@ -112,17 +112,10 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 			nodes[cNode.NodeID] = cNode
 		}
 	} else {
-		nodeInfo := m.getNodesFromAWSAsset(info.CID)
-		if nodeInfo != nil && nodeInfo.candidateList != nil && len(nodeInfo.candidateList) > 0 {
-			seed := nodeInfo.candidateList[0]
-			nodes[seed.NodeID] = seed
-		} else {
-			// find nodes
-			str := ""
-			nodes, str = m.chooseCandidateNodes(seedReplicaCount, info.CandidateReplicaSucceeds, float64(info.Size))
-			if len(nodes) < 1 {
-				return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
-			}
+		str := ""
+		nodes, str = m.chooseCandidateNodes(seedReplicaCount, info.CandidateReplicaSucceeds, float64(info.Size))
+		if len(nodes) < 1 {
+			return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 		}
 	}
 
@@ -242,23 +235,9 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
-	nodes := make(map[string]*node.Node)
-
-	nodeInfo := m.getNodesFromAWSAsset(info.CID)
-	if nodeInfo != nil && nodeInfo.candidateList != nil && len(nodeInfo.candidateList) > 1 {
-		ns := nodeInfo.candidateList[1:]
-		for _, n := range ns {
-			nodes[n.NodeID] = n
-		}
-
-		m.removeNodesFromFillAsset(info.CID, true)
-	} else {
-		// find nodes
-		str := ""
-		nodes, str = m.chooseCandidateNodes(int(needCount), info.CandidateReplicaSucceeds, float64(info.Size))
-		if len(nodes) < 1 {
-			return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
-		}
+	nodes, str := m.chooseCandidateNodes(int(needCount), info.CandidateReplicaSucceeds, float64(info.Size))
+	if len(nodes) < 1 {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
@@ -365,21 +344,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
-	nodes := make(map[string]*node.Node)
-
-	nodeInfo := m.getNodesFromAWSAsset(info.CID)
-	if nodeInfo != nil && nodeInfo.edgeList != nil && len(nodeInfo.edgeList) > 0 {
-		for _, n := range nodeInfo.edgeList {
-			nodes[n.NodeID] = n
-		}
-
-		m.removeNodesFromFillAsset(info.CID, false)
-	} else {
-		str := ""
-		nodes, str = m.chooseEdgeNodes(int(needCount), needBandwidth, info.EdgeReplicaSucceeds, float64(info.Size))
-		if len(nodes) < 1 {
-			return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
-		}
+	nodes, str := m.chooseEdgeNodes(int(needCount), needBandwidth, info.EdgeReplicaSucceeds, float64(info.Size))
+	if len(nodes) < 1 {
+		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())

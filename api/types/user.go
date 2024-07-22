@@ -3,20 +3,20 @@ package types
 import "time"
 
 type CreateSyncAssetReq struct {
-	AssetCID  string
-	AssetSize int64
+	AssetCID      string
+	AssetSize     int64
+	ReplicaCount  int64
+	ExpirationDay int
 
 	DownloadInfo *SourceDownloadInfo
-
-	ExpirationDay int
 }
 
 type CreateAssetReq struct {
-	UserID    string
-	AssetCID  string
-	AssetSize int64
-	NodeID    string
-
+	UserID        string
+	AssetCID      string
+	AssetSize     int64
+	NodeID        string
+	ReplicaCount  int64
 	ExpirationDay int
 }
 
