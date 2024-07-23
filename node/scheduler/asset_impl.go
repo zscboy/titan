@@ -290,7 +290,6 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 	urls := make(map[string][]string)
 	for _, assetCID := range assetCIDs {
 
-		assetName := ""
 		rsp, err := s.GetAssetSourceDownloadInfo(ctx, assetCID)
 		if err != nil {
 			log.Errorf("ShareAssets GetAssetSourceDownloadInfo err:%s", err.Error())
@@ -311,9 +310,9 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 		for _, info := range rsp.SourceList {
 			n := s.NodeManager.GetCandidateNode(info.NodeID)
 			if n != nil {
-				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s&filename=%s", info.Address, assetCID, tk, assetName)
+				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s", info.Address, assetCID, tk, assetName)
 				if len(n.ExternalURL) > 0 {
-					url = fmt.Sprintf("%s/ipfs/%s?token=%s&filename=%s", n.ExternalURL, assetCID, tk, assetName)
+					url = fmt.Sprintf("%s/ipfs/%s?token=%s", n.ExternalURL, assetCID, tk, assetName)
 				}
 				urls[assetCID] = append(urls[assetCID], url)
 			}
