@@ -219,23 +219,19 @@ func newAuthTokenFromScheduler(schedulerURL, nodeID string, privateKey *rsa.Priv
 	return schedulerAPI.NodeLogin(context.Background(), nodeID, hex.EncodeToString(sign))
 }
 
-func getAccessPoint(locatorURL, nodeID, areaID string) (string, error) {
+func getAccessPoint(locatorURL, nodeID, areaID string) (*types.AccessPointRsp, error) {
 	locator, close, err := client.NewLocator(context.Background(), locatorURL, nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer close()
 
-	schedulerURLs, err := locator.GetAccessPoints(context.Background(), nodeID, areaID)
+	rsp, err := locator.GetAccessPointsV2(context.Background(), nodeID, areaID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if len(schedulerURLs) <= 0 {
-		return "", fmt.Errorf("no access point in area %s for node %s", areaID, nodeID)
-	}
-
-	return schedulerURLs[0], nil
+	return rsp, nil
 }
 
 func newSchedulerAPI(transport *quic.Transport, schedulerURL, nodeID string, privateKey *rsa.PrivateKey) (api.Scheduler, jsonrpc.ClientCloser, error) {

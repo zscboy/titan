@@ -22,6 +22,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/repo"
 	tunclient "github.com/Filecoin-Titan/titan/node/tunnel/client"
 	"github.com/Filecoin-Titan/titan/node/validation"
+	"github.com/Filecoin-Titan/titan/region"
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/quic-go/quic-go"
@@ -51,6 +52,8 @@ type daemon struct {
 	shutdownChan    chan struct{} // shutdown chan
 	restartChan     chan struct{} // cli restart
 	restartDoneChan chan struct{} // make sure all modules are ready to start
+
+	geoInfo *region.GeoInfo
 }
 
 func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
@@ -113,10 +116,16 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		Conn: udpPacketConn,
 	}
 
-	schedulerURL, err := getAccessPoint(edgeCfg.Network.LocatorURL, nodeID, edgeCfg.AreaID)
+	accessPoint, err := getAccessPoint(edgeCfg.Network.LocatorURL, nodeID, edgeCfg.AreaID)
 	if err != nil {
 		return nil, err
 	}
+
+	if len(accessPoint.Schedulers) == 0 {
+		return nil, fmt.Errorf("can not get access point, nodeID %s, areaID %s", nodeID, edgeCfg.AreaID)
+	}
+
+	schedulerURL := accessPoint.Schedulers[0]
 
 	schedulerAPI, closeScheduler, err := newSchedulerAPI(transport, schedulerURL, nodeID, privateKey)
 	if err != nil {
@@ -234,6 +243,8 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		shutdownChan:    shutdownChan,
 		restartChan:     restartChan,
 		restartDoneChan: restartDoneChan,
+
+		geoInfo: accessPoint.GeoInfo,
 	}
 
 	return d, nil
@@ -263,6 +274,7 @@ func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
 		schedulerAPI: d.schedulerAPI,
 		nodeID:       d.ID,
 		daemonSwitch: daemonSwitch,
+		geoInfo:      d.geoInfo,
 	}
 	go heartbeat(d.ctx, hbeatParams)
 
