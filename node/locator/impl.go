@@ -82,6 +82,47 @@ func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([
 	return l.selectBestSchedulers(schedulerAPIs, nodeID)
 }
 
+// GetAccessPointsV2 get schedulers urls with special areaID, and those schedulers have the node
+func (l *Locator) GetAccessPointsV2(ctx context.Context, nodeID, areaID string) (*types.AccessPointRsp, error) {
+	if len(nodeID) == 0 || len(areaID) == 0 {
+		return nil, fmt.Errorf("params nodeID or areaID can not empty")
+	}
+
+	log.Debugf("GetAccessPoints, nodeID %s, areaID %s", nodeID, areaID)
+
+	configs, err := l.GetSchedulerConfigs(areaID)
+	if err != nil {
+		return nil, err
+	}
+
+	schedulerAPIs, err := l.getOrNewSchedulerAPIs(configs)
+	if err != nil {
+		return nil, err
+	}
+
+	schedulers, err := l.selectBestSchedulers(schedulerAPIs, nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	rsp := &types.AccessPointRsp{Schedulers: schedulers}
+
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	ip, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	geoInfo, err := l.GetGeoInfo(ip)
+	if err != nil {
+		log.Errorf("GetGeoInfo error %s", err.Error())
+		return rsp, nil
+	}
+
+	rsp.GeoInfo = geoInfo
+	return rsp, nil
+}
+
 func (l *Locator) selectBestSchedulers(apis []*SchedulerAPI, nodeID string) ([]string, error) {
 	if len(apis) == 0 {
 		return nil, nil

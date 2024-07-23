@@ -613,3 +613,8 @@ type CreateTunnelReq struct {
 	WsURL     string
 	TunnelID  string
 }
+
+type AccessPointRsp struct {
+	Schedulers []string
+	GeoInfo    *region.GeoInfo
+}

@@ -11,6 +11,8 @@ type Locator interface {
 	Common
 	// GetAccessPoints retrieves all access points associated with a node.
 	GetAccessPoints(ctx context.Context, nodeID, areaID string) ([]string, error) //perm:default
+	// GetAccessPointsV2 retrieves all access points associated with a node.
+	GetAccessPointsV2(ctx context.Context, nodeID, areaID string) (*types.AccessPointRsp, error) //perm:default
 	// user api
 	// EdgeDownloadInfos retrieves download information for a content identifier (CID).
 	EdgeDownloadInfos(ctx context.Context, cid string) ([]*types.EdgeDownloadInfoList, error) //perm:default

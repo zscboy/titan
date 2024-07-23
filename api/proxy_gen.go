@@ -289,6 +289,8 @@ type LocatorStruct struct {
 
 		GetAccessPoints func(p0 context.Context, p1 string, p2 string) ([]string, error) `perm:"default"`
 
+		GetAccessPointsV2 func(p0 context.Context, p1 string, p2 string) (*types.AccessPointRsp, error) `perm:"default"`
+
 		GetAssetSourceDownloadInfos func(p0 context.Context, p1 string) ([]*types.AssetSourceDownloadInfoRsp, error) `perm:"default"`
 
 		GetCandidateIP func(p0 context.Context, p1 string) (string, error) `perm:"admin"`
@@ -1379,6 +1381,17 @@ func (s *LocatorStruct) GetAccessPoints(p0 context.Context, p1 string, p2 string
 
 func (s *LocatorStub) GetAccessPoints(p0 context.Context, p1 string, p2 string) ([]string, error) {
 	return *new([]string), ErrNotSupported
+}
+
+func (s *LocatorStruct) GetAccessPointsV2(p0 context.Context, p1 string, p2 string) (*types.AccessPointRsp, error) {
+	if s.Internal.GetAccessPointsV2 == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetAccessPointsV2(p0, p1, p2)
+}
+
+func (s *LocatorStub) GetAccessPointsV2(p0 context.Context, p1 string, p2 string) (*types.AccessPointRsp, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *LocatorStruct) GetAssetSourceDownloadInfos(p0 context.Context, p1 string) ([]*types.AssetSourceDownloadInfoRsp, error) {

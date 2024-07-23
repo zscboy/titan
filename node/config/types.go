@@ -133,6 +133,7 @@ type LocatorCfg struct {
 	DNSServerAddress string
 	DNSRecords       map[string]string
 	DefaultAreas     []string
+	WebGeoAPI        string
 }
 
 // SchedulerCfg scheduler config
