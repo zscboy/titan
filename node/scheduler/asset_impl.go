@@ -310,9 +310,9 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 		for _, info := range rsp.SourceList {
 			n := s.NodeManager.GetCandidateNode(info.NodeID)
 			if n != nil {
-				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s", info.Address, assetCID, tk, assetName)
+				url := fmt.Sprintf("http://%s/ipfs/%s?token=%s", info.Address, assetCID, tk)
 				if len(n.ExternalURL) > 0 {
-					url = fmt.Sprintf("%s/ipfs/%s?token=%s", n.ExternalURL, assetCID, tk, assetName)
+					url = fmt.Sprintf("%s/ipfs/%s?token=%s", n.ExternalURL, assetCID, tk)
 				}
 				urls[assetCID] = append(urls[assetCID], url)
 			}
