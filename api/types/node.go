@@ -19,6 +19,7 @@ type NodeDynamicInfo struct {
 	DiskUsage          float64   `json:"disk_usage" form:"diskUsage" gorm:"column:disk_usage;comment:;" db:"disk_usage"`
 	LastSeen           time.Time `db:"last_seen"`
 	Profit             float64   `db:"profit"`
+	PenaltyProfit      float64   `db:"penalty_profit"`
 	TitanDiskUsage     float64   `db:"titan_disk_usage"`
 	AvailableDiskSpace float64   `json:"available_disk_space" form:"availableDiskSpace" gorm:"column:available_disk_space;comment:;" db:"available_disk_space"`
 	BandwidthUp        int64     `json:"bandwidth_up" db:"bandwidth_up"`
@@ -43,6 +44,7 @@ type NodeInfo struct {
 	Level           int
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	GeoInfo         *region.GeoInfo
+	Mx              float64
 	AssetCount      int64 `db:"asset_count"`
 	RetrieveCount   int64 `db:"retrieve_count"`
 
@@ -107,10 +109,11 @@ const (
 
 	NodeEdge
 	NodeCandidate
-	// NodeValidator
+	NodeValidator
 	NodeScheduler
 	NodeLocator
 	NodeUpdater
+	NodeL5
 )
 
 func (n NodeType) String() string {
@@ -125,6 +128,8 @@ func (n NodeType) String() string {
 	// 	return "validator"
 	case NodeLocator:
 		return "locator"
+	case NodeL5:
+		return "l5"
 	}
 
 	return ""
@@ -570,6 +575,7 @@ type ProfitDetails struct {
 	Note        string     `db:"note"`
 	CID         string     `db:"cid"`
 	Rate        float64    `db:"rate"`
+	Penalty     float64
 }
 
 // ListNodeProfitDetailsRsp list node profit

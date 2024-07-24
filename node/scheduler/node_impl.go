@@ -388,6 +388,11 @@ func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions)
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
+// L5Connect l5 node login to the scheduler
+func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.nodeConnect(ctx, opts, types.NodeL5)
+}
+
 // GetExternalAddress retrieves the external address of the caller.
 func (s *Scheduler) GetExternalAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
@@ -453,20 +458,21 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 	}
 	nodeInfo = *dbInfo
 
-	node := s.NodeManager.GetNode(nodeID)
-	if node != nil {
+	n := s.NodeManager.GetNode(nodeID)
+	if n != nil {
 		nodeInfo.Status = types.NodeServicing
-		nodeInfo.NATType = node.NATType
-		nodeInfo.Type = node.Type
-		nodeInfo.CPUUsage = node.CPUUsage
-		nodeInfo.DiskUsage = node.DiskUsage
-		nodeInfo.ExternalIP = node.ExternalIP
-		nodeInfo.IncomeIncr = node.IncomeIncr
-		nodeInfo.IsTestNode = node.IsTestNode
-		nodeInfo.GeoInfo = node.GeoInfo
-		nodeInfo.RemoteAddr = node.RemoteAddr
+		nodeInfo.NATType = n.NATType
+		nodeInfo.Type = n.Type
+		nodeInfo.CPUUsage = n.CPUUsage
+		nodeInfo.DiskUsage = n.DiskUsage
+		nodeInfo.ExternalIP = n.ExternalIP
+		nodeInfo.IncomeIncr = n.IncomeIncr
+		nodeInfo.IsTestNode = n.IsTestNode
+		nodeInfo.GeoInfo = n.GeoInfo
+		nodeInfo.RemoteAddr = n.RemoteAddr
+		nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
 
-		log.Debugf("%s node select codes:%v , url:%s", nodeID, node.SelectWeights(), node.ExternalURL)
+		log.Debugf("%s node select codes:%v , url:%s", nodeID, n.SelectWeights(), n.ExternalURL)
 	}
 
 	return nodeInfo, nil
@@ -491,18 +497,19 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			continue
 		}
 
-		node := s.NodeManager.GetNode(nodeInfo.NodeID)
-		if node != nil {
+		n := s.NodeManager.GetNode(nodeInfo.NodeID)
+		if n != nil {
 			nodeInfo.Status = types.NodeServicing
-			nodeInfo.NATType = node.NATType
-			nodeInfo.Type = node.Type
-			nodeInfo.CPUUsage = node.CPUUsage
-			nodeInfo.DiskUsage = node.DiskUsage
-			nodeInfo.ExternalIP = node.ExternalIP
-			nodeInfo.IncomeIncr = node.IncomeIncr
-			nodeInfo.IsTestNode = node.IsTestNode
-			nodeInfo.GeoInfo = node.GeoInfo
-			nodeInfo.RemoteAddr = node.RemoteAddr
+			nodeInfo.NATType = n.NATType
+			nodeInfo.Type = n.Type
+			nodeInfo.CPUUsage = n.CPUUsage
+			nodeInfo.DiskUsage = n.DiskUsage
+			nodeInfo.ExternalIP = n.ExternalIP
+			nodeInfo.IncomeIncr = n.IncomeIncr
+			nodeInfo.IsTestNode = n.IsTestNode
+			nodeInfo.GeoInfo = n.GeoInfo
+			nodeInfo.RemoteAddr = n.RemoteAddr
+			nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
 		}
 
 		nodeInfos = append(nodeInfos, *nodeInfo)

@@ -92,7 +92,7 @@ func (m *Manager) GetNodeBePullProfitDetails(node *Node, size float64, note stri
 	mip := calculateMip(node.NATType)
 	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
-	mx := rateOfL2Mx(node.OnlineDuration)
+	mx := RateOfL2Mx(node.OnlineDuration)
 
 	mbnu := mr * mx * mo * u * uploadTrafficProfit * mip * mn
 
@@ -114,7 +114,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 	ds := float64(node.TitanDiskUsage)
 	s := bToGB(ds)
 	u := bToGB(size)
-	mx := rateOfL2Mx(node.OnlineDuration)
+	mx := RateOfL2Mx(node.OnlineDuration)
 	mt := 1.0
 	mip := calculateMip(node.NATType)
 	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
@@ -138,7 +138,7 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 // GetEdgeBaseProfitDetails Basic Rewards
 func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDetails) {
 	// Every 5 s
-	mx := rateOfL2Mx(node.OnlineDuration)
+	mx := RateOfL2Mx(node.OnlineDuration)
 	mb := rateOfL2Base(node.ClientType)
 	mcx := mr * mx * mo * mb
 
@@ -188,7 +188,7 @@ func (m *Manager) GetDownloadProfitDetails(node *Node, size float64, pid string)
 	}
 
 	d := bToGB(size)
-	mx := rateOfL2Mx(node.OnlineDuration)
+	mx := RateOfL2Mx(node.OnlineDuration)
 	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
 
@@ -215,7 +215,7 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 	}
 
 	u := bToGB(size)
-	mx := rateOfL2Mx(node.OnlineDuration)
+	mx := RateOfL2Mx(node.OnlineDuration)
 	mip := calculateMip(node.NATType)
 	lip := len(m.IPMgr.GetNodeOfIP(node.ExternalIP))
 	mn := calculateMn(lip)
@@ -247,11 +247,12 @@ func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuratio
 	}
 
 	return &types.ProfitDetails{
-		NodeID: nodeID,
-		Profit: -pn,
-		PType:  types.ProfitTypeOfflinePenalty,
-		Rate:   pr,
-		Note:   fmt.Sprintf("pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", pn, profit, pr, od, offlineDuration),
+		NodeID:  nodeID,
+		Profit:  -pn,
+		Penalty: pn,
+		PType:   types.ProfitTypeOfflinePenalty,
+		Rate:    pr,
+		Note:    fmt.Sprintf("pn:[%.4f]  profit:[%.4f] pr:[%.4f] od:[%.4f] , offlineDuration:[%d]", pn, profit, pr, od, offlineDuration),
 	}
 }
 
@@ -333,7 +334,8 @@ func rateOfL2Base(nct types.NodeClientType) float64 {
 	return l2OtherRate
 }
 
-func rateOfL2Mx(onlineDuration int) float64 {
+// RateOfL2Mx mx
+func RateOfL2Mx(onlineDuration int) float64 {
 	onlineHour := onlineDuration / 60
 
 	if onlineHour < 168 {

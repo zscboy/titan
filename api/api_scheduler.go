@@ -102,6 +102,8 @@ type NodeAPI interface {
 	EdgeConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:edge
 	// CandidateConnect candidate node login to the scheduler
 	CandidateConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:candidate
+	// L5Connect l5 node login to the scheduler
+	L5Connect(ctx context.Context, opts *types.ConnectOptions) error //perm:l5
 	// GetExternalAddress retrieves the external address of the caller.
 	GetExternalAddress(ctx context.Context) (string, error) //perm:default
 	// NodeLogin generates an authentication token for a node with the specified node ID and signature
@@ -131,7 +133,7 @@ type NodeAPI interface {
 	// NodeKeepalive
 	NodeKeepalive(ctx context.Context) (uuid.UUID, error) //perm:edge,candidate
 	// NodeKeepaliveV2 fix the problem of NodeKeepalive, Maintaining old device connections
-	NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) //perm:edge,candidate
+	NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) //perm:edge,candidate,l5
 	// RequestActivationCodes Get the device's encrypted activation code
 	RequestActivationCodes(ctx context.Context, nodeType types.NodeType, count int) ([]*types.NodeActivation, error) //perm:web,admin
 	// VerifyTokenWithLimitCount verify token in limit count

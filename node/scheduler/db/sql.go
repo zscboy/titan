@@ -128,12 +128,16 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD rate    DECIMAL(5, 4)  DEFAULT 0;", profitDetailsTable))
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD penalty_profit       DECIMAL(20, 6)  DEFAULT 0;", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+	_, err = d.db.Exec(fmt.Sprintf("UPDATE  %s AS ni SET ni.penalty_profit = (SELECT ABS(COALESCE(SUM(pd.profit), 0)) FROM profit_details AS pd  WHERE pd.node_id = ni.node_id AND pd.profit_type = 7);", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }

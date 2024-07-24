@@ -372,13 +372,15 @@ type NodeAPIStruct struct {
 
 		GetTunserverURLFromUser func(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) `perm:"admin,web,locator"`
 
+		L5Connect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"l5"`
+
 		NatPunch func(p0 context.Context, p1 *types.NatPunchReq) (error) `perm:"default"`
 
 		NodeExists func(p0 context.Context, p1 string) (error) `perm:"web"`
 
 		NodeKeepalive func(p0 context.Context) (uuid.UUID, error) `perm:"edge,candidate"`
 
-		NodeKeepaliveV2 func(p0 context.Context) (uuid.UUID, error) `perm:"edge,candidate"`
+		NodeKeepaliveV2 func(p0 context.Context) (uuid.UUID, error) `perm:"edge,candidate,l5"`
 
 		NodeLogin func(p0 context.Context, p1 string, p2 string) (string, error) `perm:"default"`
 
@@ -1765,6 +1767,17 @@ func (s *NodeAPIStruct) GetTunserverURLFromUser(p0 context.Context, p1 *types.Tu
 
 func (s *NodeAPIStub) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *NodeAPIStruct) L5Connect(p0 context.Context, p1 *types.ConnectOptions) (error) {
+	if s.Internal.L5Connect == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.L5Connect(p0, p1)
+}
+
+func (s *NodeAPIStub) L5Connect(p0 context.Context, p1 *types.ConnectOptions) (error) {
+	return ErrNotSupported
 }
 
 func (s *NodeAPIStruct) NatPunch(p0 context.Context, p1 *types.NatPunchReq) (error) {

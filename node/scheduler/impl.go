@@ -138,8 +138,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	// init node info
 	nInfo, err := cNode.API.GetNodeInfo(context.Background())
 	if err != nil {
-		log.Errorf("%s nodeConnect NodeInfo err:%s", nodeID, err.Error())
-		return err
+		return xerrors.Errorf("%s nodeConnect NodeInfo err:%s", nodeID, err.Error())
 	}
 
 	if nodeID != nInfo.NodeID {
@@ -151,15 +150,19 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("Node %s does not meet the standard %s", nodeID, err.Error())
 	}
 
+	nodeInfo.GeoInfo = opts.GeoInfo
+
 	nodeInfo.RemoteAddr = remoteAddr
 	nodeInfo.SchedulerID = s.ServerID
 	nodeInfo.ExternalIP = externalIP
 	nodeInfo.BandwidthUp = units.KiB
 	nodeInfo.NATType = types.NatTypeUnknown.String()
 
-	nodeInfo.GeoInfo, err = s.GetGeoInfo(externalIP)
-	if err != nil {
-		log.Warnf("%s getAreaID error %s", nodeID, err.Error())
+	if nodeInfo.GeoInfo == nil {
+		nodeInfo.GeoInfo, err = s.GetGeoInfo(externalIP)
+		if err != nil {
+			log.Warnf("%s getAreaID error %s", nodeID, err.Error())
+		}
 	}
 
 	oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)

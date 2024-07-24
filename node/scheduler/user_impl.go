@@ -145,7 +145,6 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", nodeID)
 	}
 
-	// 移到 asset 表
 	return nil
 	// err := s.db.UpdateUserInfo(userID, totalTraffic, 1)
 	// if err != nil {

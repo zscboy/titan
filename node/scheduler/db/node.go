@@ -781,8 +781,8 @@ func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {
 		return err
 	}
 
-	iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.NodeID)
+	iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.Penalty, profitInfo.NodeID)
 	if err != nil {
 		return err
 	}
@@ -843,8 +843,8 @@ func (n *SQLDB) LoadNodeProfits(nodeID string, limit, offset int, ts []int) (*ty
 
 // SaveDeactivateNode save deactivate node time
 func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64, penaltyPoint float64) error {
-	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, profit=profit-? WHERE node_id=?`, nodeInfoTable)
-	_, err := n.db.Exec(query, time, penaltyPoint, nodeID)
+	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, profit=profit-?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, time, penaltyPoint, penaltyPoint, nodeID)
 	return err
 }
 
