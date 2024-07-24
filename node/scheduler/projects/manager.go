@@ -568,13 +568,13 @@ func (m *Manager) checkNode(nodeID string, filterMap map[string]struct{}, info P
 		return nil
 	}
 
-	if node.CPUCores < int(info.CPUCores) {
-		return nil
-	}
+	// if node.CPUCores < int(info.CPUCores) {
+	// 	return nil
+	// }
 
-	if node.Memory < float64(info.Memory) {
-		return nil
-	}
+	// if node.Memory < float64(info.Memory) {
+	// 	return nil
+	// }
 
 	return node
 }

@@ -43,7 +43,7 @@ type NodeInfo struct {
 	RemoteAddr      string
 	Level           int
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
-	GeoInfo         *region.GeoInfo
+	AreaID          string
 	Mx              float64
 	AssetCount      int64 `db:"asset_count"`
 	RetrieveCount   int64 `db:"retrieve_count"`

@@ -468,7 +468,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeI
 		nodeInfo.ExternalIP = n.ExternalIP
 		nodeInfo.IncomeIncr = n.IncomeIncr
 		nodeInfo.IsTestNode = n.IsTestNode
-		nodeInfo.GeoInfo = n.GeoInfo
+		nodeInfo.AreaID = n.AreaID
 		nodeInfo.RemoteAddr = n.RemoteAddr
 		nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
 
@@ -507,7 +507,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.ExternalIP = n.ExternalIP
 			nodeInfo.IncomeIncr = n.IncomeIncr
 			nodeInfo.IsTestNode = n.IsTestNode
-			nodeInfo.GeoInfo = n.GeoInfo
+			nodeInfo.AreaID = n.AreaID
 			nodeInfo.RemoteAddr = n.RemoteAddr
 			nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
 		}

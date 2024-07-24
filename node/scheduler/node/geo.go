@@ -29,20 +29,22 @@ func newGeoMgr() *GeoMgr {
 }
 
 // AddNodeGeo add node to map
-func (m *GeoMgr) AddNodeGeo(nodeInfo *types.NodeInfo, geo *region.GeoInfo) {
+func (m *GeoMgr) AddNodeGeo(nodeInfo *types.NodeInfo, areaID string) {
+	continent, country, province, city := region.DecodeAreaID(areaID)
 	if nodeInfo.Type == types.NodeEdge {
-		m.AddEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
+		m.AddEdgeNode(continent, country, province, city, nodeInfo)
 	} else {
-		m.AddCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeInfo)
+		m.AddCandidateNode(continent, country, province, city, nodeInfo)
 	}
 }
 
 // RemoveNodeGeo remove node from map
-func (m *GeoMgr) RemoveNodeGeo(nodeID string, nodeType types.NodeType, geo *region.GeoInfo) {
+func (m *GeoMgr) RemoveNodeGeo(nodeID string, nodeType types.NodeType, areaID string) {
+	continent, country, province, city := region.DecodeAreaID(areaID)
 	if nodeType == types.NodeEdge {
-		m.RemoveEdgeNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+		m.RemoveEdgeNode(continent, country, province, city, nodeID)
 	} else {
-		m.RemoveCandidateNode(geo.Continent, geo.Country, geo.Province, geo.City, nodeID)
+		m.RemoveCandidateNode(continent, country, province, city, nodeID)
 	}
 }
 

@@ -98,11 +98,9 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		alreadyConnect = false
 	}
 
-	if cNode.NodeInfo != nil {
-		// clean old info
-		if cNode.ExternalIP != "" {
-			s.NodeManager.IPMgr.RemoveNodeIP(nodeID, cNode.ExternalIP)
-		}
+	// clean old info
+	if cNode.ExternalIP != "" {
+		s.NodeManager.IPMgr.RemoveNodeIP(nodeID, cNode.ExternalIP)
 	}
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
@@ -117,9 +115,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	defer func() {
 		if err != nil {
 			s.NodeManager.IPMgr.RemoveNodeIP(nodeID, externalIP)
-			if cNode.NodeInfo != nil {
-				s.NodeManager.GeoMgr.RemoveNodeGeo(nodeID, nodeType, cNode.GeoInfo)
-			}
+			s.NodeManager.GeoMgr.RemoveNodeGeo(nodeID, nodeType, cNode.AreaID)
 		}
 	}()
 
@@ -150,7 +146,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("Node %s does not meet the standard %s", nodeID, err.Error())
 	}
 
-	nodeInfo.GeoInfo = opts.GeoInfo
+	// nodeInfo.GeoInfo = opts.GeoInfo
 
 	nodeInfo.RemoteAddr = remoteAddr
 	nodeInfo.SchedulerID = s.ServerID
@@ -158,11 +154,14 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	nodeInfo.BandwidthUp = units.KiB
 	nodeInfo.NATType = types.NatTypeUnknown.String()
 
-	if nodeInfo.GeoInfo == nil {
-		nodeInfo.GeoInfo, err = s.GetGeoInfo(externalIP)
+	if opts.GeoInfo != nil {
+		nodeInfo.AreaID = opts.GeoInfo.Geo
+	} else {
+		geoInfo, err := s.GetGeoInfo(externalIP)
 		if err != nil {
 			log.Warnf("%s getAreaID error %s", nodeID, err.Error())
 		}
+		nodeInfo.AreaID = geoInfo.Geo
 	}
 
 	oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
@@ -190,15 +189,15 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
-	cNode.NodeInfo = nodeInfo
+	cNode.InitInfo(nodeInfo)
 
 	if !alreadyConnect {
 		if nodeType == types.NodeEdge {
 			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode)
 			cNode.IncomeIncr = incr
 		}
-		s.NodeManager.GeoMgr.AddNodeGeo(cNode.NodeInfo, cNode.GeoInfo)
-		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, cNode.FirstTime)
+		s.NodeManager.GeoMgr.AddNodeGeo(nodeInfo, cNode.AreaID)
+		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {

@@ -265,11 +265,6 @@ var listNodeCmd = &cli.Command{
 		for w := 0; w < len(r.Data); w++ {
 			info := r.Data[w]
 
-			geo := ""
-			if info.GeoInfo != nil {
-				geo = info.GeoInfo.Geo
-			}
-
 			m := map[string]interface{}{
 				"NodeID":          info.NodeID,
 				"Status":          colorOnline(info.Status),
@@ -279,7 +274,7 @@ var listNodeCmd = &cli.Command{
 				"Profit":          fmt.Sprintf("%.4f", info.Profit),
 				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
 				"OfflineDuration": fmt.Sprintf("%d", info.OfflineDuration),
-				"Geo":             fmt.Sprintf("%s", geo),
+				"Geo":             fmt.Sprintf("%s", info.AreaID),
 				// "Test":            info.IsTestNode,
 				// "Ver":             info.SystemVersion,
 			}
@@ -571,9 +566,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("cpu percent: %.2f %s \n", info.CPUUsage, "%")
 		fmt.Printf("NatType: %s \n", info.NATType)
 		fmt.Printf("OnlineDuration: %d \n", info.OnlineDuration)
-		if info.GeoInfo != nil {
-			fmt.Printf("Geo: %s \n", info.GeoInfo.Geo)
-		}
+		fmt.Printf("Geo: %s \n", info.AreaID)
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetFlowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetFlowDown)))
 

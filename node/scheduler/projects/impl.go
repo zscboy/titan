@@ -165,7 +165,7 @@ func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 
 		dInfo.WsURL = vNode.WsURL()
 		dInfo.IP = node.ExternalIP
-		dInfo.GeoID = node.GeoInfo.Geo
+		dInfo.GeoID = node.AreaID
 	}
 
 	info.DetailsList = list

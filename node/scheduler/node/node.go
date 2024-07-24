@@ -28,7 +28,7 @@ type Node struct {
 	// NodeID string
 	*API
 	jsonrpc.ClientCloser
-	*types.NodeInfo
+	// *types.NodeInfo
 
 	Token string
 
@@ -48,6 +48,34 @@ type Node struct {
 	// Increase the count every 5 seconds
 	KeepaliveCount   int
 	LastValidateTime int64
+
+	types.NodeDynamicInfo
+	IsTestNode      bool
+	Type            types.NodeType
+	ExternalIP      string
+	CPUUsage        float64
+	MemoryUsage     float64
+	NATType         string
+	ClientType      types.NodeClientType
+	BackProjectTime int64
+	RemoteAddr      string
+	Level           int
+	IncomeIncr      float64 // Base points increase every half hour (30 minute)
+	// GeoInfo         *region.GeoInfo
+	Mx     float64
+	AreaID string
+	// InternalIP      string
+	// Status          types.NodeStatus
+
+	NetFlowUp      int64
+	NetFlowDown    int64
+	DiskSpace      float64
+	WSServerID     string
+	PortMapping    string
+	DeactivateTime int64
+	// FirstTime      time.Time
+	// Memory         float64
+	// CPUCores       int
 }
 
 // API represents the node API
@@ -110,6 +138,34 @@ func APIFromCandidate(api api.Candidate) *API {
 		GetMinioConfig:          api.GetMinioConfig,
 	}
 	return a
+}
+
+func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
+	n.NodeDynamicInfo = nodeInfo.NodeDynamicInfo
+
+	n.NetFlowUp = nodeInfo.NetFlowUp
+	n.NetFlowDown = nodeInfo.NetFlowDown
+	n.DiskSpace = nodeInfo.DiskSpace
+	n.WSServerID = nodeInfo.WSServerID
+	// n.FirstTime = nodeInfo.FirstTime
+	n.PortMapping = nodeInfo.PortMapping
+	n.DeactivateTime = nodeInfo.DeactivateTime
+	// n.Memory = nodeInfo.Memory
+	// n.CPUCores = nodeInfo.CPUCores
+
+	n.IsTestNode = nodeInfo.IsTestNode
+	n.Type = nodeInfo.Type
+	n.ExternalIP = nodeInfo.ExternalIP
+	// n.InternalIP = nodeInfo.InternalIP
+	n.MemoryUsage = nodeInfo.MemoryUsage
+	n.AreaID = nodeInfo.AreaID
+	n.NATType = nodeInfo.NATType
+	n.ClientType = nodeInfo.ClientType
+	n.BackProjectTime = nodeInfo.BackProjectTime
+	n.RemoteAddr = nodeInfo.RemoteAddr
+	n.Level = nodeInfo.Level
+	n.IncomeIncr = nodeInfo.IncomeIncr
+	n.Mx = nodeInfo.Mx
 }
 
 // SetCountOfIPChanges node change ip count

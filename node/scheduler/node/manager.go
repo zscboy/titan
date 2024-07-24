@@ -360,7 +360,12 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			return true
 		}
 
-		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, node.FirstTime)
+		info, err := m.LoadNodeInfo(node.NodeID)
+		if err != nil {
+			return true
+		}
+
+		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
 
 		node.Level = m.getNodeScoreLevel(node)
 		wNum := m.weightMgr.getWeightNum(node.Level)
@@ -376,7 +381,12 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			return true
 		}
 
-		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, node.FirstTime)
+		info, err := m.LoadNodeInfo(node.NodeID)
+		if err != nil {
+			return true
+		}
+
+		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
 
 		node.Level = m.getNodeScoreLevel(node)
 		wNum := m.weightMgr.getWeightNum(node.Level)
