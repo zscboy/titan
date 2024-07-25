@@ -226,12 +226,16 @@ func getAccessPoint(locatorURL, nodeID, areaID string) (*types.AccessPointRsp, e
 	}
 	defer close()
 
-	rsp, err := locator.GetAccessPointsV2(context.Background(), nodeID, areaID)
+	schedulers, err := locator.GetAccessPoints(context.Background(), nodeID, areaID)
 	if err != nil {
 		return nil, err
 	}
 
-	return rsp, nil
+	if len(schedulers) == 0 {
+		return nil, fmt.Errorf("Can not get access point for %s %s", nodeID, areaID)
+	}
+
+	return &types.AccessPointRsp{Schedulers: schedulers}, nil
 }
 
 func newSchedulerAPI(transport *quic.Transport, schedulerURL, nodeID string, privateKey *rsa.PrivateKey) (api.Scheduler, jsonrpc.ClientCloser, error) {
