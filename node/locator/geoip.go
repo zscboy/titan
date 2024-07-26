@@ -37,30 +37,33 @@ func calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	return distanceKm
 }
 
-func calculateTwoIPDistance(ip1, ip2 string, rg region.Region) (float64, error) {
-	lat1, lon1, err := getLatLngOfIP(ip1, rg)
-	if err != nil {
-		return 0, err
-	}
-
-	lat2, lon2, err := getLatLngOfIP(ip2, rg)
-	if err != nil {
-		return 0, err
-	}
-
-	distance := calculateDistance(lat1, lon1, lat2, lon2)
-	return distance, nil
-}
-
+// ipList can not emtpy
 func getUserNearestIP(userIP string, ipList []string, reg region.Region) string {
+	if len(ipList) == 0 {
+		panic("ipList can not empty")
+	}
+
+	if len(ipList) == 1 {
+		return ipList[0]
+	}
+
+	userGeoInfo, err := reg.GetGeoInfo(userIP)
+	if err != nil {
+		return ipList[0]
+	}
+
+	geoInfos := getGeoInfos(ipList, reg)
+	if len(geoInfos) == 0 {
+		return ipList[0]
+	}
+
+	geoInfos = getNearestGeoInfos(userGeoInfo, geoInfos)
+
 	ipDistanceMap := make(map[string]float64)
-	for _, ip := range ipList {
-		distance, err := calculateTwoIPDistance(userIP, ip, reg)
-		if err != nil {
-			log.Errorf("calculate tow ip distance error %s", err.Error())
-			continue
-		}
-		ipDistanceMap[ip] = distance
+	for _, geoInfo := range geoInfos {
+		distance := calculateDistance(userGeoInfo.Latitude, userGeoInfo.Longitude, geoInfo.Latitude, geoInfo.Longitude)
+		ipDistanceMap[geoInfo.IP] = distance
+		fmt.Printf("distance %f ip %#v\n", distance, *geoInfo)
 	}
 
 	minDistance := math.MaxFloat64
@@ -73,6 +76,69 @@ func getUserNearestIP(userIP string, ipList []string, reg region.Region) string 
 	}
 
 	return nearestIP
+}
+
+func getGeoInfos(ipList []string, reg region.Region) []*region.GeoInfo {
+	geoInfos := make([]*region.GeoInfo, 0, len(ipList))
+	for _, ip := range ipList {
+		geoInfo, err := reg.GetGeoInfo(ip)
+		if err != nil {
+			log.Errorf("GetGeoInfo %s, ip %s", err.Error(), ip)
+			continue
+		}
+
+		if geoInfo.Latitude == 0 && geoInfo.Longitude == 0 {
+			log.Errorf("Invalid GeoInfo %#v, ip %s", *geoInfo, ip)
+			continue
+		}
+
+		geoInfos = append(geoInfos, geoInfo)
+	}
+	return geoInfos
+}
+
+func getNearestGeoInfos(userGeoInfo *region.GeoInfo, geoInfos []*region.GeoInfo) []*region.GeoInfo {
+	sameCity := make([]*region.GeoInfo, 0)
+	sameProvince := make([]*region.GeoInfo, 0)
+	sameCountry := make([]*region.GeoInfo, 0)
+
+	for _, geoInfo := range geoInfos {
+		if strings.ToLower(geoInfo.Country) != strings.ToLower(userGeoInfo.Country) {
+			continue
+		}
+
+		// Distinguish between Mainland China and Hong Kong
+		if userGeoInfo.Country == "china" && userGeoInfo.City != "hongkong" && geoInfo.City == "hongkong" {
+			continue
+		}
+
+		if strings.ToLower(userGeoInfo.Province) == strings.ToLower(geoInfo.Province) &&
+			strings.ToLower(userGeoInfo.City) == strings.ToLower(geoInfo.City) {
+			sameCity = append(sameCity, geoInfo)
+			continue
+		}
+
+		if strings.ToLower(userGeoInfo.Province) == strings.ToLower(geoInfo.Province) {
+			sameProvince = append(sameProvince, geoInfo)
+			continue
+		}
+
+		sameCountry = append(sameCountry, geoInfo)
+	}
+
+	if len(sameCity) > 0 {
+		return sameCity
+	}
+
+	if len(sameProvince) > 0 {
+		return sameProvince
+	}
+
+	if len(sameCountry) > 0 {
+		return sameCountry
+	}
+
+	return geoInfos
 }
 
 type titanRegion struct {
@@ -137,7 +203,7 @@ func (tr *titanRegion) GetGeoInfo(ip string) (*region.GeoInfo, error) {
 	}
 
 	if result.Code != 0 {
-		return nil, fmt.Errorf("code: %d err: %s msg: %s", result.Code, result.Err, result.Msg)
+		return nil, fmt.Errorf("code: %d err: %d msg: %s", result.Code, result.Err, result.Msg)
 	}
 
 	if result.Data == nil {

@@ -361,46 +361,6 @@ func (l *Locator) CandidateDownloadInfos(ctx context.Context, cid string) ([]*ty
 	return candidateDownloadInfos, nil
 }
 
-// func (l *Locator) getCandidateDownloadInfoFromBestScheduler(apis []*SchedulerAPI, cid string) ([]*types.CandidateDownloadInfo, error) {
-// 	if len(apis) == 0 {
-// 		return nil, fmt.Errorf("scheduler api is empty")
-// 	}
-
-// 	timeout, err := time.ParseDuration(l.Timeout)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	ctx, cancel := context.WithTimeout(context.Background(), timeout*time.Second)
-// 	defer cancel()
-
-// 	infoList := make([]*types.CandidateDownloadInfo, 0)
-// 	lock := &sync.Mutex{}
-// 	wg := &sync.WaitGroup{}
-// 	for _, api := range apis {
-// 		wg.Add(1)
-
-// 		go func(ctx context.Context, s *SchedulerAPI) {
-// 			defer wg.Done()
-
-// 			if infos, err := s.GetCandidateDownloadInfos(ctx, cid); err == nil {
-// 				if len(infos) > 0 {
-// 					lock.Lock()
-// 					infoList = append(infoList, infos...)
-// 					lock.Unlock()
-// 				}
-// 			} else {
-// 				log.Errorf("GetCandidateDownloadInfos cid %s scheduler %s, error: %s", cid, s.config.SchedulerURL, err.Error())
-// 			}
-
-// 		}(ctx, api)
-// 	}
-
-// 	wg.Wait()
-// 	return infoList, nil
-
-// }
-
 // GetAssetSourceDownloadInfo
 func (l *Locator) GetAssetSourceDownloadInfos(ctx context.Context, cid string) ([]*types.AssetSourceDownloadInfoRsp, error) {
 	configs := l.GetAllSchedulerConfigs()
