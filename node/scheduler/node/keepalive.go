@@ -37,33 +37,18 @@ func (m *Manager) nodesKeepalive() {
 		string(m.ServerID),
 	}
 
-	m.edgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-		if node == nil {
-			return true
-		}
-
-		node.KeepaliveCount += 2
+	eList := m.GetAllEdgeNode()
+	for _, node := range eList {
 		if m.checkNodeStatus(node, t) {
 			nodes = append(nodes, node.NodeID)
 		}
-
-		return true
-	})
-
-	m.candidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-		if node == nil {
-			return true
-		}
-
-		node.KeepaliveCount += 2
+	}
+	_, cList := m.GetAllCandidateNodes()
+	for _, node := range cList {
 		if m.checkNodeStatus(node, t) {
 			nodes = append(nodes, node.NodeID)
 		}
-
-		return true
-	})
+	}
 
 	if len(nodes) > 0 {
 		err := m.UpdateOnlineCount(nodes, 2, date)

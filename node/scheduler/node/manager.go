@@ -227,63 +227,38 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 	nodes := make([]*types.NodeDynamicInfo, 0)
 	detailsList := make([]*types.ProfitDetails, 0)
 
-	m.edgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-		if node == nil {
-			return true
-		}
-
-		if node.IsAbnormal() {
-			return true
-		}
-
-		if isCompensate {
-			node.KeepaliveCount = 120
-		}
-
-		incr, dInfo := m.GetEdgeBaseProfitDetails(node)
+	minute := 5
+	if isCompensate {
+		minute = 10
+	}
+	eList := m.GetAllEdgeNode()
+	for _, node := range eList {
+		incr, dInfo := m.GetEdgeBaseProfitDetails(node, minute)
 		if dInfo != nil {
 			detailsList = append(detailsList, dInfo)
 		}
-		oIncr := roundDivision((node.KeepaliveCount * 5), 60)
-		node.OnlineDuration += oIncr
-		node.KeepaliveCount = 0
+
+		node.OnlineDuration += minute
 		// add node mc
 		node.IncomeIncr = incr
 
 		nodes = append(nodes, &node.NodeDynamicInfo)
 
-		return true
-	})
+	}
 
-	m.candidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-		if node == nil {
-		}
-
-		if node.IsAbnormal() {
-			return true
-		}
-
-		if isCompensate {
-			node.KeepaliveCount = 120
-		}
-
+	_, cList := m.GetAllCandidateNodes()
+	for _, node := range cList {
 		if qualifiedNAT(node.NATType) {
-			dInfo := m.GetCandidateBaseProfitDetails(node)
+			dInfo := m.GetCandidateBaseProfitDetails(node, minute)
 			if dInfo != nil {
 				detailsList = append(detailsList, dInfo)
 			}
 		}
 
-		oIncr := roundDivision((node.KeepaliveCount * 5), 60)
-		node.OnlineDuration += oIncr
-		node.KeepaliveCount = 0
+		node.OnlineDuration += minute
 
 		nodes = append(nodes, &node.NodeDynamicInfo)
-
-		return true
-	})
+	}
 
 	if len(nodes) > 0 {
 		eList, err := m.UpdateNodeDynamicInfo(nodes)
@@ -353,16 +328,11 @@ func (m *Manager) redistributeNodeSelectWeights() {
 	m.updateServerOnlineCounts()
 
 	// redistribute weights
-	m.candidateNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-
-		if node.IsAbnormal() {
-			return true
-		}
-
+	_, cList := m.GetAllCandidateNodes()
+	for _, node := range cList {
 		info, err := m.LoadNodeInfo(node.NodeID)
 		if err != nil {
-			return true
+			continue
 		}
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
@@ -370,20 +340,13 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		node.Level = m.getNodeScoreLevel(node)
 		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
+	}
 
-		return true
-	})
-
-	m.edgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-
-		if node.IsAbnormal() {
-			return true
-		}
-
+	eList := m.GetAllEdgeNode()
+	for _, node := range eList {
 		info, err := m.LoadNodeInfo(node.NodeID)
 		if err != nil {
-			return true
+			continue
 		}
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
@@ -391,9 +354,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		node.Level = m.getNodeScoreLevel(node)
 		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeEdgeWeight(node.NodeID, wNum)
-
-		return true
-	})
+	}
 }
 
 // ComputeNodeOnlineRate Compute node online rate

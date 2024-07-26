@@ -193,7 +193,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if !alreadyConnect {
 		if nodeType == types.NodeEdge {
-			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode)
+			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode, 0)
 			cNode.IncomeIncr = incr
 		}
 		s.NodeManager.GeoMgr.AddNodeGeo(nodeInfo, cNode.AreaID)
@@ -223,7 +223,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if nodeType == types.NodeEdge {
 		go s.NatManager.DetermineEdgeNATType(context.Background(), nodeID)
-	} else {
+	} else if nodeType == types.NodeCandidate {
 		err := checkDomain(cNode.ExternalURL)
 		log.Infof("%s checkDomain [%s] %v", nodeID, cNode.ExternalURL, err)
 		cNode.IsStorageNode = err == nil

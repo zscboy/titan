@@ -46,7 +46,7 @@ type Node struct {
 	OnlineRate float64
 
 	// Increase the count every 5 seconds
-	KeepaliveCount   int
+	// KeepaliveCount   int
 	LastValidateTime int64
 
 	types.NodeDynamicInfo

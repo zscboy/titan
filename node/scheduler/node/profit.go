@@ -136,13 +136,14 @@ func (m *Manager) GetNodeValidatableProfitDetails(node *Node, size float64) *typ
 }
 
 // GetEdgeBaseProfitDetails Basic Rewards
-func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDetails) {
+func (m *Manager) GetEdgeBaseProfitDetails(node *Node, minute int) (float64, *types.ProfitDetails) {
 	// Every 5 s
 	mx := RateOfL2Mx(node.OnlineDuration)
 	mb := rateOfL2Base(node.ClientType)
 	mcx := mr * mx * mo * mb
 
-	p := mcx * float64(node.KeepaliveCount)
+	count := minute * 12
+	p := mcx * float64(count)
 
 	// client incr
 	cIncr := mcx * 360
@@ -155,18 +156,17 @@ func (m *Manager) GetEdgeBaseProfitDetails(node *Node) (float64, *types.ProfitDe
 		NodeID: node.NodeID,
 		Profit: p,
 		PType:  types.ProfitTypeBase,
-		Note:   fmt.Sprintf(" mr:[%.1f], mx:[%0.4f], mo:[%0.1f], mb:[%.4f],count:[%d] ClientType:[%d] , online min:[%d]", mr, mx, mo, mb, node.KeepaliveCount, node.ClientType, node.OnlineDuration),
+		Note:   fmt.Sprintf(" mr:[%.1f], mx:[%0.4f], mo:[%0.1f], mb:[%.4f],count:[%d] ClientType:[%d] , online min:[%d]", mr, mx, mo, mb, count, node.ClientType, node.OnlineDuration),
 	}
 }
 
 // GetCandidateBaseProfitDetails Basic Rewards
-func (m *Manager) GetCandidateBaseProfitDetails(node *Node) *types.ProfitDetails {
+func (m *Manager) GetCandidateBaseProfitDetails(node *Node, minute int) *types.ProfitDetails {
 	// Every 5 minutes
 	arR := rateOfAR(node.OnlineRate)
 	mcx := l1RBase * node.OnlineRate * arR
 
-	min := roundDivision((node.KeepaliveCount * 5), 60)
-	count := roundDivision(min, 5)
+	count := roundDivision(minute, 5)
 	mcx = mcx * float64(count)
 
 	if mcx < 0.000001 {

@@ -32,28 +32,29 @@ const (
 	// assetVisitCountTable = "asset_visit_count"
 
 	// Database table names.
-	nodeRegisterTable = "node_register_info"
-	nodeInfoTable     = "node_info"
+	nodeRegisterTable  = "node_register_info"
+	nodeInfoTable      = "node_info"
+	onlineCountTable   = "online_count"
+	candidateCodeTable = "candidate_code"
 
 	assetRecordTable = "asset_record"
 	replicaInfoTable = "replica_info"
 	assetsViewTable  = "asset_view"
 	bucketTable      = "bucket"
 
-	edgeUpdateTable       = "edge_update_info"
-	validatorsTable       = "validators"
+	projectEventTable     = "project_event"
 	validationResultTable = "validation_result"
-	workloadRecordTable   = "workload_record"
 	replicaEventTable     = "replica_event"
 	retrieveEventTable    = "retrieve_event"
-	replenishBackupTable  = "replenish_backup"
-	awsDataTable          = "aws_data"
-	profitDetailsTable    = "profit_details"
-	candidateCodeTable    = "candidate_code"
-	projectInfoTable      = "project_info"
-	projectReplicasTable  = "project_replicas"
-	projectEventTable     = "project_event"
-	onlineCountTable      = "online_count"
+
+	edgeUpdateTable      = "edge_update_info"
+	validatorsTable      = "validators"
+	workloadRecordTable  = "workload_record"
+	replenishBackupTable = "replenish_backup"
+	awsDataTable         = "aws_data"
+	profitDetailsTable   = "profit_details"
+	projectInfoTable     = "project_info"
+	projectReplicasTable = "project_replicas"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
