@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto"
 	cRand "crypto/rand"
+	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
@@ -149,11 +150,11 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 	}
 
 	// check params
-	if nodeType != types.NodeEdge {
+	if nodeType != types.NodeEdge && nodeType != types.NodeL5 {
 		return nil, xerrors.New("invalid node type")
 	}
 
-	if !strings.HasPrefix(nodeID, "e_") {
+	if !strings.HasPrefix(nodeID, "e_") && !strings.HasPrefix(nodeID, "l5_") {
 		return nil, xerrors.New("invalid edge node id")
 	}
 
@@ -390,7 +391,51 @@ func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions)
 
 // L5Connect l5 node login to the scheduler
 func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) error {
-	return s.nodeConnect(ctx, opts, types.NodeL5)
+	// return s.nodeConnect(ctx, opts, types.NodeEdge)
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	nodeID := handler.GetNodeID(ctx)
+
+	l5 := s.NodeManager.GetNode(nodeID)
+	if l5 == nil {
+		if err := s.NodeManager.NodeExists(nodeID); err != nil {
+			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, types.NodeL5, err)
+		}
+		l5 = node.New()
+	}
+
+	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+	}
+
+	publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
+	if err != nil {
+		return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+	}
+
+	l5.PublicKey = publicKey
+	l5.Token = opts.Token
+
+	nodeInfo := &types.NodeInfo{
+		Type:            types.NodeL5,
+		NodeDynamicInfo: types.NodeDynamicInfo{NodeID: nodeID},
+		RemoteAddr:      remoteAddr,
+	}
+	l5.InitInfo(nodeInfo)
+
+	err = l5.ConnectRPC(s.Transport, remoteAddr, types.NodeL5)
+	if err != nil {
+		return err
+	}
+
+	l5Version, err := l5.API.Version(context.Background())
+	if err != nil {
+		log.Errorf("get l5 version failed %s", err.Error())
+	} else {
+		log.Infof("L5 %s connected, version %s remoteAddr %s", nodeID, l5Version.String(), remoteAddr)
+	}
+	// node
+	return s.NodeManager.NodeOnline(l5, nodeInfo)
 }
 
 // GetExternalAddress retrieves the external address of the caller.
@@ -435,6 +480,8 @@ func (s *Scheduler) NodeLogin(ctx context.Context, nodeID, sign string) (string,
 		p.Allow = append(p.Allow, api.RoleEdge)
 	} else if nType == types.NodeCandidate {
 		p.Allow = append(p.Allow, api.RoleCandidate)
+	} else if nType == types.NodeL5 {
+		p.Allow = append(p.Allow, api.RoleL5)
 	} else {
 		return "", xerrors.Errorf("Node type mismatch [%d]", nType)
 	}

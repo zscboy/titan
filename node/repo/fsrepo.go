@@ -46,8 +46,8 @@ func NewRepoTypeFromString(t string) RepoType {
 		return Edge
 	case "Candidate":
 		return Candidate
-	case "Wallet":
-		return Wallet
+	case "L5":
+		return L5
 	default:
 		panic("unknown RepoType")
 	}
@@ -144,30 +144,6 @@ func (candidate) APIInfoEnvVars() (primary string, fallbacks []string, deprecate
 	return "CANDIDATE_API_INFO", nil, nil
 }
 
-var Wallet wallet
-
-type wallet struct{}
-
-func (wallet) Type() string {
-	return "Wallet"
-}
-
-func (wallet) Config() interface{} {
-	return &struct{}{}
-}
-
-func (wallet) APIFlags() []string {
-	panic("not supported")
-}
-
-func (wallet) RepoFlags() []string {
-	panic("not supported")
-}
-
-func (wallet) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
-	panic("not supported")
-}
-
 var Locator locator
 
 type locator struct{}
@@ -190,6 +166,30 @@ func (locator) RepoFlags() []string {
 
 func (locator) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
 	return "LOCATOR_API_INFO", nil, nil
+}
+
+var L5 l5
+
+type l5 struct{}
+
+func (l5) Type() string {
+	return "L5"
+}
+
+func (l5) Config() interface{} {
+	return config.DefaultL5Cfg()
+}
+
+func (l5) APIFlags() []string {
+	return []string{"l5-api-url"}
+}
+
+func (l5) RepoFlags() []string {
+	return []string{"l5-repo"}
+}
+
+func (l5) APIInfoEnvVars() (primary string, fallbacks []string, deprecated []string) {
+	return "L5_API_INFO", nil, nil
 }
 
 var log = logging.Logger("repo")

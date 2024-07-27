@@ -37,6 +37,7 @@ var (
 	CandidateAPIVersion0 = newVer(1, 0, 0)
 	EdgeAPIVersion0      = newVer(1, 0, 0)
 	LocationAPIVersion0  = newVer(1, 0, 0)
+	L5APIVersion0        = newVer(1, 0, 0)
 )
 
 //nolint:varcheck,deadcode
@@ -60,6 +61,8 @@ func VersionForType(nodeType types.NodeType) (Version, error) {
 		return EdgeAPIVersion0, nil
 	case types.NodeLocator:
 		return LocationAPIVersion0, nil
+	case types.NodeL5:
+		return L5APIVersion0, nil
 	default:
 		return Version(0), xerrors.Errorf("unknown node type %d", nodeType)
 	}

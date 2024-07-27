@@ -93,6 +93,7 @@ func Repo(r repo.Repo) Option {
 			ApplyIf(IsType(repo.Locator), ConfigLocator(c)),
 			ApplyIf(IsType(repo.Edge), ConfigEdge(c)),
 			ApplyIf(IsType(repo.Candidate), ConfigCandidate(c)),
+			ApplyIf(IsType(repo.L5), ConfigL5(c)),
 		)(settings)
 	}
 }

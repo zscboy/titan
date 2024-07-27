@@ -149,6 +149,13 @@ func DefaultLocatorCfg() *LocatorCfg {
 	}
 }
 
+func DefaultL5Cfg() *L5Cfg {
+	return &L5Cfg{
+		ListenAddress: "0.0.0.0:3000",
+		Timeout:       "3s",
+	}
+}
+
 // DefaultSchedulerCfg returns the default scheduler config
 func DefaultSchedulerCfg() *SchedulerCfg {
 	return &SchedulerCfg{

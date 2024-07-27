@@ -113,6 +113,27 @@ func NewEdge(ctx context.Context, addr string, requestHeader http.Header, opts .
 	return &res, closer, err
 }
 
+func NewL5(ctx context.Context, addr string, requestHeader http.Header, opts ...jsonrpc.Option) (api.L5, jsonrpc.ClientCloser, error) {
+	pushURL, err := getPushURL(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rpcOpts := []jsonrpc.Option{rpcenc.ReaderParamEncoder(pushURL), jsonrpc.WithErrors(api.RPCErrors)}
+	if len(opts) > 0 {
+		rpcOpts = append(rpcOpts, opts...)
+	}
+
+	var res api.CandidateStruct
+	closer, err := jsonrpc.NewMergeClient(ctx, addr, "titan",
+		api.GetInternalStructs(&res),
+		requestHeader,
+		rpcOpts...,
+	)
+
+	return &res, closer, err
+}
+
 // NewCommonRPCV0 creates a new http jsonrpc client.
 func NewCommonRPCV0(ctx context.Context, addr string, requestHeader http.Header, opts ...jsonrpc.Option) (api.Common, jsonrpc.ClientCloser, error) {
 	var res api.CommonStruct

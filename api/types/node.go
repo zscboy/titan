@@ -112,8 +112,8 @@ const (
 	NodeValidator
 	NodeScheduler
 	NodeLocator
-	NodeUpdater
 	NodeL5
+	NodeUpdater
 )
 
 func (n NodeType) String() string {

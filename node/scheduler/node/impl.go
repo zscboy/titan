@@ -81,6 +81,11 @@ func (m *Manager) GetNode(nodeID string) *Node {
 		return candidate
 	}
 
+	l5 := m.GetL5Node(nodeID)
+	if l5 != nil {
+		return l5
+	}
+
 	return nil
 }
 
@@ -99,6 +104,18 @@ func (m *Manager) GetEdgeNode(nodeID string) *Node {
 // GetCandidateNode retrieves a candidate node with the given node ID
 func (m *Manager) GetCandidateNode(nodeID string) *Node {
 	nodeI, exist := m.candidateNodes.Load(nodeID)
+	if exist && nodeI != nil {
+		node := nodeI.(*Node)
+
+		return node
+	}
+
+	return nil
+}
+
+// GetCandidateNode retrieves a candidate node with the given node ID
+func (m *Manager) GetL5Node(nodeID string) *Node {
+	nodeI, exist := m.l5Nodes.Load(nodeID)
 	if exist && nodeI != nil {
 		node := nodeI.(*Node)
 
@@ -134,6 +151,8 @@ func (m *Manager) NodeOnline(node *Node, info *types.NodeInfo) error {
 		m.storeEdgeNode(node)
 	case types.NodeCandidate:
 		m.storeCandidateNode(node)
+	case types.NodeL5:
+		m.storeL5Node(node)
 	}
 
 	// m.UpdateNodeDiskUsage(info.NodeID, info.DiskUsage)

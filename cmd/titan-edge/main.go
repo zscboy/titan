@@ -490,5 +490,4 @@ func registerNodeIfNotExist(repoPath string, locatorURL string) (bool, error) {
 	}
 
 	return false, nil
-
 }

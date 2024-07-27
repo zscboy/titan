@@ -40,6 +40,7 @@ const (
 type Manager struct {
 	edgeNodes      sync.Map
 	candidateNodes sync.Map
+	l5Nodes        sync.Map
 	Edges          int // online edge node count
 	Candidates     int // online candidate node count
 	weightMgr      *weightManager
@@ -170,6 +171,18 @@ func (m *Manager) storeCandidateNode(node *Node) {
 	m.notify.Pub(node, types.EventNodeOnline.String())
 }
 
+func (m *Manager) storeL5Node(node *Node) {
+	if node == nil {
+		return
+	}
+
+	nodeID := node.NodeID
+	_, loaded := m.l5Nodes.LoadOrStore(nodeID, node)
+	if loaded {
+		return
+	}
+}
+
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
 	m.RepayNodeWeight(node)
@@ -194,6 +207,15 @@ func (m *Manager) deleteCandidateNode(node *Node) {
 		return
 	}
 	m.Candidates--
+}
+
+// deleteL5Node removes a l5 node from the manager's list of l5 nodes
+func (m *Manager) deleteL5Node(node *Node) {
+	nodeID := node.NodeID
+	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
+	if !loaded {
+		return
+	}
 }
 
 // DistributeNodeWeight Distribute Node Weight

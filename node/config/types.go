@@ -136,6 +136,18 @@ type LocatorCfg struct {
 	WebGeoAPI        string
 }
 
+type L5Cfg struct {
+	// host address and port the edge node api will listen on
+	ListenAddress string
+	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
+	Timeout string
+
+	SchedulerURL string
+
+	CertificatePath string
+	PrivateKeyPath  string
+}
+
 // SchedulerCfg scheduler config
 type SchedulerCfg struct {
 	// host external address and port

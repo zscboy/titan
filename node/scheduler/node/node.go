@@ -218,6 +218,18 @@ func (n *Node) ConnectRPC(transport *quic.Transport, addr string, nodeType types
 		return nil
 	}
 
+	if nodeType == types.NodeL5 {
+		// Connect to node
+		l5API, closer, err := client.NewL5(context.Background(), rpcURL, headers, jsonrpc.WithHTTPClient(httpClient))
+		if err != nil {
+			return xerrors.Errorf("NewCandidate err:%s,url:%s", err.Error(), rpcURL)
+		}
+
+		n.API = &API{Common: l5API, WaitQuiet: l5API.WaitQuiet}
+		n.ClientCloser = closer
+		return nil
+	}
+
 	return xerrors.Errorf("node %s type %d not wrongful", n.NodeID, n.Type)
 }
 

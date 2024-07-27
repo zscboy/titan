@@ -44,6 +44,12 @@ func PermissionedEdgeAPI(a Edge) Edge {
 	return &out
 }
 
+func PermissionedL5API(a L5) L5 {
+	var out L5Struct
+	permissionedProxies(a, &out)
+	return &out
+}
+
 func PermissionedLocationAPI(a Locator) Locator {
 	var out LocatorStruct
 	permissionedProxies(a, &out)
