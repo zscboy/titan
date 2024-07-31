@@ -113,7 +113,6 @@ func (ts *Tunserver) handleProject(w http.ResponseWriter, r *http.Request) {
 	relays := r.Header["Relay"]
 
 	headerString := ts.getHeaderString(r, targetNodeID, projectID)
-	log.Infof("headerString ", headerString)
 
 	hj, ok := w.(http.Hijacker)
 	if !ok {
