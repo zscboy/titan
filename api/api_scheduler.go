@@ -91,6 +91,12 @@ type NodeAPI interface {
 	// before the deactivation is executed. If the deactivation is canceled within
 	// this period, the node will remain active.
 	DeactivateNode(ctx context.Context, nodeID string, hours int) error //perm:web,admin,candidate
+	// MigrateNodeOut
+	MigrateNodeOut(ctx context.Context, nodeID string) (*types.NodeMigrateInfo, error) //perm:web,admin
+	// MigrateNodeIn
+	MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error //perm:web,admin
+	// CleanNode
+	CleanNode(ctx context.Context, nodeID, key string) error //perm:web,admin
 	// CalculateExitProfit
 	CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) //perm:web,admin,candidate
 	// UndoNodeDeactivation is used to undo the deactivation of a node in the titan server.

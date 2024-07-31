@@ -70,6 +70,17 @@ type NodeInfo struct {
 	NodeDynamicInfo
 }
 
+type NodeMigrateInfo struct {
+	NodeInfo       *NodeInfo
+	ActivationInfo *ActivationDetail
+	PubKey         string
+	CodeInfo       *CandidateCodeInfo
+	OnlineCounts   map[time.Time]int
+	ProfitList     []*ProfitDetails
+
+	Key string
+}
+
 // NodeClientType node client type
 type NodeClientType int
 
@@ -498,6 +509,7 @@ type ActivationDetail struct {
 	ActivationKey string   `json:"activation_key" db:"activation_key"`
 	NodeType      NodeType `json:"node_type" db:"node_type"`
 	IP            string   `json:"ip" db:"ip"`
+	MigrateKey    string   `json:"migrate_key" db:"migrate_key"`
 }
 
 func (d *ActivationDetail) Marshal() (string, error) {

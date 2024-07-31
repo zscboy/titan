@@ -271,6 +271,103 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 	return nil
 }
 
+// MigrateNodeOut
+func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.NodeMigrateInfo, error) {
+	out := &types.NodeMigrateInfo{}
+
+	rInfo, err := s.db.LoadNodeRegisterInfo(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	if rInfo.NodeType != types.NodeCandidate {
+		return nil, xerrors.Errorf("node :%s not candidate", nodeID)
+	}
+
+	nInfo, err := s.db.LoadNodeInfo(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	pKey, err := s.db.LoadNodePublicKey(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	pInfo, err := s.db.LoadNodeProfits(nodeID, 200, 0, []int{0, 1, 2, 3, 4, 5, 6, 7, 8})
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	onlineCounts := make(map[time.Time]int)
+	for i := 0; i < 8; i++ {
+		date := now.AddDate(0, 0, -i)
+		date = time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+
+		count, err := s.db.GetOnlineCount(nodeID, date)
+		if err == nil {
+			onlineCounts[date] = count
+		}
+	}
+
+	cInfo, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	out.ActivationInfo = rInfo
+	out.PubKey = pKey
+	out.NodeInfo = nInfo
+	out.OnlineCounts = onlineCounts
+	out.CodeInfo = cInfo
+	out.Key = uuid.NewString()
+	out.ProfitList = pInfo.Infos
+
+	err = s.db.SaveMigrateKey(out.Key, nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// MigrateNodeIn
+func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error {
+	if info.ActivationInfo == nil || info.NodeInfo == nil || info.PubKey == "" || info.CodeInfo == nil {
+		return xerrors.New("Parameter cannot be empty")
+	}
+
+	info.NodeInfo.SchedulerID = s.ServerID
+
+	return s.db.MigrateIn(info)
+}
+
+func (s *Scheduler) CleanNode(ctx context.Context, nodeID, key string) error {
+	rInfo, err := s.db.LoadNodeRegisterInfo(nodeID)
+	if err != nil {
+		return err
+	}
+
+	if rInfo.MigrateKey != key {
+		return xerrors.Errorf("Migrate key mismatch [%s] [%s]", key, rInfo.MigrateKey)
+	}
+
+	s.AssetManager.CandidateDeactivate(nodeID)
+
+	err = s.db.CleanNodeInfo(nodeID)
+	if err != nil {
+		return err
+	}
+
+	node := s.NodeManager.GetNode(nodeID)
+	if node != nil {
+		node.SetLastRequestTime(time.Now().Add(-time.Minute))
+	}
+
+	return nil
+}
+
 func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) {
 	nID := handler.GetNodeID(ctx)
 	if len(nID) > 0 {

@@ -136,14 +136,14 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 }
 
 func doExec(d *SQLDB, serverID dtypes.ServerID) {
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE create_time created_time    DATETIME      NOT NULL", onlineCountTable))
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE area_id area_id       VARCHAR(256)   DEFAULT ''", onlineCountTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD penalty_profit       DECIMAL(20, 6)  DEFAULT 0;", nodeInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD migrate_key     VARCHAR(128)  DEFAULT ''", nodeRegisterTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
@@ -152,4 +152,16 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
+
+	// 	UPDATE node_info AS ni
+	// SET ni.penalty_profit = (
+	//     SELECT ABS(COALESCE(SUM(pd.profit), 0))
+	//     FROM profit_details AS pd
+	//     WHERE pd.node_id = ni.node_id AND pd.profit_type = 7
+	// )
+	// WHERE ni.node_id IN (
+	//     SELECT node_id
+	//     FROM node_info
+	//     WHERE node_id LIKE 'c_%'
+	// );
 }

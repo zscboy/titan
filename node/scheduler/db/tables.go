@@ -97,6 +97,7 @@ var cNodeRegisterTable = `
 		node_type       VARCHAR(64)   DEFAULT '' ,
 		activation_key  VARCHAR(128)  DEFAULT '' ,
 		ip 				VARCHAR(16)  DEFAULT '' ,
+		migrate_key     VARCHAR(128)  DEFAULT '' ,
 		PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node register info';`
 
@@ -264,7 +265,7 @@ var cProjectInfosTable = `
 		expiration    DATETIME       DEFAULT CURRENT_TIMESTAMP,	
 	    cpu_cores     INT            DEFAULT 0,
 	    memory        FLOAT          DEFAULT 0,
-		area_id       VARCHAR(32)    DEFAULT '',   
+		area_id       VARCHAR(256)   DEFAULT '',   
 		PRIMARY KEY (id),
 	    KEY idx_user_id (user_id),
 	    KEY idx_time (created_time),

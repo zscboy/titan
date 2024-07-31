@@ -267,9 +267,30 @@ func (n *SQLDB) SaveNodeRegisterInfos(details []*types.ActivationDetail) error {
 	return err
 }
 
+// LoadNodeRegisterInfo load node information.
+func (n *SQLDB) LoadNodeRegisterInfo(nodeID string) (*types.ActivationDetail, error) {
+	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeRegisterTable)
+
+	var out types.ActivationDetail
+	err := n.db.Get(&out, query, nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // SaveNodePublicKey update node public key
 func (n *SQLDB) SaveNodePublicKey(pKey, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET public_key=? WHERE node_id=? `, nodeRegisterTable)
+	_, err := n.db.Exec(query, pKey, nodeID)
+
+	return err
+}
+
+// SaveMigrateKey update node public key
+func (n *SQLDB) SaveMigrateKey(pKey, nodeID string) error {
+	query := fmt.Sprintf(`UPDATE %s SET migrate_key=? WHERE node_id=? `, nodeRegisterTable)
 	_, err := n.db.Exec(query, pKey, nodeID)
 
 	return err
@@ -1117,6 +1138,117 @@ func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
 		if err != nil {
 			log.Errorf("UpdateNodePenalty %s, err:%s", nodeID, err.Error())
 		}
+	}
+
+	// Commit
+	return tx.Commit()
+}
+
+// MigrateIn Insert Node register info
+func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	nodeID := info.NodeInfo.NodeID
+
+	query := fmt.Sprintf(
+		`INSERT INTO %s (node_id, created_time, node_type, activation_key, ip)
+				VALUES (:node_id, :created_time, :node_type, :activation_key, :ip)`, nodeRegisterTable)
+	_, err = tx.NamedExec(query, info.ActivationInfo)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(`UPDATE %s SET public_key=? WHERE node_id=? `, nodeRegisterTable)
+	_, err = tx.Exec(query, info.PubKey, nodeID)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(
+		`INSERT INTO %s (node_id, online_duration, offline_duration, disk_usage, last_seen, profit, available_disk_space, titan_disk_usage, penalty_profit, port_mapping
+			    download_traffic, upload_traffic, asset_count, retrieve_count, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid,first_login_time) 
+				VALUES (:node_id, :online_duration, :offline_duration, :disk_usage, :last_seen, :profit, :available_disk_space, :titan_disk_usage, :penalty_profit, :port_mapping,
+				:download_traffic, :upload_traffic, :asset_count, :retrieve_count, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid, :first_login_time)`, nodeInfoTable)
+	_, err = tx.NamedExec(query, info.NodeInfo)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(
+		`INSERT INTO %s (code, expiration, node_type, is_test, node_id)
+			VALUES (:code, :expiration, :node_type, :is_test, :node_id)`, candidateCodeTable)
+	_, err = tx.NamedExec(query, info.CodeInfo)
+	if err != nil {
+		return err
+	}
+
+	for t, i := range info.OnlineCounts {
+		query := fmt.Sprintf(
+			`INSERT INTO %s (node_id, created_time, online_count)
+			    VALUES (?, ?, ?)
+				ON DUPLICATE KEY UPDATE online_count=online_count+?`, onlineCountTable)
+
+		_, err = tx.Exec(query, nodeID, t, i, i)
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, info := range info.ProfitList {
+		query := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
+		tx.NamedExec(query, info)
+	}
+
+	// Commit
+	return tx.Commit()
+}
+
+// CleanNodeInfo
+func (n *SQLDB) CleanNodeInfo(nodeID string) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, nodeRegisterTable)
+	_, err = n.db.Exec(query, nodeID)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, nodeInfoTable)
+	_, err = tx.Exec(query, nodeID)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, candidateCodeTable)
+	_, err = tx.Exec(query, nodeID)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, onlineCountTable)
+	_, err = tx.Exec(query, nodeID)
+	if err != nil {
+		return err
 	}
 
 	// Commit
