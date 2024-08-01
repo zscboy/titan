@@ -800,7 +800,10 @@ func flushConfig(lr repo.LockedRepo, tlsConfig *tls.Config, cfg *config.Candidat
 			certKeyBytes = pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privBytes})
 		}
 
-		return lr.SetCertificate(certBytes, certKeyBytes)
+		if err := lr.SetCertificate(certBytes, certKeyBytes); err != nil {
+			log.Errorf("SetCertificate: %v", err)
+		}
+
 	}
 
 	return lr.SetConfig(func(raw interface{}) {
