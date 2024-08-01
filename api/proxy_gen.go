@@ -380,7 +380,7 @@ type NodeAPIStruct struct {
 
 	Internal struct {
 
-		AssignTunserverURL func(p0 context.Context) (*types.TunserverRsp, error) `perm:"edge"`
+		CalculateDowntimePenalty func(p0 context.Context, p1 string) (types.ExitProfitRsp, error) `perm:"web,admin,candidate"`
 
 		CalculateExitProfit func(p0 context.Context, p1 string) (types.ExitProfitRsp, error) `perm:"web,admin,candidate"`
 
@@ -388,7 +388,7 @@ type NodeAPIStruct struct {
 
 		CheckIpUsage func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
 
-		CleanNode func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
+		CleanupNode func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
 
 		CreateTunnel func(p0 context.Context, p1 *types.CreateTunnelReq) (error) `perm:"candidate"`
 
@@ -397,6 +397,8 @@ type NodeAPIStruct struct {
 		DownloadDataResult func(p0 context.Context, p1 string, p2 string, p3 int64) (error) `perm:"edge,candidate"`
 
 		EdgeConnect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"edge"`
+
+		ForceNodeOffline func(p0 context.Context, p1 string, p2 bool) (error) `perm:"web,admin"`
 
 		FreeUpDiskSpace func(p0 context.Context, p1 string, p2 int64) (*types.FreeUpDiskResp, error) `perm:"edge,candidate,admin"`
 
@@ -486,7 +488,7 @@ type NodeAPIStruct struct {
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
 
-		UpdateTunserverURL func(p0 context.Context, p1 string) (error) `perm:"edge"`
+		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
 
 		VerifyTokenWithLimitCount func(p0 context.Context, p1 string) (*types.JWTPayload, error) `perm:"edge,candidate"`
 
@@ -571,8 +573,6 @@ type SchedulerStruct struct {
 
 	NodeAPIStruct
 
-	UserAPIStruct
-
 	ProjectAPIStruct
 
 	ContainerAPIStruct
@@ -590,6 +590,8 @@ type SchedulerStruct struct {
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
 		GetNodePublicKey func(p0 context.Context, p1 string) (string, error) `perm:"web,admin"`
+
+		GetNodeUploadInfo func(p0 context.Context, p1 string) (*types.UploadInfo, error) `perm:"user,web,admin"`
 
 		GetRetrieveEventRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) `perm:"web,admin"`
 
@@ -628,26 +630,9 @@ type SchedulerStub struct {
 
 	NodeAPIStub
 
-	UserAPIStub
-
 	ProjectAPIStub
 
 	ContainerAPIStub
-
-}
-
-type UserAPIStruct struct {
-
-	Internal struct {
-
-		GetNodeUploadInfo func(p0 context.Context, p1 string) (*types.UploadInfo, error) `perm:"user,web,admin"`
-
-		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
-
-	}
-}
-
-type UserAPIStub struct {
 
 }
 
@@ -1773,15 +1758,15 @@ func (s *LocatorStub) GetUserAccessPoint(p0 context.Context, p1 string) (*Access
 
 
 
-func (s *NodeAPIStruct) AssignTunserverURL(p0 context.Context) (*types.TunserverRsp, error) {
-	if s.Internal.AssignTunserverURL == nil {
-		return nil, ErrNotSupported
+func (s *NodeAPIStruct) CalculateDowntimePenalty(p0 context.Context, p1 string) (types.ExitProfitRsp, error) {
+	if s.Internal.CalculateDowntimePenalty == nil {
+		return *new(types.ExitProfitRsp), ErrNotSupported
 	}
-	return s.Internal.AssignTunserverURL(p0)
+	return s.Internal.CalculateDowntimePenalty(p0, p1)
 }
 
-func (s *NodeAPIStub) AssignTunserverURL(p0 context.Context) (*types.TunserverRsp, error) {
-	return nil, ErrNotSupported
+func (s *NodeAPIStub) CalculateDowntimePenalty(p0 context.Context, p1 string) (types.ExitProfitRsp, error) {
+	return *new(types.ExitProfitRsp), ErrNotSupported
 }
 
 func (s *NodeAPIStruct) CalculateExitProfit(p0 context.Context, p1 string) (types.ExitProfitRsp, error) {
@@ -1817,14 +1802,14 @@ func (s *NodeAPIStub) CheckIpUsage(p0 context.Context, p1 string) (bool, error) 
 	return false, ErrNotSupported
 }
 
-func (s *NodeAPIStruct) CleanNode(p0 context.Context, p1 string, p2 string) (error) {
-	if s.Internal.CleanNode == nil {
+func (s *NodeAPIStruct) CleanupNode(p0 context.Context, p1 string, p2 string) (error) {
+	if s.Internal.CleanupNode == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.CleanNode(p0, p1, p2)
+	return s.Internal.CleanupNode(p0, p1, p2)
 }
 
-func (s *NodeAPIStub) CleanNode(p0 context.Context, p1 string, p2 string) (error) {
+func (s *NodeAPIStub) CleanupNode(p0 context.Context, p1 string, p2 string) (error) {
 	return ErrNotSupported
 }
 
@@ -1869,6 +1854,17 @@ func (s *NodeAPIStruct) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions
 }
 
 func (s *NodeAPIStub) EdgeConnect(p0 context.Context, p1 *types.ConnectOptions) (error) {
+	return ErrNotSupported
+}
+
+func (s *NodeAPIStruct) ForceNodeOffline(p0 context.Context, p1 string, p2 bool) (error) {
+	if s.Internal.ForceNodeOffline == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ForceNodeOffline(p0, p1, p2)
+}
+
+func (s *NodeAPIStub) ForceNodeOffline(p0 context.Context, p1 string, p2 bool) (error) {
 	return ErrNotSupported
 }
 
@@ -2356,14 +2352,14 @@ func (s *NodeAPIStub) UpdateNodePort(p0 context.Context, p1 string, p2 string) (
 	return ErrNotSupported
 }
 
-func (s *NodeAPIStruct) UpdateTunserverURL(p0 context.Context, p1 string) (error) {
-	if s.Internal.UpdateTunserverURL == nil {
+func (s *NodeAPIStruct) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
+	if s.Internal.UserAssetDownloadResult == nil {
 		return ErrNotSupported
 	}
-	return s.Internal.UpdateTunserverURL(p0, p1)
+	return s.Internal.UserAssetDownloadResult(p0, p1, p2, p3, p4)
 }
 
-func (s *NodeAPIStub) UpdateTunserverURL(p0 context.Context, p1 string) (error) {
+func (s *NodeAPIStub) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
 	return ErrNotSupported
 }
 
@@ -2695,6 +2691,17 @@ func (s *SchedulerStub) GetNodePublicKey(p0 context.Context, p1 string) (string,
 	return "", ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetNodeUploadInfo(p0 context.Context, p1 string) (*types.UploadInfo, error) {
+	if s.Internal.GetNodeUploadInfo == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetNodeUploadInfo(p0, p1)
+}
+
+func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string) (*types.UploadInfo, error) {
+	return nil, ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetRetrieveEventRecords(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) {
 	if s.Internal.GetRetrieveEventRecords == nil {
 		return nil, ErrNotSupported
@@ -2841,31 +2848,6 @@ func (s *SchedulerStub) TriggerElection(p0 context.Context) (error) {
 
 
 
-func (s *UserAPIStruct) GetNodeUploadInfo(p0 context.Context, p1 string) (*types.UploadInfo, error) {
-	if s.Internal.GetNodeUploadInfo == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetNodeUploadInfo(p0, p1)
-}
-
-func (s *UserAPIStub) GetNodeUploadInfo(p0 context.Context, p1 string) (*types.UploadInfo, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *UserAPIStruct) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
-	if s.Internal.UserAssetDownloadResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserAssetDownloadResult(p0, p1, p2, p3, p4)
-}
-
-func (s *UserAPIStub) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
-	return ErrNotSupported
-}
-
-
-
-
 func (s *ValidationStruct) ExecuteValidation(p0 context.Context, p1 *ValidateReq) (error) {
 	if s.Internal.ExecuteValidation == nil {
 		return ErrNotSupported
@@ -2940,7 +2922,6 @@ var _ NodeAPI = new(NodeAPIStruct)
 var _ ProjectAPI = new(ProjectAPIStruct)
 var _ ProviderAPI = new(ProviderAPIStruct)
 var _ Scheduler = new(SchedulerStruct)
-var _ UserAPI = new(UserAPIStruct)
 var _ Validation = new(ValidationStruct)
 var _ Workerd = new(WorkerdStruct)
 

@@ -212,6 +212,31 @@ func (s *Scheduler) RegisterEdgeNode(ctx context.Context, nodeID, publicKey stri
 	return s.RegisterNode(ctx, nodeID, publicKey, types.NodeEdge)
 }
 
+// ForceNodeOffline changes the online status of a node identified by nodeID.
+// If the status is true, it forces the node offline. If the status is false, it brings the node back online.
+func (s *Scheduler) ForceNodeOffline(ctx context.Context, nodeID string, forceOffline bool) error {
+	if forceOffline {
+		// is candidate
+		err := s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
+		if err == nil {
+			// if node is candidate , need to backup asset
+			s.AssetManager.CandidateDeactivate(nodeID)
+		}
+	}
+
+	err := s.db.SaveForceOffline(nodeID, forceOffline)
+	if err != nil {
+		return xerrors.Errorf("SaveDeactivateNode %s err : %s", nodeID, err.Error())
+	}
+
+	node := s.NodeManager.GetNode(nodeID)
+	if node != nil {
+		node.ForceOffline = forceOffline
+	}
+
+	return nil
+}
+
 // DeactivateNode is used to deactivate a node in the titan server.
 // It stops the node from serving any requests and marks it as inactive.
 // - nodeID: The ID of the node to deactivate.
@@ -249,7 +274,7 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 		// if node is candidate , need to backup asset
 		s.AssetManager.CandidateDeactivate(nodeID)
 
-		pe, _ := s.NodeManager.CalculateExitProfit(info.Profit)
+		pe, _ := s.NodeManager.CalculateDowntimePenalty(info.Profit)
 		penaltyPoint = info.Profit - pe
 	}
 
@@ -271,7 +296,7 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 	return nil
 }
 
-// MigrateNodeOut
+// MigrateNodeOut Migrate out the node
 func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.NodeMigrateInfo, error) {
 	out := &types.NodeMigrateInfo{}
 
@@ -332,7 +357,7 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 	return out, nil
 }
 
-// MigrateNodeIn
+// MigrateNodeIn Migrate in the node
 func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error {
 	if info.ActivationInfo == nil || info.NodeInfo == nil || info.PubKey == "" || info.CodeInfo == nil {
 		return xerrors.New("Parameter cannot be empty")
@@ -343,7 +368,8 @@ func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateIn
 	return s.db.MigrateIn(info)
 }
 
-func (s *Scheduler) CleanNode(ctx context.Context, nodeID, key string) error {
+// CleanupNode removes residual data from the source server after a node has been migrated.
+func (s *Scheduler) CleanupNode(ctx context.Context, nodeID, key string) error {
 	rInfo, err := s.db.LoadNodeRegisterInfo(nodeID)
 	if err != nil {
 		return err
@@ -368,7 +394,8 @@ func (s *Scheduler) CleanNode(ctx context.Context, nodeID, key string) error {
 	return nil
 }
 
-func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) {
+// CalculateDowntimePenalty calculates the penalty points to be deducted for a node's requested downtime.
+func (s *Scheduler) CalculateDowntimePenalty(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) {
 	nID := handler.GetNodeID(ctx)
 	if len(nID) > 0 {
 		nodeID = nID
@@ -384,12 +411,17 @@ func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (typ
 		return types.ExitProfitRsp{}, err
 	}
 
-	pe, exitRate := s.NodeManager.CalculateExitProfit(info.Profit)
+	pe, exitRate := s.NodeManager.CalculateDowntimePenalty(info.Profit)
 	return types.ExitProfitRsp{
 		CurrentPoint:   info.Profit,
 		RemainingPoint: pe,
 		PenaltyRate:    exitRate,
 	}, err
+}
+
+// CalculateExitProfit Deprecated
+func (s *Scheduler) CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) {
+	return s.CalculateDowntimePenalty(ctx, nodeID)
 }
 
 // UndoNodeDeactivation is used to undo the deactivation of a node in the titan server.
@@ -786,10 +818,12 @@ func (s *Scheduler) GetNodeToken(ctx context.Context, nodeID string) (string, er
 	return node.Token, nil
 }
 
+// GetNodeOfIP get nodes of ip
 func (s *Scheduler) GetNodeOfIP(ctx context.Context, ip string) ([]string, error) {
 	return s.NodeManager.IPMgr.GetNodeOfIP(ip), nil
 }
 
+// CheckIpUsage  checks if a specific IP address is present on the server.
 func (s *Scheduler) CheckIpUsage(ctx context.Context, ip string) (bool, error) {
 	if s.NodeManager.IPMgr.CheckIPExist(ip) {
 		return true, nil
@@ -891,6 +925,7 @@ func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.Ass
 	return out, aInfo.TotalSize, nil
 }
 
+// GetAssetSourceDownloadInfo retrieves the download details for a specified asset.
 func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) (*types.AssetSourceDownloadInfoRsp, error) {
 	// from app
 	clientID := ""
@@ -979,6 +1014,10 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 		if node != nil {
 			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
 				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
+			}
+
+			if node.ForceOffline {
+				return uuid, &api.ErrNode{Code: int(terrors.ForceOffline), Message: fmt.Sprintf("The node %s has been forced offline", nodeID)}
 			}
 
 			if node.Type == types.NodeCandidate {
@@ -1538,47 +1577,6 @@ func dpGetRemoveAssets(assets []*types.AssetRecord, sum int64) []*types.AssetRec
 	}
 
 	return sub
-}
-
-// AssignTunserverURL
-func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) {
-	nodeID := handler.GetNodeID(ctx)
-	if len(nodeID) == 0 {
-		return nil, fmt.Errorf("invalid request")
-	}
-
-	var vNode *node.Node
-	wID, err := s.db.LoadWSServerID(nodeID)
-	if err == nil && wID != "" {
-		vNode = s.NodeManager.GetCandidateNode(wID)
-	}
-
-	if vNode == nil {
-		// select candidate
-		_, list := s.NodeManager.GetAllCandidateNodes()
-		if len(list) > 0 {
-			index := rand.Intn(len(list))
-			vNode = list[index]
-		}
-	}
-
-	if vNode == nil {
-		return nil, fmt.Errorf("node not found")
-	}
-
-	wsURL := vNode.WsURL()
-	vID := vNode.NodeID
-
-	return &types.TunserverRsp{URL: wsURL, NodeID: vID}, nil
-}
-
-func (s *Scheduler) UpdateTunserverURL(ctx context.Context, nodeID string) error {
-	nID := handler.GetNodeID(ctx)
-	if len(nID) == 0 {
-		return fmt.Errorf("invalid request")
-	}
-
-	return s.NodeManager.SetTunserverURL(nID, nodeID)
 }
 
 func (s *Scheduler) SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error {

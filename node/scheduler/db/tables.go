@@ -59,6 +59,7 @@ var cNodeInfoTable = `
 		deactivate_time      INT             DEFAULT 0,		
 		free_up_disk_time    DATETIME        DEFAULT '2024-04-20 12:10:15',
 		ws_server_id         VARCHAR(128)    DEFAULT '',
+		force_offline        BOOLEAN         DEFAULT false,
 	    PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node info';`
 

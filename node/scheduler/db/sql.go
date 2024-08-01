@@ -144,6 +144,10 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD force_offline        BOOLEAN         DEFAULT false", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

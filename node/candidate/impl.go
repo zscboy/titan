@@ -3,11 +3,12 @@ package candidate
 import (
 	"context"
 	"fmt"
-	"github.com/Filecoin-Titan/titan/node/container"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/Filecoin-Titan/titan/node/container"
 
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -151,5 +152,5 @@ func (c *Candidate) DeactivateNode(ctx context.Context) error {
 }
 
 func (c *Candidate) CalculateExitProfit(ctx context.Context) (types.ExitProfitRsp, error) {
-	return c.Scheduler.CalculateExitProfit(ctx, "")
+	return c.Scheduler.CalculateDowntimePenalty(ctx, "")
 }

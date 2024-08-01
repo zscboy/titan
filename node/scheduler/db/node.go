@@ -869,6 +869,13 @@ func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64, penaltyPoint float
 	return err
 }
 
+// SaveForceOffline save
+func (n *SQLDB) SaveForceOffline(nodeID string, value bool) error {
+	query := fmt.Sprintf(`UPDATE %s SET force_offline=? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, value, nodeID)
+	return err
+}
+
 // SaveWSServerID save id
 func (n *SQLDB) SaveWSServerID(nodeID, wID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET ws_server_id=? WHERE node_id=?`, nodeInfoTable)

@@ -270,8 +270,8 @@ func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note 
 	}
 }
 
-// CalculateExitProfit Exit penalty calculation
-func (m *Manager) CalculateExitProfit(profit float64) (float64, float64) {
+// CalculateDowntimePenalty Exit penalty calculation
+func (m *Manager) CalculateDowntimePenalty(profit float64) (float64, float64) {
 	rExit := profit * (1 - exitRate)
 
 	return rExit, exitRate

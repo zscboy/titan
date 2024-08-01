@@ -91,14 +91,19 @@ type NodeAPI interface {
 	// before the deactivation is executed. If the deactivation is canceled within
 	// this period, the node will remain active.
 	DeactivateNode(ctx context.Context, nodeID string, hours int) error //perm:web,admin,candidate
-	// MigrateNodeOut
+	// ForceNodeOffline changes the online status of a node identified by nodeID.
+	// If the status is true, it forces the node offline. If the status is false, it brings the node back online.
+	ForceNodeOffline(ctx context.Context, nodeID string, forceOffline bool) error //perm:web,admin
+	// MigrateNodeOut Migrate out the node
 	MigrateNodeOut(ctx context.Context, nodeID string) (*types.NodeMigrateInfo, error) //perm:web,admin
-	// MigrateNodeIn
+	// MigrateNodeIn Migrate in the node
 	MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error //perm:web,admin
-	// CleanNode
-	CleanNode(ctx context.Context, nodeID, key string) error //perm:web,admin
-	// CalculateExitProfit
+	// CleanupNode removes residual data from the source server after a node has been migrated.
+	CleanupNode(ctx context.Context, nodeID, key string) error //perm:web,admin
+	// CalculateExitProfit please use CalculateDowntimePenalty
 	CalculateExitProfit(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) //perm:web,admin,candidate
+	// CalculateDowntimePenalty calculates the penalty points to be deducted for a node's requested downtime.
+	CalculateDowntimePenalty(ctx context.Context, nodeID string) (types.ExitProfitRsp, error) //perm:web,admin,candidate
 	// UndoNodeDeactivation is used to undo the deactivation of a node in the titan server.
 	// It allows the previously deactivated node to start serving requests again.
 	UndoNodeDeactivation(ctx context.Context, nodeID string) error //perm:web,admin
@@ -132,7 +137,7 @@ type NodeAPI interface {
 	GetEdgeDownloadInfos(ctx context.Context, cid string) (*types.EdgeDownloadInfoList, error) //perm:default
 	// GetCandidateDownloadInfos retrieves download information for the candidate with the asset with the specified CID.
 	GetCandidateDownloadInfos(ctx context.Context, cid string) ([]*types.CandidateDownloadInfo, error) //perm:edge,candidate,web,locator
-	// GetAssetSourceDownloadInfo
+	// GetAssetSourceDownloadInfo retrieves the download details for a specified asset.
 	GetAssetSourceDownloadInfo(ctx context.Context, cid string) (*types.AssetSourceDownloadInfoRsp, error) //perm:edge,candidate,web,locator
 	// NodeExists checks if the node with the specified ID exists.
 	NodeExists(ctx context.Context, nodeID string) error //perm:web
@@ -160,7 +165,7 @@ type NodeAPI interface {
 	DownloadDataResult(ctx context.Context, bucket, cid string, size int64) error //perm:edge,candidate
 	// GetNodeToken get node token
 	GetNodeToken(ctx context.Context, nodeID string) (string, error) //perm:admin
-	// CheckIpUsage
+	// CheckIpUsage  checks if a specific IP address is present on the server.
 	CheckIpUsage(ctx context.Context, ip string) (bool, error) //perm:admin,web,locator
 	// GetAssetView get the asset view of node
 	GetAssetView(ctx context.Context, nodeID string, isFromNode bool) (*types.AssetView, error) //perm:admin
@@ -180,10 +185,6 @@ type NodeAPI interface {
 	UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error //perm:admin
 	// ReDetermineNodeNATType
 	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
-	// AssignTunserverURL
-	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
-	// UpdateTunserverURL
-	UpdateTunserverURL(ctx context.Context, nodeID string) error //perm:edge
 	// SetTunserverURL
 	SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error //perm:admin,web,locator
 	// ReimburseNodeProfit
@@ -192,56 +193,8 @@ type NodeAPI interface {
 	GetTunserverURLFromUser(ctx context.Context, req *types.TunserverReq) (*types.TunserverRsp, error) //perm:admin,web,locator
 	// CreateTunnel create tunnel for workerd communication
 	CreateTunnel(ctx context.Context, req *types.CreateTunnelReq) error // perm:candidate
-}
-
-// UserAPI is an interface for user
-type UserAPI interface {
-	// // UserAPIKeysExists checks if the user api key exists.
-	// UserAPIKeysExists(ctx context.Context, userID string) error //perm:web
-
-	// // User-related methods
-	// // AllocateStorage allocates storage space.
-	// AllocateStorage(ctx context.Context, userID string) (*types.UserInfo, error) //perm:web,admin
-	// // GetUserInfo get user info
-	// GetUserInfo(ctx context.Context, userID string) (*types.UserInfo, error) // perm:web,admin
-	// // GetUserInfos get user infos
-	// GetUserInfos(ctx context.Context, userIDs []string) (map[string]*types.UserInfo, error) // perm:web,admin
-	// // CreateAPIKey creates a key for the client API.
-	// CreateAPIKey(ctx context.Context, userID, keyName string, acl []types.UserAccessControl) (string, error) //perm:web,admin
-	// // GetAPIKeys get all api key for user.
-	// GetAPIKeys(ctx context.Context, userID string) (map[string]types.UserAPIKeysInfo, error) //perm:web,admin
-	// // DeleteAPIKey delete a api key for user
-	// DeleteAPIKey(ctx context.Context, userID, name string) error //perm:web,admin
 	// UserAssetDownloadResult After a user downloads a resource from a candidate node, the candidate node reports the download result
 	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error //perm:candidate
-
-	// // SetUserVIP set user vip state
-	// SetUserVIP(ctx context.Context, userID string, enableVIP bool) error //perm:admin
-	// // GetUserAccessToken get access token for user
-	// GetUserAccessToken(ctx context.Context, userID string) (string, error) //perm:web,admin
-	// // GetUserStorageStats
-	// GetUserStorageStats(ctx context.Context, userID string) (*types.StorageStats, error) //perm:web,admin
-	// // GetUsersStorageStatistics
-	// ListUserStorageStats(ctx context.Context, limit, offset int) (*types.ListStorageStatsRsp, error) //perm:web,admin
-
-	// // CreateAssetGroup create Asset group
-	// CreateAssetGroup(ctx context.Context, userID, name string, parent int) (*types.AssetGroup, error) //perm:user,web,admin
-	// // ListAssetGroup list Asset group
-	// ListAssetGroup(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetGroupRsp, error) //perm:user,web,admin
-	// // ListAssetSummary list Asset and group
-	// ListAssetSummary(ctx context.Context, userID string, parent, limit, offset int) (*types.ListAssetSummaryRsp, error) //perm:user,web,admin
-	// // DeleteAssetGroup delete Asset group
-	// DeleteAssetGroup(ctx context.Context, userID string, gid int) error //perm:user,web,admin
-	// // RenameAssetGroup rename group
-	// RenameAssetGroup(ctx context.Context, userID, newName string, groupID int) error //perm:user,web,admin
-	// // MoveAssetToGroup move a asset to group
-	// MoveAssetToGroup(ctx context.Context, userID, cid string, groupID int) error //perm:user,web,admin
-	// // MoveAssetGroup move a asset group
-	// MoveAssetGroup(ctx context.Context, userID string, groupID, targetGroupID int) error //perm:user,web,admin
-	// // GetAPPKeyPermissions get the permissions of user app key
-	// GetAPPKeyPermissions(ctx context.Context, userID, keyName string) ([]string, error) //perm:user,web,admin
-	// GetNodeUploadInfo
-	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
 }
 
 // ProjectAPI is an interface for project
@@ -265,7 +218,6 @@ type Scheduler interface {
 	Common
 	AssetAPI
 	NodeAPI
-	UserAPI
 	ProjectAPI
 	ContainerAPI
 
@@ -311,4 +263,7 @@ type Scheduler interface {
 	GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) //perm:admin,web,locator
 	ResetCandidateCode(ctx context.Context, nodeID, code string) error                                  //perm:admin,web,locator
 	RemoveCandidateCode(ctx context.Context, code string) error                                         //perm:admin,web,locator
+
+	// GetNodeUploadInfo
+	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
 }

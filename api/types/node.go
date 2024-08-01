@@ -66,6 +66,7 @@ type NodeInfo struct {
 	GPUInfo        string          `json:"gpu_info" form:"gpuInfo" gorm:"column:gpu_info;comment:;" db:"gpu_info"`
 	FreeUpFiskTime time.Time       `db:"free_up_disk_time"`
 	WSServerID     string          `db:"ws_server_id"`
+	ForceOffline   bool            `db:"force_offline"`
 
 	NodeDynamicInfo
 }

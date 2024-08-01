@@ -24,6 +24,7 @@ var nodeCmds = &cli.Command{
 		edgeExternalAddrCmd,
 		listNodeCmd,
 		deactivateCmd,
+		forceNodeOfflineCmd,
 		unDeactivateCmd,
 		listNodeOfIPCmd,
 		listReplicaCmd,
@@ -177,6 +178,36 @@ var deactivateCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.DeactivateNode(ctx, nodeID, 24*7)
+	},
+}
+
+var forceNodeOfflineCmd = &cli.Command{
+	Name:  "fno",
+	Usage: "force node offline",
+	Flags: []cli.Flag{
+		nodeIDFlag,
+		&cli.BoolFlag{
+			Name:  "value",
+			Usage: "",
+			Value: false,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		nodeID := cctx.String("node-id")
+		if nodeID == "" {
+			return xerrors.New("node-id is nil")
+		}
+
+		value := cctx.Bool("value")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.ForceNodeOffline(ctx, nodeID, value)
 	},
 }
 

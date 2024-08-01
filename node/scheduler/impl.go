@@ -9,12 +9,13 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
-	"github.com/Filecoin-Titan/titan/node/scheduler/container"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Filecoin-Titan/titan/node/scheduler/container"
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
@@ -181,28 +182,32 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.AreaID = geoInfo.Geo
 	}
 
-	oldInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
 	}
 
 	nodeInfo.FirstTime = time.Now()
-	if oldInfo != nil {
+	if dbInfo != nil {
 		// init node info
-		nodeInfo.PortMapping = oldInfo.PortMapping
-		nodeInfo.OnlineDuration = oldInfo.OnlineDuration
-		nodeInfo.OfflineDuration = oldInfo.OfflineDuration
-		nodeInfo.BandwidthDown = oldInfo.BandwidthDown
-		nodeInfo.BandwidthUp = oldInfo.BandwidthUp
-		nodeInfo.DeactivateTime = oldInfo.DeactivateTime
-		nodeInfo.DownloadTraffic = oldInfo.DownloadTraffic
-		nodeInfo.UploadTraffic = oldInfo.UploadTraffic
-		nodeInfo.WSServerID = oldInfo.WSServerID
-		nodeInfo.Profit = oldInfo.Profit
-		nodeInfo.FirstTime = oldInfo.FirstTime
+		nodeInfo.PortMapping = dbInfo.PortMapping
+		nodeInfo.OnlineDuration = dbInfo.OnlineDuration
+		nodeInfo.OfflineDuration = dbInfo.OfflineDuration
+		nodeInfo.BandwidthDown = dbInfo.BandwidthDown
+		nodeInfo.BandwidthUp = dbInfo.BandwidthUp
+		nodeInfo.DeactivateTime = dbInfo.DeactivateTime
+		nodeInfo.DownloadTraffic = dbInfo.DownloadTraffic
+		nodeInfo.UploadTraffic = dbInfo.UploadTraffic
+		nodeInfo.WSServerID = dbInfo.WSServerID
+		nodeInfo.Profit = dbInfo.Profit
+		nodeInfo.FirstTime = dbInfo.FirstTime
 
-		if oldInfo.DeactivateTime > 0 && oldInfo.DeactivateTime < time.Now().Unix() {
+		if dbInfo.DeactivateTime > 0 && dbInfo.DeactivateTime < time.Now().Unix() {
 			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)
+		}
+
+		if dbInfo.ForceOffline {
+			return xerrors.Errorf("The node %s has been forced offline", nodeID)
 		}
 	}
 

@@ -72,10 +72,9 @@ func (m *Manager) computeNodeProfits() {
 		size := 0.0
 
 		for _, info := range rsp.ValidationResultInfos {
-			if info.Status != types.ValidationStatusSuccess &&
-				info.Status != types.ValidationStatusNodeTimeOut &&
-				info.Status != types.ValidationStatusValidateFail &&
-				info.Status != types.ValidationStatusNodeOffline {
+			if info.Status == types.ValidationStatusCancel ||
+				info.Status == types.ValidationStatusCreate ||
+				info.Status == types.ValidationStatusValidatorMismatch {
 				continue
 			}
 

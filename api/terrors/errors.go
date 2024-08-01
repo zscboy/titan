@@ -36,6 +36,8 @@ const (
 	HashNotFound        // asset hash not found
 	AssetNotFound       // asset not found
 
+	ForceOffline // node force offline
+
 	Success = 0
 	Unknown = -1
 )

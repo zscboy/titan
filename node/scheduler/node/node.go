@@ -73,6 +73,7 @@ type Node struct {
 	WSServerID     string
 	PortMapping    string
 	DeactivateTime int64
+	ForceOffline   bool
 	// FirstTime      time.Time
 	// Memory         float64
 	// CPUCores       int
