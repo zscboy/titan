@@ -262,7 +262,7 @@ func checkDomain(domain string) error {
 		return xerrors.New("domain is nil")
 	}
 
-	url := fmt.Sprintf("%s/abc", domain)
+	url := fmt.Sprintf("%s/net", domain)
 	_, err := http.Get(url)
 
 	return err

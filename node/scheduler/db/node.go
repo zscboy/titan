@@ -1168,15 +1168,9 @@ func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
 	nodeID := info.NodeInfo.NodeID
 
 	query := fmt.Sprintf(
-		`INSERT INTO %s (node_id, created_time, node_type, activation_key, ip)
-				VALUES (:node_id, :created_time, :node_type, :activation_key, :ip)`, nodeRegisterTable)
+		`INSERT INTO %s (node_id, created_time, node_type, activation_key, ip, public_key)
+				VALUES (:node_id, :created_time, :node_type, :activation_key, :ip, :public_key)`, nodeRegisterTable)
 	_, err = tx.NamedExec(query, info.ActivationInfo)
-	if err != nil {
-		return err
-	}
-
-	query = fmt.Sprintf(`UPDATE %s SET public_key=? WHERE node_id=? `, nodeRegisterTable)
-	_, err = tx.Exec(query, info.PubKey, nodeID)
 	if err != nil {
 		return err
 	}

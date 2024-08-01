@@ -314,11 +314,6 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 		return nil, err
 	}
 
-	pKey, err := s.db.LoadNodePublicKey(nodeID)
-	if err != nil {
-		return nil, err
-	}
-
 	pInfo, err := s.db.LoadNodeProfits(nodeID, 200, 0, []int{0, 1, 2, 3, 4, 5, 6, 7, 8})
 	if err != nil {
 		return nil, err
@@ -342,7 +337,6 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 	}
 
 	out.ActivationInfo = rInfo
-	out.PubKey = pKey
 	out.NodeInfo = nInfo
 	out.OnlineCounts = onlineCounts
 	out.CodeInfo = cInfo
@@ -359,7 +353,7 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 
 // MigrateNodeIn Migrate in the node
 func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error {
-	if info.ActivationInfo == nil || info.NodeInfo == nil || info.PubKey == "" || info.CodeInfo == nil {
+	if info.ActivationInfo == nil || info.NodeInfo == nil || info.CodeInfo == nil {
 		return xerrors.New("Parameter cannot be empty")
 	}
 
