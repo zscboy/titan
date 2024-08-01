@@ -263,7 +263,7 @@ func (b *Workload) persistentVolumeClaims() []corev1.PersistentVolumeClaim {
 				},
 				VolumeMode:       &volumeMode,
 				StorageClassName: nil,
-				DataSource:       nil, // bind to existing pvc. akash does not support it. yet
+				DataSource:       nil,
 			},
 		}
 

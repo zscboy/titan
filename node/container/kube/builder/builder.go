@@ -10,10 +10,6 @@ const (
 	TitanManagedLabelName         = "titan.provider"
 	TitanManifestServiceLabelName = "titan.provider/manifest-service"
 
-	// AkashNetworkStorageClasses    = "akash.network/storageclasses"
-	// AkashServiceTarget            = "akash.network/service-target"
-	// AkashServiceCapabilityGPU     = "akash.network/capabilities.gpu"
-	// AkashMetalLB                  = "metal-lb"
 	titanDeploymentPolicyName = "titan-deployment-restrictions"
 
 	titanNetworkNamespace = "titan.provider/namespace"

@@ -99,7 +99,10 @@ func (m *Manager) CreateDeployment(ctx context.Context, deployment *types.Deploy
 	}
 
 	// TODO: authority validation
-	deployment.ProviderExposeIP = providerApi.ExternalIP
+	if providerApi.ExternalURL != "127.0.0.1" {
+		deployment.ProviderExposeIP = providerApi.ExternalIP
+	}
+
 	deployment.ID = types.DeploymentID(uuid.New().String())
 	deployment.State = types.DeploymentStateActive
 	deployment.CreatedAt = time.Now()
@@ -523,11 +526,30 @@ func (m *Manager) GetDeploymentProviderIP(ctx context.Context, id types.Deployme
 }
 
 func (m *Manager) ListenNodeState(ctx context.Context) {
-	sub := m.notify.Sub(types.EventNodeOffline.String())
+	offlineSub := m.notify.Sub(types.EventNodeOffline.String())
+	onlineSub := m.notify.Sub(types.EventNodeOnline.String())
 
 	for {
 		select {
-		case msg := <-sub:
+		case msg := <-onlineSub:
+			nodeInfo := msg.(*node.Node)
+
+			if nodeInfo.Type != types.NodeCandidate {
+				continue
+			}
+
+			err := m.DB.AddNewProvider(ctx, &types.Provider{
+				ID:         nodeInfo.NodeID,
+				IP:         nodeInfo.ExternalIP,
+				RemoteAddr: nodeInfo.ExternalURL,
+				State:      types.ProviderStateOnline,
+				CreatedAt:  time.Now(),
+			})
+			if err != nil {
+				log.Errorf("add new container provider: %s %v", nodeInfo.NodeID, err)
+			}
+
+		case msg := <-offlineSub:
 			nodeInfo := msg.(*node.Node)
 
 			if nodeInfo.Type != types.NodeCandidate {
