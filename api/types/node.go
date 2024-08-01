@@ -511,6 +511,7 @@ type ActivationDetail struct {
 	IP            string   `json:"ip" db:"ip"`
 	MigrateKey    string   `json:"migrate_key" db:"migrate_key"`
 	PublicKey     string   `json:"public_key" db:"public_key"`
+	CreatedTime   string   `db:"created_time"`
 }
 
 func (d *ActivationDetail) Marshal() (string, error) {

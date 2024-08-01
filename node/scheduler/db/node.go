@@ -1176,7 +1176,7 @@ func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
 	}
 
 	query = fmt.Sprintf(
-		`INSERT INTO %s (node_id, online_duration, offline_duration, disk_usage, last_seen, profit, available_disk_space, titan_disk_usage, penalty_profit, port_mapping
+		`INSERT INTO %s (node_id, online_duration, offline_duration, disk_usage, last_seen, profit, available_disk_space, titan_disk_usage, penalty_profit, port_mapping,
 			    download_traffic, upload_traffic, asset_count, retrieve_count, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid,first_login_time) 
 				VALUES (:node_id, :online_duration, :offline_duration, :disk_usage, :last_seen, :profit, :available_disk_space, :titan_disk_usage, :penalty_profit, :port_mapping,
 				:download_traffic, :upload_traffic, :asset_count, :retrieve_count, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid, :first_login_time)`, nodeInfoTable)
