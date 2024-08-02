@@ -120,7 +120,7 @@ type NodeAPI interface {
 	// NodeLogin generates an authentication token for a node with the specified node ID and signature
 	NodeLogin(ctx context.Context, nodeID, sign string) (string, error) //perm:default
 	// GetNodeInfo get information for node
-	GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) //perm:web,admin
+	GetNodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error) //perm:web,admin
 	// GetNodeList retrieves a list of nodes with pagination using the specified cursor and count
 	GetNodeList(ctx context.Context, cursor int, count int) (*types.ListNodesRsp, error) //perm:web,admin
 	// GetNodesFromRegion retrieves a list of nodes with pagination using the specified cursor and count
@@ -266,4 +266,7 @@ type Scheduler interface {
 
 	// GetNodeUploadInfo
 	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
+
+	// AssignTunserverURL Deprecated
+	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
 }

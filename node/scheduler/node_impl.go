@@ -397,7 +397,7 @@ func (s *Scheduler) CalculateDowntimePenalty(ctx context.Context, nodeID string)
 
 	err := s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
 	if err != nil {
-		return types.ExitProfitRsp{}, nil
+		return types.ExitProfitRsp{}, err
 	}
 
 	info, err := s.db.LoadNodeInfo(nodeID)
@@ -411,6 +411,10 @@ func (s *Scheduler) CalculateDowntimePenalty(ctx context.Context, nodeID string)
 		RemainingPoint: pe,
 		PenaltyRate:    exitRate,
 	}, err
+}
+
+func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) {
+	return &types.TunserverRsp{}, nil
 }
 
 // CalculateExitProfit Deprecated
@@ -618,15 +622,13 @@ func (s *Scheduler) NodeLogin(ctx context.Context, nodeID, sign string) (string,
 }
 
 // GetNodeInfo returns information about the specified node.
-func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (types.NodeInfo, error) {
-	nodeInfo := types.NodeInfo{}
-	nodeInfo.Status = types.NodeOffline
-
-	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.NodeInfo, error) {
+	nodeInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil {
-		return nodeInfo, xerrors.Errorf("nodeID %s LoadNodeInfo err:%s", nodeID, err.Error())
+		return nil, xerrors.Errorf("nodeID %s LoadNodeInfo err:%s", nodeID, err.Error())
 	}
-	nodeInfo = *dbInfo
+
+	nodeInfo.Status = types.NodeOffline
 
 	n := s.NodeManager.GetNode(nodeID)
 	if n != nil {

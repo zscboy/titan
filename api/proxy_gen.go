@@ -428,7 +428,7 @@ type NodeAPIStruct struct {
 
 		GetNextFreeTime func(p0 context.Context, p1 string) (int64, error) `perm:"edge,candidate,admin"`
 
-		GetNodeInfo func(p0 context.Context, p1 string) (types.NodeInfo, error) `perm:"web,admin"`
+		GetNodeInfo func(p0 context.Context, p1 string) (*types.NodeInfo, error) `perm:"web,admin"`
 
 		GetNodeList func(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) `perm:"web,admin"`
 
@@ -578,6 +578,8 @@ type SchedulerStruct struct {
 	ContainerAPIStruct
 
 	Internal struct {
+
+		AssignTunserverURL func(p0 context.Context) (*types.TunserverRsp, error) `perm:"edge"`
 
 		CandidateCodeExist func(p0 context.Context, p1 string) (bool, error) `perm:"admin,web,locator"`
 
@@ -2022,15 +2024,15 @@ func (s *NodeAPIStub) GetNextFreeTime(p0 context.Context, p1 string) (int64, err
 	return 0, ErrNotSupported
 }
 
-func (s *NodeAPIStruct) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
+func (s *NodeAPIStruct) GetNodeInfo(p0 context.Context, p1 string) (*types.NodeInfo, error) {
 	if s.Internal.GetNodeInfo == nil {
-		return *new(types.NodeInfo), ErrNotSupported
+		return nil, ErrNotSupported
 	}
 	return s.Internal.GetNodeInfo(p0, p1)
 }
 
-func (s *NodeAPIStub) GetNodeInfo(p0 context.Context, p1 string) (types.NodeInfo, error) {
-	return *new(types.NodeInfo), ErrNotSupported
+func (s *NodeAPIStub) GetNodeInfo(p0 context.Context, p1 string) (*types.NodeInfo, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *NodeAPIStruct) GetNodeList(p0 context.Context, p1 int, p2 int) (*types.ListNodesRsp, error) {
@@ -2624,6 +2626,17 @@ func (s *ProviderAPIStub) UpdateIngress(p0 context.Context, p1 types.DeploymentI
 
 
 
+
+func (s *SchedulerStruct) AssignTunserverURL(p0 context.Context) (*types.TunserverRsp, error) {
+	if s.Internal.AssignTunserverURL == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.AssignTunserverURL(p0)
+}
+
+func (s *SchedulerStub) AssignTunserverURL(p0 context.Context) (*types.TunserverRsp, error) {
+	return nil, ErrNotSupported
+}
 
 func (s *SchedulerStruct) CandidateCodeExist(p0 context.Context, p1 string) (bool, error) {
 	if s.Internal.CandidateCodeExist == nil {

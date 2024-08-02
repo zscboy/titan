@@ -385,7 +385,7 @@ func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) floa
 	serverC := 0
 
 	for date, serverCount := range m.serverOnlineCounts {
-		log.Infof("%s %s/%s %v", nodeID, date.String(), firstTime.String(), firstTime.Before(date))
+		// log.Infof("%s %s/%s %v", nodeID, date.String(), firstTime.String(), firstTime.Before(date))
 		if firstTime.Before(date) {
 			nodeCount, err := m.GetOnlineCount(nodeID, date)
 			if err != nil {
