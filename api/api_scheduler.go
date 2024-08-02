@@ -265,7 +265,7 @@ type Scheduler interface {
 	RemoveCandidateCode(ctx context.Context, code string) error                                         //perm:admin,web,locator
 
 	// GetNodeUploadInfo
-	GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) //perm:user,web,admin
+	GetNodeUploadInfo(ctx context.Context, userID string, pass string) (*types.UploadInfo, error) //perm:user,web,admin
 
 	// AssignTunserverURL Deprecated
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge

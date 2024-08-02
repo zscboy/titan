@@ -9,6 +9,7 @@ import (
 	gopath "path"
 	"strings"
 
+	fscrypto "github.com/Filecoin-Titan/titan/node/httpserver/crypto"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-libipfs/files"
@@ -20,7 +21,7 @@ func init() {
 }
 
 // serveFile serves a single file to the client.
-func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, assetCID string, file files.File) (int, error) {
+func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, assetCID string, file files.File, filePass []byte) (int, error) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
@@ -57,6 +58,14 @@ func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, assetCID
 	content := &lazySeeker{
 		size:   size,
 		reader: file,
+	}
+
+	if len(filePass) > 0 {
+		streamer, err := fscrypto.NewDecryptPartIPFSStreamer(file, filePass)
+		if err != nil {
+			return http.StatusInternalServerError, fmt.Errorf("decrypt file error: %s", err.Error())
+		}
+		content.ctr = streamer
 	}
 
 	// Calculate deterministic value for Content-Type HTTP header

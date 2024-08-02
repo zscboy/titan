@@ -428,7 +428,7 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 // 	return permissions, nil
 // }
 
-func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*types.UploadInfo, error) {
+func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string) (*types.UploadInfo, error) {
 	uID := handler.GetUserID(ctx)
 	if len(uID) > 0 {
 		userID = uID
@@ -455,7 +455,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string) (*type
 		AlreadyExists: false,
 	}
 
-	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID}
+	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID, FilePassNonce: passNonce}
 
 	for _, cNode := range cNodes {
 		token, err := cNode.API.AuthNew(context.Background(), payload)
