@@ -15,6 +15,10 @@ import (
 	"github.com/ipfs/interface-go-ipfs-core/path"
 )
 
+func init() {
+	mime.AddExtensionType(".apk", "application/vnd.android.package-archive")
+}
+
 // serveFile serves a single file to the client.
 func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, assetCID string, file files.File) (int, error) {
 	ctx, cancel := context.WithCancel(r.Context())
