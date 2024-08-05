@@ -97,13 +97,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		if err := s.NodeManager.NodeExists(nodeID); err != nil {
 			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, nodeType, err)
 		}
-		cNode = node.New()
 		alreadyConnect = false
-	}
-
-	// clean old info
-	if cNode.ExternalIP != "" {
-		s.NodeManager.IPMgr.RemoveNodeIP(nodeID, cNode.ExternalIP)
+	} else {
+		// clean old info
+		if cNode.ExternalIP != "" {
+			s.NodeManager.IPMgr.RemoveNodeIP(nodeID, cNode.ExternalIP)
+		}
 	}
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
@@ -113,6 +112,10 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	if !s.NodeManager.IPMgr.StoreNodeIP(nodeID, externalIP) {
 		return xerrors.Errorf("%s The number of IPs exceeds the limit", externalIP)
+	}
+
+	if cNode == nil {
+		cNode = node.New()
 	}
 
 	defer func() {

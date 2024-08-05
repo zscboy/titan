@@ -40,7 +40,7 @@ const (
 	// Interval to get asset pull progress from node (Unit:Second)
 	uploadProgressInterval = time.Second
 	// Interval to check candidate backup of asset (Unit:Minute)
-	checkCandidateBackupInterval = 10 * time.Minute
+	checkCandidateBackupInterval = 5 * time.Minute
 	// Maximum number of replicas per asset
 	assetEdgeReplicasLimit = 1000
 	// The number of retries to select the pull asset node
@@ -225,7 +225,7 @@ func (m *Manager) setAssetTimeout(hash, msg string) {
 }
 
 func (m *Manager) retrieveCandidateBackupOfAssets() {
-	hashes, err := m.LoadReplenishBackups(5)
+	hashes, err := m.LoadReplenishBackups(10)
 	if err != nil && err != sql.ErrNoRows {
 		log.Errorf("LoadReplenishBackups err:%s", err.Error())
 		return

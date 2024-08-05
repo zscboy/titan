@@ -849,8 +849,6 @@ func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.R
 }
 
 func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.AssetSourceDownloadInfoRsp, int64, error) {
-	out := &types.AssetSourceDownloadInfoRsp{}
-
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, 0, xerrors.Errorf("GetAssetSourceDownloadInfo %s cid to hash err:%s", cid, err.Error())
@@ -866,6 +864,7 @@ func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.Ass
 		return nil, 0, err
 	}
 
+	out := &types.AssetSourceDownloadInfoRsp{}
 	if aInfo.Source == int64(types.AssetSourceAWS) {
 		out.AWSBucket = aInfo.Note
 	}

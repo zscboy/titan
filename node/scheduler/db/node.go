@@ -425,10 +425,15 @@ func (n *SQLDB) LoadNodeInfosOfType(nodeType int) ([]*types.NodeInfo, error) {
 
 // LoadNodeInfo load node information.
 func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
+	err := n.NodeExists(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeInfoTable)
 
 	var out types.NodeInfo
-	err := n.db.Get(&out, query, nodeID)
+	err = n.db.Get(&out, query, nodeID)
 	if err != nil {
 		return nil, err
 	}
