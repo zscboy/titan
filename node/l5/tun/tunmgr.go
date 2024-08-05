@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -15,12 +16,12 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type TunManger struct {
 	l5API   api.L5
-	tunnels map[int]*Tunnel
+	tunnels *sync.Map
 	tidx    int
 }
 
 func NewTunManager(l5API api.L5) *TunManger {
-	tm := &TunManger{l5API: l5API, tunnels: make(map[int]*Tunnel), tidx: 0}
+	tm := &TunManger{l5API: l5API, tunnels: &sync.Map{}, tidx: 0}
 	go tm.keepalive()
 	return tm
 }
@@ -46,8 +47,8 @@ func (tm *TunManger) AcceptWebsocket(w http.ResponseWriter, r *http.Request) {
 	tm.tidx++
 
 	tun := newTunnel(idx, conn, 100)
-	tm.tunnels[idx] = tun
-	defer delete(tm.tunnels, idx)
+	tm.tunnels.Store(idx, tun)
+	defer tm.tunnels.Delete(idx)
 
 	tun.serve()
 }
@@ -55,9 +56,11 @@ func (tm *TunManger) AcceptWebsocket(w http.ResponseWriter, r *http.Request) {
 func (tm *TunManger) keepalive() {
 	for {
 		time.Sleep(time.Second * 30)
-		for _, t := range tm.tunnels {
-			t.keepalive()
-		}
+		tm.tunnels.Range(func(key, value any) bool {
+			tun := value.(*Tunnel)
+			tun.keepalive()
+			return true
+		})
 	}
 }
 
