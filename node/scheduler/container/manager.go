@@ -101,7 +101,7 @@ func (m *Manager) CreateDeployment(ctx context.Context, deployment *types.Deploy
 	}
 
 	// TODO: authority validation
-	if providerApi.ExternalURL != "127.0.0.1" {
+	if providerApi.ExternalIP != "127.0.0.1" {
 		deployment.ProviderExposeIP = providerApi.ExternalIP
 	}
 
