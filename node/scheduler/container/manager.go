@@ -73,13 +73,15 @@ func (m *Manager) GetDeploymentList(ctx context.Context, opt *types.GetDeploymen
 	}
 
 	for _, deployment := range deployments {
-		providerApi := m.nodeMgr.GetNode(opt.ProviderID)
+		providerApi := m.nodeMgr.GetNode(deployment.ProviderID)
 		if providerApi == nil {
+			log.Errorf("provider %s offline", deployment.ProviderID)
 			continue
 		}
 
 		remoteDeployment, err := providerApi.GetDeployment(ctx, deployment.ID)
 		if err != nil {
+			log.Errorf("get deployment: %v", err)
 			continue
 		}
 
