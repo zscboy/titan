@@ -300,7 +300,7 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 		}
 
-		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: userID, AssetCID: assetCID}, s)
+		tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: userID, AssetCID: assetCID}, "", s)
 		if err != nil {
 			log.Errorf("ShareAssets generateAccessToken err:%s", err.Error())
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
@@ -319,6 +319,39 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 	}
 
 	return urls, nil
+}
+
+// ShareEncryptedAsset shares the encrypted file
+func (s *Scheduler) ShareEncryptedAsset(ctx context.Context, userID, assetCID, filePass string, expireTime time.Time) ([]string, error) {
+	rsp, _, err := s.GetDownloadInfos(assetCID, true)
+	if err != nil {
+		log.Errorf("ShareAssets GetDownloadInfos err:%s", err.Error())
+		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	}
+	if len(rsp.SourceList) == 0 {
+		log.Errorln("ShareAssets rsp.SourceList == 0")
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
+	}
+	tk, err := generateAccessToken(&types.AuthUserUploadDownloadAsset{UserID: userID, AssetCID: assetCID, Expiration: expireTime}, filePass, s)
+	if err != nil {
+		log.Errorf("ShareAssets generateAccessToken err:%s", err.Error())
+		return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
+	}
+
+	var ret []string
+
+	for _, info := range rsp.SourceList {
+		n := s.NodeManager.GetCandidateNode(info.NodeID)
+		if n != nil {
+			url := fmt.Sprintf("http://%s/ipfs/%s?token=%s", info.Address, assetCID, tk)
+			if len(n.ExternalURL) > 0 {
+				url = fmt.Sprintf("%s/ipfs/%s?token=%s", n.ExternalURL, assetCID, tk)
+			}
+			ret = append(ret, url)
+		}
+	}
+
+	return ret, err
 }
 
 func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error {
@@ -412,13 +445,13 @@ func (s *Scheduler) RemoveNodeFailedReplica(ctx context.Context) error {
 	return nil
 }
 
-func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, commonAPI api.Common) (string, error) {
+func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce string, commonAPI api.Common) (string, error) {
 	buf, err := json.Marshal(auth)
 	if err != nil {
 		return "", err
 	}
 
-	payload := types.JWTPayload{Extend: string(buf)}
+	payload := types.JWTPayload{Extend: string(buf), FilePassNonce: passNonce}
 	tk, err := commonAPI.AuthNew(context.Background(), &payload)
 	if err != nil {
 		return "", err

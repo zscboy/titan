@@ -99,6 +99,8 @@ type AssetAPIStruct struct {
 
 		ShareAssets func(p0 context.Context, p1 string, p2 []string) (map[string][]string, error) `perm:"web,admin,user"`
 
+		ShareEncryptedAsset func(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) `perm:"web,admin,user"`
+
 		StopAssetRecord func(p0 context.Context, p1 []string) error `perm:"admin"`
 
 		SwitchFillDiskTimer func(p0 context.Context, p1 bool) error `perm:"web,admin"`
@@ -1004,6 +1006,17 @@ func (s *AssetAPIStruct) ShareAssets(p0 context.Context, p1 string, p2 []string)
 
 func (s *AssetAPIStub) ShareAssets(p0 context.Context, p1 string, p2 []string) (map[string][]string, error) {
 	return *new(map[string][]string), ErrNotSupported
+}
+
+func (s *AssetAPIStruct) ShareEncryptedAsset(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) {
+	if s.Internal.ShareEncryptedAsset == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.ShareEncryptedAsset(p0, p1, p2, p3, p4)
+}
+
+func (s *AssetAPIStub) ShareEncryptedAsset(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *AssetAPIStruct) StopAssetRecord(p0 context.Context, p1 []string) error {
