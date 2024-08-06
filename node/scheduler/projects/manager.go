@@ -520,7 +520,7 @@ func (m *Manager) checkUnDoneProjects(limit, offset int) int {
 
 func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info ProjectInfo) []*node.Node {
 	out := make([]*node.Node, 0)
-	continent, country, province, city := region.DecodeAreaID(info.AreaID)
+	continent, country, province, city := region.DecodeAreaID(info.Requirement.AreaID)
 	if continent != "" {
 		list := m.nodeMgr.GeoMgr.FindNodesFromGeo(continent, country, province, city, types.NodeEdge)
 		sort.Slice(list, func(i, j int) bool {
@@ -565,6 +565,15 @@ func (m *Manager) checkNode(nodeID string, filterMap map[string]struct{}, info P
 	}
 
 	if _, exist := filterMap[node.NodeID]; exist {
+		return nil
+	}
+
+	nInfo, err := m.LoadNodeInfo(nodeID)
+	if err != nil {
+		return nil
+	}
+
+	if nInfo.Version < info.Requirement.Version {
 		return nil
 	}
 

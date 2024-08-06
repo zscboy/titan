@@ -25,7 +25,7 @@ var (
 
 const (
 	// keepaliveTime is the interval between keepalive requests
-	keepaliveTime = 10 * time.Second // seconds
+	keepaliveTime = 60 * time.Second // seconds
 
 	// saveInfoInterval is the interval at which node information is saved during keepalive requests
 	saveInfoInterval = 5 * time.Minute // keepalive saves information
@@ -108,7 +108,7 @@ func (m *Manager) startSaveNodeDataTimer() {
 func (m *Manager) startCheckNodeTimer() {
 	now := time.Now()
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 1, 0, 0, time.UTC)
+	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 1, 0, 0, now.Location())
 	if now.After(nextTime) {
 		nextTime = nextTime.Add(oneDay)
 	}
@@ -246,6 +246,8 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) updateNodeData(isCompensate bool) {
+	log.Debugln("start updateNodeData ...")
+
 	nodes := make([]*types.NodeDynamicInfo, 0)
 	detailsList := make([]*types.ProfitDetails, 0)
 
@@ -282,27 +284,17 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 		nodes = append(nodes, &node.NodeDynamicInfo)
 	}
 
-	if len(nodes) > 0 {
-		eList, err := m.UpdateNodeDynamicInfo(nodes)
-		if err != nil {
-			log.Errorf("UpdateNodeDynamicInfo err:%s", err.Error())
-		}
-
-		if len(eList) > 0 {
-			for _, str := range eList {
-				log.Errorln(str)
-			}
-		}
+	err := m.UpdateNodeDynamicInfo(nodes)
+	if err != nil {
+		log.Errorf("UpdateNodeDynamicInfo err:%s", err.Error())
 	}
 
-	if len(detailsList) > 0 {
-		for _, data := range detailsList {
-			err := m.AddNodeProfit(data)
-			if err != nil {
-				log.Errorf("AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
-			}
-		}
+	err = m.AddNodeProfits(detailsList)
+	if err != nil {
+		log.Errorf("AddNodeProfit err:%s", err.Error())
 	}
+
+	log.Debugln("end updateNodeData ...")
 }
 
 func roundDivision(a, b int) int {
@@ -344,6 +336,7 @@ func (m *Manager) updateServerOnlineCounts() {
 }
 
 func (m *Manager) redistributeNodeSelectWeights() {
+	log.Debugln("start redistributeNodeSelectWeights ...")
 	// repay all weights
 	m.weightMgr.cleanWeights()
 
@@ -377,6 +370,8 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeEdgeWeight(node.NodeID, wNum)
 	}
+
+	log.Debugln("end redistributeNodeSelectWeights ...")
 }
 
 // ComputeNodeOnlineRate Compute node online rate

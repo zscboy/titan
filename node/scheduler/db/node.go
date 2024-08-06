@@ -214,25 +214,27 @@ func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) err
 // SaveNodeInfo Insert or update node info
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info,
+		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info, version,
 			    disk_type, io_system, system_version, disk_space, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid) 
-				VALUES (:node_id, :mac_location, :cpu_cores, :memory, :node_name, :cpu_info, :available_disk_space, :titan_disk_usage, gpu_info,
+				VALUES (:node_id, :mac_location, :cpu_cores, :memory, :node_name, :cpu_info, :available_disk_space, :titan_disk_usage, :gpu_info, :version,
 				:disk_type, :io_system, :system_version, :disk_space, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, scheduler_sid=:scheduler_sid, system_version=:system_version, cpu_cores=:cpu_cores, titan_disk_usage=:titan_disk_usage, gpu_info=:gpu_info,
 				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space,
-				netflow_up=:netflow_up, netflow_down=:netflow_down `, nodeInfoTable)
+				netflow_up=:netflow_up, netflow_down=:netflow_down ,version=:version`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
 
 // UpdateNodeDynamicInfo update node online time , last time , disk usage ...
-func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) ([]string, error) {
-	errorList := make([]string, 0)
+func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) error {
+	if len(infos) == 0 {
+		return nil
+	}
 
 	tx, err := n.db.Beginx()
 	if err != nil {
-		return errorList, err
+		return err
 	}
 
 	defer func() {
@@ -248,12 +250,12 @@ func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) ([]string,
 		_, err = tx.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage,
 			info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID)
 		if err != nil {
-			errorList = append(errorList, fmt.Sprintf("UpdateOnlineDuration %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error()))
+			log.Errorf("UpdateOnlineDuration %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
 		}
 	}
 
 	// Commit
-	return errorList, tx.Commit()
+	return tx.Commit()
 }
 
 // SaveNodeRegisterInfos Insert Node register info
@@ -781,6 +783,43 @@ func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*typ
 	res.Total = count
 
 	return res, nil
+}
+
+func (n *SQLDB) AddNodeProfits(profitInfos []*types.ProfitDetails) error {
+	if len(profitInfos) == 0 {
+		return nil
+	}
+
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("Rollback err:%s", err.Error())
+		}
+	}()
+
+	for _, profitInfo := range profitInfos {
+		// add profit details
+		sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
+		_, err = tx.NamedExec(sqlString, profitInfo)
+		if err != nil {
+			log.Errorf("AddNodeProfits %s,%d, %.4f err:%s", profitInfo.NodeID, profitInfo.PType, profitInfo.Profit, err.Error())
+			continue
+		}
+
+		iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
+		_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.Penalty, profitInfo.NodeID)
+		if err != nil {
+			log.Errorf("AddNodeProfits node info %s,%d, %.4f err:%s", profitInfo.NodeID, profitInfo.PType, profitInfo.Profit, err.Error())
+			continue
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {

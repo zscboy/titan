@@ -152,6 +152,9 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		return xerrors.Errorf("Node %s does not meet the standard %s", nodeID, err.Error())
 	}
 
+	ver := api.NewVerFromString(nodeInfo.SystemVersion)
+	nodeInfo.Version = int64(ver)
+
 	nodeInfo.NodeID = nodeID
 	nodeInfo.RemoteAddr = remoteAddr
 	nodeInfo.SchedulerID = s.ServerID

@@ -59,10 +59,16 @@ type DeployProjectReq struct {
 	Replicas   int64
 	Expiration time.Time
 
+	Requirement ProjectRequirement
+}
+
+type ProjectRequirement struct {
 	CPUCores int64
-	Memory   float64
+	Memory   int64
 	AreaID   string
-	NodeIDs  []string
+	Version  int64
+
+	NodeIDs []string
 }
 
 type ProjectInfo struct {
@@ -77,9 +83,8 @@ type ProjectInfo struct {
 	CreatedTime time.Time       `db:"created_time"`
 	UserID      string          `db:"user_id"`
 
-	CPUCores int64   `db:"cpu_cores"`
-	Memory   float64 `db:"memory"`
-	AreaID   string  `db:"area_id"`
+	RequirementByte []byte `db:"requirement"`
+	Requirement     ProjectRequirement
 
 	DetailsList       []*ProjectReplicas
 	RetryCount        int64 `db:"retry_count"`

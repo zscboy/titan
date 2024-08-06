@@ -26,6 +26,7 @@ func (m *Manager) startNodeKeepaliveTimer() {
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) nodesKeepalive() {
+	log.Debugln("start nodesKeepalive ...")
 	now := time.Now()
 
 	// date := now.Format("2006-01-02")
@@ -51,11 +52,13 @@ func (m *Manager) nodesKeepalive() {
 	}
 
 	if len(nodes) > 0 {
-		err := m.UpdateOnlineCount(nodes, 2, date)
+		err := m.UpdateOnlineCount(nodes, 12, date)
 		if err != nil {
 			log.Errorf("UpdateNodeInfos err:%s", err.Error())
 		}
 	}
+
+	log.Debugln("end nodesKeepalive ...")
 }
 
 // checkNodeStatus checks if a node has sent a keepalive recently and updates node status accordingly

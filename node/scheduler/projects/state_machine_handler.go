@@ -43,8 +43,8 @@ func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) e
 		filterMap[nodeID] = struct{}{}
 	}
 
-	if info.NodeIDs != nil && len(info.NodeIDs) > 0 {
-		for _, nodeID := range info.NodeIDs {
+	if info.Requirement.NodeIDs != nil && len(info.Requirement.NodeIDs) > 0 {
+		for _, nodeID := range info.Requirement.NodeIDs {
 			node := m.nodeMgr.GetEdgeNode(nodeID)
 			if node == nil {
 				continue

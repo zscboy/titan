@@ -84,7 +84,7 @@ var listProjectCmd = &cli.Command{
 			tablewriter.Col("UUID"),
 			tablewriter.Col("State"),
 			tablewriter.Col("Name"),
-			tablewriter.Col("Area"),
+			// tablewriter.Col("Area"),
 			tablewriter.Col("UserID"),
 			tablewriter.Col("BundleURL"),
 			tablewriter.Col("Replicas"),
@@ -102,11 +102,11 @@ var listProjectCmd = &cli.Command{
 			info := list[w]
 
 			m := map[string]interface{}{
-				"Num":            w + 1,
-				"UUID":           info.UUID,
-				"State":          projectColorState(info.State),
-				"Name":           info.Name,
-				"Area":           info.AreaID,
+				"Num":   w + 1,
+				"UUID":  info.UUID,
+				"State": projectColorState(info.State),
+				"Name":  info.Name,
+				// "Area":           info.AreaID,
 				"UserID":         info.UserID,
 				"BundleURL":      info.BundleURL,
 				"Replicas":       info.Replicas,
@@ -191,13 +191,15 @@ var deployProjectCmd = &cli.Command{
 		}
 
 		err = schedulerAPI.DeployProject(ctx, &types.DeployProjectReq{
-			UUID:       pid,
-			Name:       name,
-			BundleURL:  url,
-			UserID:     uid,
-			Replicas:   int64(count),
-			NodeIDs:    nodeIDs,
-			AreaID:     areaID,
+			UUID:      pid,
+			Name:      name,
+			BundleURL: url,
+			UserID:    uid,
+			Replicas:  int64(count),
+			Requirement: types.ProjectRequirement{
+				AreaID:  areaID,
+				NodeIDs: nodeIDs,
+			},
 			Expiration: expiration,
 		})
 		if err != nil {

@@ -53,6 +53,7 @@ type NodeInfo struct {
 	NetFlowDown    int64           `json:"netflow_down" db:"netflow_down" gorm:"column:netflow_down;"`
 	DiskSpace      float64         `json:"disk_space" form:"diskSpace" gorm:"column:disk_space;comment:;" db:"disk_space"`
 	SystemVersion  string          `json:"system_version" form:"systemVersion" gorm:"column:system_version;comment:;" db:"system_version"`
+	Version        int64           `db:"version"`
 	DiskType       string          `json:"disk_type" form:"diskType" gorm:"column:disk_type;comment:;" db:"disk_type"`
 	IoSystem       string          `json:"io_system" form:"ioSystem" gorm:"column:io_system;comment:;" db:"io_system"`
 	NodeName       string          `json:"node_name" form:"nodeName" gorm:"column:node_name;comment:;" db:"node_name"`

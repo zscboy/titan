@@ -1,6 +1,8 @@
 package projects
 
 import (
+	"bytes"
+	"encoding/gob"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -46,33 +48,42 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", req.Replicas, edgeReplicasLimit)
 	}
 
+	if len(req.Requirement.NodeIDs) > 20 {
+		return xerrors.Errorf("The number of nodes %d exceeds the limit %d", req.Replicas, 20)
+	}
+
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 	log.Infof("project event: %s, add project ", req.Name)
 
-	info := &types.ProjectInfo{
-		UUID:        req.UUID,
-		ServerID:    m.nodeMgr.ServerID,
-		Expiration:  req.Expiration,
-		State:       NodeSelect.String(),
-		CreatedTime: time.Now(),
-		Name:        req.Name,
-		BundleURL:   req.BundleURL,
-		UserID:      req.UserID,
-		Replicas:    req.Replicas,
-		CPUCores:    req.CPUCores,
-		Memory:      req.Memory,
-		AreaID:      req.AreaID,
+	buffer := &bytes.Buffer{}
+	enc := gob.NewEncoder(buffer)
+	err := enc.Encode(req.Requirement)
+	if err != nil {
+		return xerrors.Errorf("Deploy encode error:%s", err.Error())
 	}
 
-	err := m.SaveProjectInfo(info)
+	info := &types.ProjectInfo{
+		UUID:            req.UUID,
+		ServerID:        m.nodeMgr.ServerID,
+		Expiration:      req.Expiration,
+		State:           NodeSelect.String(),
+		CreatedTime:     time.Now(),
+		Name:            req.Name,
+		BundleURL:       req.BundleURL,
+		UserID:          req.UserID,
+		Replicas:        req.Replicas,
+		RequirementByte: buffer.Bytes(),
+	}
+
+	err = m.SaveProjectInfo(info)
 	if err != nil {
 		return err
 	}
 
 	rInfo := ProjectForceState{
 		State:   NodeSelect,
-		NodeIDs: req.NodeIDs,
+		NodeIDs: req.Requirement.NodeIDs,
 	}
 
 	// create project task

@@ -140,18 +140,27 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD migrate_key     VARCHAR(128)  DEFAULT ''", nodeRegisterTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
-	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD force_offline        BOOLEAN         DEFAULT false", nodeInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN nat_type ;", nodeInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD requirement   BLOB ", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD version              INT             DEFAULT 0", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN memory ;", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN area_id ;", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err = d.db.Exec(fmt.Sprintf("UPDATE  %s AS ni SET ni.penalty_profit = (SELECT ABS(COALESCE(SUM(pd.profit), 0)) FROM profit_details AS pd  WHERE pd.node_id = ni.node_id AND pd.profit_type = 7);", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
