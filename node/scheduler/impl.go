@@ -85,6 +85,20 @@ type Scheduler struct {
 
 var _ api.Scheduler = &Scheduler{}
 
+func (s *Scheduler) getAreaInfo() (string, bool) {
+	aID := s.SchedulerCfg.AreaID
+
+	parts := strings.Split(aID, "-")
+	continent := strings.ToLower(strings.Replace(parts[0], " ", "", -1))
+	country := strings.ToLower(strings.Replace(parts[1], " ", "", -1))
+
+	areaID := fmt.Sprintf("%s-%s", continent, country)
+
+	communityArea := aID == "Asia-HongKong"
+
+	return areaID, communityArea
+}
+
 // nodeConnect processes a node connect request with the given options and node type.
 func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions, nodeType types.NodeType) error {
 	remoteAddr := handler.GetRemoteAddr(ctx)

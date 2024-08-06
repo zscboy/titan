@@ -82,8 +82,8 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	}
 
 	rInfo := ProjectForceState{
-		State:   NodeSelect,
-		NodeIDs: req.Requirement.NodeIDs,
+		State: NodeSelect,
+		// NodeIDs: req.Requirement.NodeIDs,
 	}
 
 	// create project task

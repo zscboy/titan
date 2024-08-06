@@ -86,6 +86,8 @@ type NodeAPI interface {
 	RegisterEdgeNode(ctx context.Context, nodeID, publicKey string) (*types.ActivationDetail, error) //perm:default
 	// RegisterCandidateNode adds new node to the scheduler
 	RegisterCandidateNode(ctx context.Context, nodeID, publicKey, code string) (*types.ActivationDetail, error) //perm:default
+	// RegisterNodeV2 adds new edge node to the scheduler
+	RegisterNodeV2(ctx context.Context, info types.NodeRegister) (*types.ActivationDetail, error) //perm:default
 	// DeactivateNode is used to deactivate a node in the titan server.
 	// It stops the node from serving any requests and marks it as inactive.
 	// - nodeID: The ID of the node to deactivate.

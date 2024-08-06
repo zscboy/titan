@@ -1229,12 +1229,14 @@ func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
 		return err
 	}
 
-	query = fmt.Sprintf(
-		`INSERT INTO %s (code, expiration, node_type, is_test, node_id)
+	if info.CodeInfo != nil {
+		query = fmt.Sprintf(
+			`INSERT INTO %s (code, expiration, node_type, is_test, node_id)
 			VALUES (:code, :expiration, :node_type, :is_test, :node_id)`, candidateCodeTable)
-	_, err = tx.NamedExec(query, info.CodeInfo)
-	if err != nil {
-		return err
+		_, err = tx.NamedExec(query, info.CodeInfo)
+		if err != nil {
+			return err
+		}
 	}
 
 	for t, i := range info.OnlineCounts {

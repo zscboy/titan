@@ -519,6 +519,8 @@ func (m *Manager) checkUnDoneProjects(limit, offset int) int {
 }
 
 func (m *Manager) chooseNodes(needCount int, filterMap map[string]struct{}, info ProjectInfo) []*node.Node {
+	log.Infof("chooseNodes id %s ,%d ,AreaID[%s] ,Version[%d] ", info.UUID, needCount, info.Requirement.AreaID, info.Requirement.Version)
+
 	out := make([]*node.Node, 0)
 	continent, country, province, city := region.DecodeAreaID(info.Requirement.AreaID)
 	if continent != "" {
@@ -574,6 +576,7 @@ func (m *Manager) checkNode(nodeID string, filterMap map[string]struct{}, info P
 	}
 
 	if nInfo.Version < info.Requirement.Version {
+		log.Infof("checkNode nodeID %s ,Version %d", nodeID, nInfo.Version)
 		return nil
 	}
 

@@ -160,6 +160,11 @@ var deployProjectCmd = &cli.Command{
 			Usage: "area id like 'Asia-China-Guangdong-Shenzhen' or 'Asia-HongKong'",
 			Value: "",
 		},
+		&cli.Int64Flag{
+			Name:  "ver",
+			Usage: "node version",
+			Value: 0,
+		},
 		expirationDateFlag,
 	},
 	Action: func(cctx *cli.Context) error {
@@ -170,6 +175,7 @@ var deployProjectCmd = &cli.Command{
 		nodeIDs := cctx.StringSlice("nodes")
 		areaID := cctx.String("area")
 		date := cctx.String("expiration-date")
+		ver := cctx.Int64("ver")
 
 		ctx := ReqContext(cctx)
 
@@ -199,6 +205,7 @@ var deployProjectCmd = &cli.Command{
 			Requirement: types.ProjectRequirement{
 				AreaID:  areaID,
 				NodeIDs: nodeIDs,
+				Version: ver,
 			},
 			Expiration: expiration,
 		})

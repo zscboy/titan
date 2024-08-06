@@ -504,6 +504,14 @@ type NodeActivation struct {
 	ActivationCode string
 }
 
+type NodeRegister struct {
+	NodeID    string
+	Code      string
+	PublicKey string
+	AreaID    string
+	NodeType  NodeType
+}
+
 type ActivationDetail struct {
 	NodeID        string   `json:"node_id" db:"node_id"`
 	AreaID        string   `json:"area_id" `

@@ -207,6 +207,50 @@ func isInIPWhitelist(ip string, ipWhiteList []string) bool {
 	return false
 }
 
+// RegisterNodeV2 register edge node, return key
+func (s *Scheduler) RegisterNodeV2(ctx context.Context, info types.NodeRegister) (*types.ActivationDetail, error) {
+	if info.NodeType == types.NodeEdge {
+		if !s.areaMatch(info.AreaID) {
+			return nil, xerrors.Errorf("%s area is not match %s", info.NodeID, info.AreaID)
+		}
+
+		return s.RegisterNode(ctx, info.NodeID, info.PublicKey, types.NodeEdge)
+	} else if info.NodeType == types.NodeCandidate {
+		if !s.areaMatch(info.AreaID) {
+			cInfo, err := s.db.GetCandidateCodeInfo(info.Code)
+			if err != nil {
+				return nil, err
+			}
+
+			if !cInfo.IsTest {
+				return nil, xerrors.Errorf("%s area is not match %s", info.NodeID, info.AreaID)
+			}
+		}
+
+		return s.RegisterCandidateNode(ctx, info.NodeID, info.PublicKey, info.Code)
+	}
+
+	return s.RegisterNode(ctx, info.NodeID, info.PublicKey, info.NodeType)
+}
+
+func (s *Scheduler) areaMatch(nodeArea string) bool {
+	sID, isC := s.getAreaInfo()
+	if isC {
+		return true
+	}
+
+	parts := strings.Split(nodeArea, "-")
+	if len(parts) < 2 {
+		return false
+	}
+
+	continent := strings.ToLower(strings.Replace(parts[0], " ", "", -1))
+	country := strings.ToLower(strings.Replace(parts[1], " ", "", -1))
+	areaID := fmt.Sprintf("%s-%s", continent, country)
+
+	return sID == areaID
+}
+
 // RegisterEdgeNode register edge node, return key
 func (s *Scheduler) RegisterEdgeNode(ctx context.Context, nodeID, publicKey string) (*types.ActivationDetail, error) {
 	return s.RegisterNode(ctx, nodeID, publicKey, types.NodeEdge)
@@ -305,9 +349,9 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 		return nil, err
 	}
 
-	if rInfo.NodeType != types.NodeCandidate {
-		return nil, xerrors.Errorf("node :%s not candidate", nodeID)
-	}
+	// if rInfo.NodeType != types.NodeCandidate {
+	// 	return nil, xerrors.Errorf("node :%s not candidate", nodeID)
+	// }
 
 	nInfo, err := s.db.LoadNodeInfo(nodeID)
 	if err != nil {
@@ -331,9 +375,12 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 		}
 	}
 
-	cInfo, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
-	if err != nil {
-		return nil, err
+	var cInfo *types.CandidateCodeInfo
+	if rInfo.NodeType != types.NodeCandidate {
+		cInfo, err = s.db.GetCandidateCodeInfoForNodeID(nodeID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	out.ActivationInfo = rInfo
@@ -353,7 +400,7 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 
 // MigrateNodeIn Migrate in the node
 func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateInfo) error {
-	if info.ActivationInfo == nil || info.NodeInfo == nil || info.CodeInfo == nil {
+	if info.ActivationInfo == nil || info.NodeInfo == nil {
 		return xerrors.New("Parameter cannot be empty")
 	}
 
