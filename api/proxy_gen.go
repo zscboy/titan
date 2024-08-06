@@ -189,39 +189,39 @@ type CommonStub struct {
 
 type ContainerAPIStruct struct {
 	Internal struct {
-		AddDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 *types.Certificate) error `perm:"web"`
+		AddDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 *types.Certificate) error `perm:"web,admin"`
 
-		CloseDeployment func(p0 context.Context, p1 *types.Deployment, p2 bool) error `perm:"web"`
+		CloseDeployment func(p0 context.Context, p1 *types.Deployment, p2 bool) error `perm:"web,admin"`
 
-		CreateDeployment func(p0 context.Context, p1 *types.Deployment) error `perm:"admin"`
+		CreateDeployment func(p0 context.Context, p1 *types.Deployment) error `perm:"web,admin"`
 
-		DeleteDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 string) error `perm:"web"`
+		DeleteDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 string) error `perm:"web,admin"`
 
-		GetDeploymentDomains func(p0 context.Context, p1 types.DeploymentID) ([]*types.DeploymentDomain, error) `perm:"web"`
+		GetDeploymentDomains func(p0 context.Context, p1 types.DeploymentID) ([]*types.DeploymentDomain, error) `perm:"web,admin"`
 
-		GetDeploymentList func(p0 context.Context, p1 *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) `perm:"web,candidate"`
+		GetDeploymentList func(p0 context.Context, p1 *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) `perm:"web,candidate,admin"`
 
-		GetDeploymentProviderIP func(p0 context.Context, p1 types.DeploymentID) (string, error) `perm:"edge,candidate,web,locator"`
+		GetDeploymentProviderIP func(p0 context.Context, p1 types.DeploymentID) (string, error) `perm:"edge,candidate,web,locator,admin"`
 
-		GetEvents func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceEvent, error) `perm:"web"`
+		GetEvents func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceEvent, error) `perm:"web,admin"`
 
-		GetIngress func(p0 context.Context, p1 types.DeploymentID) (*types.Ingress, error) `perm:"web"`
+		GetIngress func(p0 context.Context, p1 types.DeploymentID) (*types.Ingress, error) `perm:"web,admin"`
 
-		GetLeaseShellEndpoint func(p0 context.Context, p1 types.DeploymentID) (*types.LeaseEndpoint, error) `perm:"web"`
+		GetLeaseShellEndpoint func(p0 context.Context, p1 types.DeploymentID) (*types.LeaseEndpoint, error) `perm:"web,admin"`
 
-		GetLogs func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceLog, error) `perm:"web"`
+		GetLogs func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceLog, error) `perm:"web,admin"`
 
-		GetProviderList func(p0 context.Context, p1 *types.GetProviderOption) ([]*types.Provider, error) `perm:"web"`
+		GetProviderList func(p0 context.Context, p1 *types.GetProviderOption) ([]*types.Provider, error) `perm:"web,admin"`
 
-		GetRemoteAddress func(p0 context.Context) (string, error) `perm:"web,candidate"`
+		GetRemoteAddress func(p0 context.Context) (string, error) `perm:"web,candidate,admin"`
 
-		GetStatistics func(p0 context.Context, p1 string) (*types.ResourcesStatistics, error) `perm:"web"`
+		GetStatistics func(p0 context.Context, p1 string) (*types.ResourcesStatistics, error) `perm:"web,admin"`
 
-		SetProperties func(p0 context.Context, p1 *types.Properties) error `perm:"web"`
+		SetProperties func(p0 context.Context, p1 *types.Properties) error `perm:"web,admin"`
 
-		UpdateDeployment func(p0 context.Context, p1 *types.Deployment) error `perm:"web"`
+		UpdateDeployment func(p0 context.Context, p1 *types.Deployment) error `perm:"web,admin"`
 
-		UpdateIngress func(p0 context.Context, p1 types.DeploymentID, p2 map[string]string) error `perm:"web"`
+		UpdateIngress func(p0 context.Context, p1 types.DeploymentID, p2 map[string]string) error `perm:"web,admin"`
 	}
 }
 
