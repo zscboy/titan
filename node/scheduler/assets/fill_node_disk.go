@@ -118,7 +118,7 @@ func (m *Manager) pullAssetFromAWSs() bool {
 		return true
 	}
 
-	if m.nodeMgr.Candidates < m.candidateReplicaCount {
+	if m.nodeMgr.Candidates < 2 {
 		return false
 	}
 

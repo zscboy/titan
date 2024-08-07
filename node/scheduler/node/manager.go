@@ -246,8 +246,6 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) updateNodeData(isCompensate bool) {
-	log.Debugln("start updateNodeData ...")
-
 	nodes := make([]*types.NodeDynamicInfo, 0)
 	detailsList := make([]*types.ProfitDetails, 0)
 
@@ -293,8 +291,6 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 	if err != nil {
 		log.Errorf("AddNodeProfit err:%s", err.Error())
 	}
-
-	log.Debugln("end updateNodeData ...")
 }
 
 func roundDivision(a, b int) int {

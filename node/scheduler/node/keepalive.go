@@ -26,7 +26,6 @@ func (m *Manager) startNodeKeepaliveTimer() {
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
 func (m *Manager) nodesKeepalive() {
-	log.Debugln("start nodesKeepalive ...")
 	now := time.Now()
 
 	// date := now.Format("2006-01-02")
@@ -57,8 +56,21 @@ func (m *Manager) nodesKeepalive() {
 			log.Errorf("UpdateNodeInfos err:%s", err.Error())
 		}
 	}
+}
 
-	log.Debugln("end nodesKeepalive ...")
+func (m *Manager) SetNodeOffline(node *Node) {
+	m.IPMgr.RemoveNodeIP(node.NodeID, node.ExternalIP)
+	m.GeoMgr.RemoveNodeGeo(node.NodeID, node.Type, node.AreaID)
+
+	if node.Type == types.NodeCandidate {
+		m.deleteCandidateNode(node)
+	} else if node.Type == types.NodeEdge {
+		m.deleteEdgeNode(node)
+	} else if node.Type == types.NodeL5 {
+		m.deleteL5Node(node)
+	}
+
+	log.Infof("node offline %s, %s", node.NodeID, node.ExternalIP)
 }
 
 // checkNodeStatus checks if a node has sent a keepalive recently and updates node status accordingly
@@ -66,18 +78,7 @@ func (m *Manager) checkNodeStatus(node *Node, t time.Time) bool {
 	lastTime := node.LastRequestTime()
 
 	if !lastTime.After(t) {
-		m.IPMgr.RemoveNodeIP(node.NodeID, node.ExternalIP)
-		m.GeoMgr.RemoveNodeGeo(node.NodeID, node.Type, node.AreaID)
-
-		if node.Type == types.NodeCandidate {
-			m.deleteCandidateNode(node)
-		} else if node.Type == types.NodeEdge {
-			m.deleteEdgeNode(node)
-		} else if node.Type == types.NodeL5 {
-			m.deleteL5Node(node)
-		}
-
-		log.Infof("node offline %s, %s", node.NodeID, node.ExternalIP)
+		m.SetNodeOffline(node)
 
 		return false
 	}

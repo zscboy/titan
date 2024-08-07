@@ -376,7 +376,7 @@ func (s *Scheduler) MigrateNodeOut(ctx context.Context, nodeID string) (*types.N
 	}
 
 	var cInfo *types.CandidateCodeInfo
-	if rInfo.NodeType != types.NodeCandidate {
+	if rInfo.NodeType == types.NodeCandidate {
 		cInfo, err = s.db.GetCandidateCodeInfoForNodeID(nodeID)
 		if err != nil {
 			return nil, err
@@ -429,7 +429,7 @@ func (s *Scheduler) CleanupNode(ctx context.Context, nodeID, key string) error {
 
 	node := s.NodeManager.GetNode(nodeID)
 	if node != nil {
-		node.SetLastRequestTime(time.Now().Add(-time.Minute))
+		s.NodeManager.SetNodeOffline(node)
 	}
 
 	return nil
