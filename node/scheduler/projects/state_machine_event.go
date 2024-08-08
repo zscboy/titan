@@ -41,7 +41,7 @@ type ProjectForceState struct {
 func (evt ProjectForceState) applyGlobal(state *ProjectInfo) bool {
 	state.State = evt.State
 	state.RetryCount = 0
-	state.Requirement.NodeIDs = evt.NodeIDs
+	// state.Requirement.NodeIDs = evt.NodeIDs
 	state.Event = evt.Event
 	return true
 }

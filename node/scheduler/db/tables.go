@@ -418,7 +418,7 @@ CREATE TABLE IF NOT EXISTS %s(
     gpu FLOAT        DEFAULT 0,
     memory FLOAT        DEFAULT 0,
     storage VARCHAR(128),
-    env VARCHAR(128) DEFAULT NULL,
+    env VARCHAR(1024) DEFAULT NULL,
     arguments VARCHAR(128) DEFAULT NULL,
     deployment_id VARCHAR(128) NOT NULL,
     error_message VARCHAR(128) DEFAULT NULL,

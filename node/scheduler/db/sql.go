@@ -161,6 +161,11 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
+
+	_, err = d.db.Exec("ALTER TABLE services CHANGE env env varchar(1024) DEFAULT NULL;")
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err = d.db.Exec(fmt.Sprintf("UPDATE  %s AS ni SET ni.penalty_profit = (SELECT ABS(COALESCE(SUM(pd.profit), 0)) FROM profit_details AS pd  WHERE pd.node_id = ni.node_id AND pd.profit_type = 7);", nodeInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

@@ -54,7 +54,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
-	log.Infof("project event: %s, add project ", req.Name)
+	log.Infof("%s project event: %s, add project area:[%s], node:[%s] ", req.UUID, req.Name, req.Requirement.AreaID, req.Requirement.NodeIDs)
 
 	buffer := &bytes.Buffer{}
 	enc := gob.NewEncoder(buffer)

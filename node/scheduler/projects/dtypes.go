@@ -118,6 +118,8 @@ func projectInfoFrom(info *types.ProjectInfo) *ProjectInfo {
 		// AreaID:            info.AreaID,
 	}
 
+	// log.Debugf("projectInfoFrom : %s ,area:%s nodes : %s", info.UUID, cInfo.Requirement.AreaID, cInfo.Requirement.NodeIDs)
+
 	for _, r := range info.DetailsList {
 		switch r.Status {
 		case types.ProjectReplicaStatusStarted:
