@@ -82,6 +82,21 @@ func (b *Workload) tolerations() []corev1.Toleration {
 	}
 }
 
+func (b *Workload) runtimeClass() *string {
+	params := b.deployment.ClusterParams().SchedulerParams[b.serviceIdx]
+	var effectiveRuntimeClassName *string
+
+	if params != nil {
+		if len(params.RuntimeClass) != 0 && params.RuntimeClass != runtimeClassNoneValue {
+			runtimeClass := new(string)
+			*runtimeClass = params.RuntimeClass
+			effectiveRuntimeClassName = runtimeClass
+		}
+	}
+
+	return effectiveRuntimeClassName
+}
+
 func (b *Workload) labels() map[string]string {
 	obj := b.builder.labels()
 	obj[TitanManifestServiceLabelName] = b.deployment.ManifestGroup().Services[b.serviceIdx].Name

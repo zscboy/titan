@@ -21,6 +21,10 @@ const (
 	unitOfCPU     = 1000
 )
 
+const (
+	runtimeClassNvidia = "nvidia"
+)
+
 func ClusterDeploymentFromDeployment(deployment *types.Deployment) (builder.IClusterDeployment, error) {
 	if len(deployment.ID) == 0 {
 		return nil, fmt.Errorf("deployment ID can not empty")
@@ -32,8 +36,15 @@ func ClusterDeploymentFromDeployment(deployment *types.Deployment) (builder.IClu
 		return nil, err
 	}
 
+	var sp []*builder.SchedulerParams
+	for _, service := range deployment.Services {
+		if service.GPU > 0 {
+			sp = append(sp, &builder.SchedulerParams{RuntimeClass: runtimeClassNvidia})
+		}
+	}
+
 	settings := builder.ClusterSettings{
-		SchedulerParams: make([]*builder.SchedulerParams, len(group.Services)),
+		SchedulerParams: sp,
 	}
 
 	return &builder.ClusterDeployment{

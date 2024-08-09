@@ -50,6 +50,7 @@ func (b *deployment) Create() (*appsv1.Deployment, error) { // nolint:golint,unp
 					Labels: b.labels(),
 				},
 				Spec: corev1.PodSpec{
+					RuntimeClassName: b.runtimeClass(),
 					Containers:       []corev1.Container{b.container()},
 					ImagePullSecrets: b.imagePullSecrets(),
 					NodeSelector:     map[string]string{titanNodeSelector: b.osType()},

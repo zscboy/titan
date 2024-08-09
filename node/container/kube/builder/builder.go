@@ -19,6 +19,11 @@ const (
 	osTypeWindows     = "windows"
 )
 
+const (
+	runtimeClassNoneValue = "none"
+	runtimeClassNvidia    = "nvidia"
+)
+
 var (
 	dnsPort     = intstr.FromInt(53)
 	udpProtocol = corev1.Protocol("UDP")

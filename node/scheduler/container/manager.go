@@ -85,10 +85,6 @@ func (m *Manager) GetDeploymentList(ctx context.Context, opt *types.GetDeploymen
 			continue
 		}
 
-		for _, service := range remoteDeployment.Services {
-			service.Name = makeGlobalServiceNameFromBasename(service.Name)
-		}
-
 		deployment.Services = remoteDeployment.Services
 	}
 
@@ -96,12 +92,6 @@ func (m *Manager) GetDeploymentList(ctx context.Context, opt *types.GetDeploymen
 		Deployments: deployments,
 		Total:       total,
 	}, nil
-}
-
-const SuffixForNodePortServiceName = "-np"
-
-func makeGlobalServiceNameFromBasename(basename string) string {
-	return fmt.Sprintf("%s%s", basename, SuffixForNodePortServiceName)
 }
 
 func (m *Manager) CreateDeployment(ctx context.Context, deployment *types.Deployment) error {
