@@ -22,7 +22,8 @@ const (
 )
 
 const (
-	runtimeClassNvidia = "nvidia"
+	runtimeClassNvidia    = "nvidia"
+	runtimeClassNoneValue = "none"
 )
 
 func ClusterDeploymentFromDeployment(deployment *types.Deployment) (builder.IClusterDeployment, error) {
@@ -38,9 +39,11 @@ func ClusterDeploymentFromDeployment(deployment *types.Deployment) (builder.IClu
 
 	var sp []*builder.SchedulerParams
 	for _, service := range deployment.Services {
+		runtimeClass := runtimeClassNoneValue
 		if service.GPU > 0 {
-			sp = append(sp, &builder.SchedulerParams{RuntimeClass: runtimeClassNvidia})
+			runtimeClass = runtimeClassNvidia
 		}
+		sp = append(sp, &builder.SchedulerParams{RuntimeClass: runtimeClass})
 	}
 
 	settings := builder.ClusterSettings{
@@ -206,6 +209,7 @@ func k8sDeploymentToService(deployment *appsv1.Deployment) (*types.Service, erro
 		CreatedAt: deployment.CreationTimestamp.Time,
 		Env:       make(map[string]string),
 		Replicas:  deployment.Status.Replicas,
+		Arguments: make([]string, 0),
 	}
 
 	service.CPU = container.Resources.Limits.Cpu().AsApproximateFloat64()
@@ -231,6 +235,8 @@ func k8sDeploymentToService(deployment *appsv1.Deployment) (*types.Service, erro
 	for _, envVar := range container.Env {
 		service.Env[envVar.Name] = envVar.Value
 	}
+
+	service.Arguments = append(service.Arguments, container.Args...)
 
 	status := types.ReplicasStatus{
 		TotalReplicas:     int(deployment.Status.Replicas),
