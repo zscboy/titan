@@ -109,7 +109,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode := s.NodeManager.GetNode(nodeID)
 	if cNode == nil {
 		if err := s.NodeManager.NodeExists(nodeID); err != nil {
-			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, nodeType, err)
+			return xerrors.Errorf("nodeConnect err node: %s, type: %d, error: %w", nodeID, nodeType, err)
 		}
 		alreadyConnect = false
 	} else {
@@ -121,11 +121,11 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
-		return xerrors.Errorf("SplitHostPort err:%s", err.Error())
+		return xerrors.Errorf("nodeConnect err SplitHostPort err:%s", err.Error())
 	}
 
 	if !s.NodeManager.IPMgr.StoreNodeIP(nodeID, externalIP) {
-		return xerrors.Errorf("%s The number of IPs exceeds the limit", externalIP)
+		return xerrors.Errorf("nodeConnect err %s The number of IPs %s exceeds the limit", nodeID, externalIP)
 	}
 
 	if cNode == nil {
@@ -149,22 +149,22 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
 	if err != nil {
-		return xerrors.Errorf("%s nodeConnect ConnectRPC err:%s", nodeID, err.Error())
+		return xerrors.Errorf("%s nodeConnect err ConnectRPC err:%s", nodeID, err.Error())
 	}
 
 	// init node info
 	nInfo, err := cNode.API.GetNodeInfo(context.Background())
 	if err != nil {
-		return xerrors.Errorf("%s nodeConnect NodeInfo err:%s", nodeID, err.Error())
+		return xerrors.Errorf("%s nodeConnect err NodeInfo err:%s", nodeID, err.Error())
 	}
 
 	if nodeID != nInfo.NodeID {
-		return xerrors.Errorf("nodeID mismatch %s, %s", nodeID, nInfo.NodeID)
+		return xerrors.Errorf("nodeConnect err nodeID mismatch %s, %s", nodeID, nInfo.NodeID)
 	}
 
 	nodeInfo, err := s.checkNodeParameters(nInfo, nodeType)
 	if err != nil {
-		return xerrors.Errorf("Node %s does not meet the standard %s", nodeID, err.Error())
+		return xerrors.Errorf("nodeConnect err Node %s does not meet the standard %s", nodeID, err.Error())
 	}
 
 	ver := api.NewVerFromString(nodeInfo.SystemVersion)
@@ -189,7 +189,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {
-		return xerrors.Errorf("load node online duration %s err : %s", nodeID, err.Error())
+		return xerrors.Errorf("nodeConnect err load node online duration %s err : %s", nodeID, err.Error())
 	}
 
 	nodeInfo.FirstTime = time.Now()
@@ -208,11 +208,11 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		nodeInfo.FirstTime = dbInfo.FirstTime
 
 		if dbInfo.DeactivateTime > 0 && dbInfo.DeactivateTime < time.Now().Unix() {
-			return xerrors.Errorf("The node %s has been deactivate and cannot be logged in", nodeID)
+			return xerrors.Errorf("nodeConnect err The node %s has been deactivate and cannot be logged in", nodeID)
 		}
 
 		if dbInfo.ForceOffline {
-			return xerrors.Errorf("The node %s has been forced offline", nodeID)
+			return xerrors.Errorf("nodeConnect err The node %s has been forced offline", nodeID)
 		}
 	}
 
@@ -228,12 +228,12 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
-			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+			return xerrors.Errorf("nodeConnect err load node port %s err : %s", nodeID, err.Error())
 		}
 
 		publicKey, err := titanrsa.Pem2PublicKey([]byte(pStr))
 		if err != nil {
-			return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
+			return xerrors.Errorf("nodeConnect err load node port %s err : %s", nodeID, err.Error())
 		}
 		cNode.PublicKey = publicKey
 		// init LastValidateTime

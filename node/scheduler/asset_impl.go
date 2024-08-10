@@ -111,6 +111,24 @@ func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, stat
 	return list, nil
 }
 
+// RemoveAssetRecords removes an asset record from the system by its CID.
+func (s *Scheduler) RemoveAssetRecords(ctx context.Context, cids []string) error {
+	if len(cids) == 0 {
+		return xerrors.Errorf("Cid Is Nil")
+	}
+
+	for _, cid := range cids {
+		hash, err := cidutil.CIDToHash(cid)
+		if err != nil {
+			continue
+		}
+
+		err = s.AssetManager.RemoveAsset(hash, false)
+	}
+
+	return nil
+}
+
 // RemoveAssetRecord removes an asset record from the system by its CID.
 func (s *Scheduler) RemoveAssetRecord(ctx context.Context, cid string) error {
 	if cid == "" {
