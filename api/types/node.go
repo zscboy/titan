@@ -489,7 +489,8 @@ type ConnectOptions struct {
 	IsPrivateMinioOnly bool
 	ExternalURL        string
 
-	GeoInfo *region.GeoInfo
+	GeoInfo             *region.GeoInfo
+	ResourcesStatistics *ResourcesStatistics
 }
 
 type GeneratedCarInfo struct {

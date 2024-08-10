@@ -26,7 +26,11 @@ func (s *Scheduler) GetStatistics(ctx context.Context, id string) (*types.Resour
 	return s.ContainerManager.GetStatistics(ctx, id)
 }
 
-func (s *Scheduler) GetProviderList(ctx context.Context, opt *types.GetProviderOption) ([]*types.Provider, error) {
+func (s *Scheduler) GetProviders(ctx context.Context, opt *types.GetProviderOption) ([]*types.Provider, error) {
+	return s.ContainerManager.GetProviders(ctx, opt)
+}
+
+func (s *Scheduler) GetProviderList(ctx context.Context, opt *types.GetProviderOption) (*types.ProvidersResp, error) {
 	return s.ContainerManager.GetProviderList(ctx, opt)
 }
 

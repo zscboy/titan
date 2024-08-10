@@ -74,10 +74,14 @@ var ProviderList = &cli.Command{
 			return err
 		}
 
-		for _, provider := range providers {
-			resource, err := api.GetStatistics(ctx, provider.ID)
-			if err != nil {
-				continue
+		for _, provider := range providers.Providers {
+			//resource, err := api.GetStatistics(ctx, provider.ID)
+			//if err != nil {
+			//	continue
+			//}
+			resource := &types.ResourcesStatistics{}
+			if provider.ResourcesStatistics != nil {
+				resource = provider.ResourcesStatistics
 			}
 
 			m := map[string]interface{}{

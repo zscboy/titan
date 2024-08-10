@@ -62,8 +62,31 @@ func (m *Manager) GetStatistics(ctx context.Context, id string) (*types.Resource
 	return node.GetStatistics(ctx)
 }
 
-func (m *Manager) GetProviderList(ctx context.Context, opt *types.GetProviderOption) ([]*types.Provider, error) {
-	return m.DB.GetAllProviders(ctx, opt)
+func (m *Manager) GetProviders(ctx context.Context, opt *types.GetProviderOption) ([]*types.Provider, error) {
+	_, providers, err := m.DB.GetAllProviders(ctx, opt)
+	return providers, err
+}
+
+func (m *Manager) GetProviderList(ctx context.Context, opt *types.GetProviderOption) (*types.ProvidersResp, error) {
+	total, providers, err := m.DB.GetAllProviders(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	var prs []*types.ProviderWithResource
+
+	for _, provider := range providers {
+		pr := &types.ProviderWithResource{
+			Provider: provider,
+		}
+		node := m.nodeMgr.GetNode(provider.ID)
+		if node != nil {
+			pr.ResourcesStatistics = node.ResourcesStatistics
+		}
+		prs = append(prs, pr)
+	}
+
+	return &types.ProvidersResp{Providers: prs, Total: total}, nil
 }
 
 func (m *Manager) GetDeploymentList(ctx context.Context, opt *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) {

@@ -77,6 +77,7 @@ type Node struct {
 	// FirstTime      time.Time
 	// Memory         float64
 	// CPUCores       int
+	ResourcesStatistics *types.ResourcesStatistics
 }
 
 // API represents the node API

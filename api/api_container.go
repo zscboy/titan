@@ -10,7 +10,8 @@ import (
 type ContainerAPI interface {
 	GetRemoteAddress(ctx context.Context) (string, error)                                                        //perm:web,candidate,admin
 	GetStatistics(ctx context.Context, id string) (*types.ResourcesStatistics, error)                            //perm:web,admin
-	GetProviderList(ctx context.Context, option *types.GetProviderOption) ([]*types.Provider, error)             //perm:web,admin
+	GetProviders(ctx context.Context, option *types.GetProviderOption) ([]*types.Provider, error)                //perm:web,admin
+	GetProviderList(ctx context.Context, option *types.GetProviderOption) (*types.ProvidersResp, error)          //perm:web,admin
 	GetDeploymentList(ctx context.Context, opt *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) //perm:web,candidate,admin
 	GetDeploymentProviderIP(ctx context.Context, id types.DeploymentID) (string, error)                          //perm:edge,candidate,web,locator,admin
 	CreateDeployment(ctx context.Context, deployment *types.Deployment) error                                    //perm:web,admin

@@ -474,7 +474,19 @@ var daemonStartCmd = &cli.Command{
 				for {
 					select {
 					case <-readyCh:
-						opts := &types.ConnectOptions{ExternalURL: candidateCfg.ExternalURL, Token: token, TcpServerPort: tcpServerPort, IsPrivateMinioOnly: isPrivateMinioOnly(candidateCfg)}
+						rs, rerr := candidateAPI.GetStatistics(ctx)
+						if rerr != nil {
+							log.Errorf("get resource statistics: %v", err)
+						}
+
+						opts := &types.ConnectOptions{
+							ExternalURL:         candidateCfg.ExternalURL,
+							Token:               token,
+							TcpServerPort:       tcpServerPort,
+							IsPrivateMinioOnly:  isPrivateMinioOnly(candidateCfg),
+							ResourcesStatistics: rs,
+						}
+						
 						err := schedulerAPI.CandidateConnect(ctx, opts)
 						if err != nil {
 							log.Errorf("Registering candidate failed: %s", err.Error())

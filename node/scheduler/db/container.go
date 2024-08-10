@@ -239,7 +239,7 @@ func (m *SQLDB) GetProviderById(ctx context.Context, id string) (*types.Provider
 	return &out, nil
 }
 
-func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOption) ([]*types.Provider, error) {
+func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOption) (int64, []*types.Provider, error) {
 	qry := `SELECT * from providers`
 	var condition []string
 	if option.ID != "" {
@@ -258,9 +258,20 @@ func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOp
 		condition = append(condition, fmt.Sprintf(`state in (%s)`, strings.Join(states, ",")))
 	}
 
+	countSql := `select count(id) from providers`
+
 	if len(condition) > 0 {
 		qry += ` WHERE `
 		qry += strings.Join(condition, ` AND `)
+		countSql += ` WHERE `
+		countSql += strings.Join(condition, ` AND `)
+	}
+
+	fmt.Println("===<", countSql)
+
+	var total int64
+	if err := m.db.GetContext(ctx, &total, countSql); err != nil {
+		return 0, nil, err
 	}
 
 	if option.Page <= 0 {
@@ -278,7 +289,7 @@ func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOp
 	var out []*types.Provider
 	err := m.db.SelectContext(ctx, &out, qry)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return total, out, nil
 }
