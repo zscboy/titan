@@ -455,7 +455,8 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 		AlreadyExists: false,
 	}
 
-	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID, FilePassNonce: passNonce}
+	// TODO remove FilePassNonce in order to avoid L1-updates
+	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID} //  FilePassNonce: passNonce
 
 	for _, cNode := range cNodes {
 		token, err := cNode.API.AuthNew(context.Background(), payload)
