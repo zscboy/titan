@@ -162,7 +162,8 @@ func (hs *HttpServer) handleUploadFileV2(r *http.Request, passNonce string) (cid
 		return cid.Cid{}, http.StatusInternalServerError, err
 	} else if isExists {
 		log.Debugf("asset %s already exist", rootCID.String())
-		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("asset %s already exist, file %s", rootCID.String(), header.Filename)
+		// return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("asset %s already exist, file %s", rootCID.String(), header.Filename)
+		return rootCID, http.StatusOK, nil
 	}
 
 	if err = hs.saveCarFile(context.Background(), tempCarFile, rootCID); err != nil {

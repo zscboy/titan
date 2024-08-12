@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/Filecoin-Titan/titan/api"
@@ -40,6 +42,7 @@ const (
 	methodReqFreeUpDisk    = "reqFreeUpDisk"
 	methodStateFreeUpDisk  = "stateFreeUpDisk"
 	methodRestart          = "restart"
+	methodCheckLocators    = "checkLocators"
 )
 
 type DaemonSwitch struct {
@@ -175,6 +178,8 @@ func (clib *CLib) JSONCall(jsonStr string) *JSONCallResult {
 		return clib.stateFreeUpDisk()
 	case methodRestart:
 		return clib.restart()
+	case methodCheckLocators:
+		return clib.checkLocators(args.JSONParams)
 	default:
 		result.Code = -1
 		result.Msg = fmt.Sprintf("Method %s not found", args.Method)
@@ -591,6 +596,85 @@ func (clib *CLib) restart() *JSONCallResult {
 	}
 
 	return &JSONCallResult{Msg: "ok"}
+}
+
+type checkLocatorsReq struct {
+	Endpoint string `json:"endpoint"`
+}
+
+type checkLocatorItem struct {
+	Locator string `json:"locator"`
+	Timeout int64  `json:"timeout"`
+}
+
+func (clib *CLib) checkLocators(str string) *JSONCallResult {
+	req := checkLocatorsReq{}
+	err := json.Unmarshal([]byte(str), &req)
+	if err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("marshal input args failed:%s", err.Error())}
+	}
+
+	r, err := http.NewRequest("GET", req.Endpoint, nil)
+	if err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("new request error %s", err.Error())}
+	}
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("do request error %s", err.Error())}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("response status code %d", resp.StatusCode)}
+	}
+
+	type WebResp struct {
+		Code int `json:"code"`
+		Data struct {
+			List []string `json:"list"`
+		} `json:"data"`
+	}
+
+	var webResp WebResp
+	if err := json.NewDecoder(resp.Body).Decode(&webResp); err != nil {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("decode response error %s", err.Error())}
+	}
+
+	if webResp.Code != 0 {
+		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("response code %d", webResp.Code)}
+	}
+
+	var ret = make([]checkLocatorItem, 0)
+
+	for _, v := range webResp.Data.List {
+		ret = append(ret, checkLocatorItem{Locator: v})
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(ret))
+
+	for i := range ret {
+		go func(idx int) {
+			defer wg.Done()
+			ret[i].Timeout = 9999
+			ts := time.Now()
+			cnt := client.NewHTTP3Client()
+			cnt.Timeout = 2 * time.Second
+			api, closer, err := client.NewLocator(context.Background(), ret[i].Locator, nil, jsonrpc.WithHTTPClient(cnt))
+			if err != nil {
+				return
+			}
+			defer closer()
+			_, err = api.Version(context.Background())
+			if err != nil {
+				return
+			}
+			ret[i].Timeout = int64(time.Since(ts).Milliseconds())
+		}(i)
+	}
+	wg.Wait()
+
+	return &JSONCallResult{Code: 0, Msg: "ok", Data: jsonStr(ret)}
 }
 
 func jsonStr(v any) string {
