@@ -1716,14 +1716,14 @@ func (s *Scheduler) CreateTunnel(ctx context.Context, req *types.CreateTunnelReq
 
 	cNode := s.NodeManager.GetCandidateNode(nodeID)
 	if cNode == nil {
-		return fmt.Errorf("can not find node %s", nodeID)
+		return fmt.Errorf("can not find candidate %s", nodeID)
 	}
 
 	req.WsURL = cNode.WsURL()
 
 	eNode := s.NodeManager.GetEdgeNode(req.NodeID)
 	if eNode == nil {
-		return fmt.Errorf("can not find node %s", nodeID)
+		return fmt.Errorf("can not find edge %s", req.NodeID)
 	}
 
 	return eNode.CreateTunnel(ctx, req)
