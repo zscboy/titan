@@ -346,6 +346,10 @@ func (m *Manager) retrieveNodePullProgresses(isUpload bool) {
 	}
 
 	duration := 1
+	if isUpload {
+		duration = 0
+	}
+
 	delay := 0
 	for nodeID, cids := range nodePulls {
 		delay += duration
@@ -1184,6 +1188,7 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 	}
 
 	sources := make([]*types.SourceDownloadInfo, 0)
+	limit := 50
 
 	for _, replica := range replicaInfos {
 		nodeID := replica.NodeID
@@ -1196,9 +1201,11 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 			continue
 		}
 
-		if cNode.Type == types.NodeEdge && (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) && cNode.ExternalIP == "" {
+		if cNode.Type == types.NodeEdge && (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) {
 			continue
 		}
+
+		log.Infof("getDownloadSources %s, source:%s %s; %s \n", hash, cNode.NodeID, cNode.Type.String(), cNode.NATType)
 
 		source := &types.SourceDownloadInfo{
 			NodeID:  nodeID,
@@ -1206,6 +1213,10 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 		}
 
 		sources = append(sources, source)
+
+		if len(sources) > limit {
+			break
+		}
 	}
 
 	return sources
@@ -1425,9 +1436,15 @@ func (m *Manager) generateTokenForDownloadSources(sources []*types.SourceDownloa
 
 func (m *Manager) generateToken(assetCID string, sources []*types.SourceDownloadInfo, node *node.Node, size int64, titanRsa *titanrsa.Rsa) ([]*types.SourceDownloadInfo, *types.WorkloadRecord, error) {
 	ts := make([]*types.SourceDownloadInfo, 0)
-	if len(sources) > 1 {
-		firstIndex := rand.Intn(len(sources))
-		ts = append(ts, sources[firstIndex])
+	if len(sources) > 3 {
+		index1 := rand.Intn(len(sources))
+		ts = append(ts, sources[index1])
+
+		index2 := rand.Intn(len(sources))
+		ts = append(ts, sources[index2])
+
+		index3 := rand.Intn(len(sources))
+		ts = append(ts, sources[index3])
 	} else {
 		ts = sources
 	}
