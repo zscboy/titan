@@ -58,7 +58,7 @@ type AssetAPI interface {
 	// // DeleteAsset deletes the asset of the user.
 	// DeleteAsset(ctx context.Context, userID, assetCID string) error //perm:web,admin,user
 	// ShareAssets shares the assets of the user.
-	ShareAssets(ctx context.Context, userID string, assetCID []string) (map[string][]string, error) //perm:web,admin,user
+	ShareAssets(ctx context.Context, userID string, assetCID []string, expireTime time.Time) (map[string][]string, error) //perm:web,admin,user
 	// ShareEncryptedAsset shares the encrypted file
 	ShareEncryptedAsset(ctx context.Context, userID, assetCID, filePass string, expireTime time.Time) ([]string, error) // perm:web,admin,user
 	// // UpdateShareStatus update share status of the user asset

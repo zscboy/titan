@@ -99,7 +99,7 @@ type AssetAPIStruct struct {
 
 		RemoveNodeFailedReplica func(p0 context.Context) error `perm:"web,admin"`
 
-		ShareAssets func(p0 context.Context, p1 string, p2 []string) (map[string][]string, error) `perm:"web,admin,user"`
+		ShareAssets func(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) `perm:"web,admin,user"`
 
 		ShareEncryptedAsset func(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) `perm:"web,admin,user"`
 
@@ -1014,14 +1014,14 @@ func (s *AssetAPIStub) RemoveNodeFailedReplica(p0 context.Context) error {
 	return ErrNotSupported
 }
 
-func (s *AssetAPIStruct) ShareAssets(p0 context.Context, p1 string, p2 []string) (map[string][]string, error) {
+func (s *AssetAPIStruct) ShareAssets(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) {
 	if s.Internal.ShareAssets == nil {
 		return *new(map[string][]string), ErrNotSupported
 	}
-	return s.Internal.ShareAssets(p0, p1, p2)
+	return s.Internal.ShareAssets(p0, p1, p2, p3)
 }
 
-func (s *AssetAPIStub) ShareAssets(p0 context.Context, p1 string, p2 []string) (map[string][]string, error) {
+func (s *AssetAPIStub) ShareAssets(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) {
 	return *new(map[string][]string), ErrNotSupported
 }
 
