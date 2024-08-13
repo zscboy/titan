@@ -18,10 +18,12 @@ import (
 var log = logging.Logger("httpserver")
 
 const (
-	reqIpfs   = "/ipfs"
-	reqUpload = "/upload"
-	// upload files
-	reqUploadv2           = "/uploadv2"
+	reqIpfs = "/ipfs"
+
+	reqUpload   = "/upload"   // upload car file
+	reqUploadv2 = "/uploadv2" // upload raw file
+	reqUploadv3 = "/uploadv3" // upload with url
+
 	reqRpc                = "/rpc"
 	reqLease              = "/lease"
 	immutableCacheControl = "public, max-age=29030400, immutable"
@@ -85,6 +87,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.hs.uploadHandler(w, r)
 	case reqUploadv2:
 		h.hs.uploadv2Handler(w, r)
+	case reqUploadv3:
+		h.hs.uploadv3Handler(w, r)
 	case reqLease:
 		h.hs.LeaseShellHandler(w, r)
 	default:

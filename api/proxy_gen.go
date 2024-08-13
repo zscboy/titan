@@ -541,7 +541,7 @@ type SchedulerStruct struct {
 
 		GetNodePublicKey func(p0 context.Context, p1 string) (string, error) `perm:"web,admin"`
 
-		GetNodeUploadInfo func(p0 context.Context, p1 string, p2 string) (*types.UploadInfo, error) `perm:"user,web,admin"`
+		GetNodeUploadInfo func(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) `perm:"user,web,admin"`
 
 		GetRetrieveEventRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) `perm:"web,admin"`
 
@@ -2642,14 +2642,14 @@ func (s *SchedulerStub) GetNodePublicKey(p0 context.Context, p1 string) (string,
 	return "", ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetNodeUploadInfo(p0 context.Context, p1 string, p2 string) (*types.UploadInfo, error) {
+func (s *SchedulerStruct) GetNodeUploadInfo(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) {
 	if s.Internal.GetNodeUploadInfo == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetNodeUploadInfo(p0, p1, p2)
+	return s.Internal.GetNodeUploadInfo(p0, p1, p2, p3)
 }
 
-func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string, p2 string) (*types.UploadInfo, error) {
+func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) {
 	return nil, ErrNotSupported
 }
 

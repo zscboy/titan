@@ -428,7 +428,7 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 // 	return permissions, nil
 // }
 
-func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string) (*types.UploadInfo, error) {
+func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string, urlMode bool) (*types.UploadInfo, error) {
 	uID := handler.GetUserID(ctx)
 	if len(uID) > 0 {
 		userID = uID
@@ -458,15 +458,20 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 	// TODO remove FilePassNonce in order to avoid L1-updates
 	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID} //  FilePassNonce: passNonce
 
+	var suffix string = "/uploadv2"
+	if urlMode {
+		suffix = "/uploadv3"
+	}
+
 	for _, cNode := range cNodes {
 		token, err := cNode.API.AuthNew(context.Background(), payload)
 		if err != nil {
 			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 		}
 
-		uploadURL := fmt.Sprintf("http://%s/uploadv2", cNode.RemoteAddr)
+		uploadURL := fmt.Sprintf("http://%s%s", cNode.RemoteAddr, suffix)
 		if len(cNode.ExternalURL) > 0 {
-			uploadURL = fmt.Sprintf("%s/uploadv2", cNode.ExternalURL)
+			uploadURL = fmt.Sprintf("%s%s", cNode.ExternalURL, suffix)
 		}
 
 		ret.List = append(ret.List, &types.NodeUploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID})
