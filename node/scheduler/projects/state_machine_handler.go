@@ -34,7 +34,7 @@ func failedCoolDown(ctx statemachine.Context, info ProjectInfo, t time.Duration)
 
 // handleNodeSelect handles the selection nodes for project
 func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) error {
-	log.Debugf("handle Select : %s ,area:%s nodes : %s", info.UUID, info.Requirement.AreaID, info.Requirement.NodeIDs)
+	log.Infof("handle Select : %s ,area:%s nodes : %s , len:%d", info.UUID, info.Requirement.AreaID, info.Requirement.NodeIDs, len(info.Requirement.NodeIDs))
 
 	curCount := int64(len(info.EdgeReplicaSucceeds))
 
@@ -45,6 +45,8 @@ func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) e
 
 	if len(info.Requirement.NodeIDs) > 0 {
 		for _, nodeID := range info.Requirement.NodeIDs {
+			log.Infof("handle Select : %s , node: %s ", info.UUID, nodeID)
+
 			node := m.nodeMgr.GetEdgeNode(nodeID)
 			if node == nil {
 				continue

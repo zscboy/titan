@@ -438,6 +438,8 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 				projectDeleteReplicas[result.ID] += 0
 
 				m.removeReplica(result.ID, nodeID, types.ProjectEventStatusChange)
+			} else {
+				log.Warnf("checkProjectReplicas %s id:[%s] status:[%s] msg:[%s]", nodeID, result.ID, result.Status.String(), result.Msg)
 			}
 		}
 	}

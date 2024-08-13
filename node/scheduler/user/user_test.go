@@ -1,5 +1,14 @@
 package user
 
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	"github.com/Filecoin-Titan/titan/api/client"
+	"github.com/filecoin-project/go-jsonrpc"
+)
+
 // import (
 // 	"context"
 // 	"fmt"
@@ -49,22 +58,22 @@ package user
 // 	// u.CreateAPIKey(context.Background(), "abc")
 // }
 
-// func TestCandidateConnet(t *testing.T) {
-// 	candidate, close, err := client.NewCandidate(context.TODO(), "https://192.30.242.140:65283/rpc/v0", nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
-// 	if err != nil {
-// 		fmt.Println("NewCandidate ", err)
-// 		return
-// 	}
-// 	defer close()
+func TestCandidateConnect(t *testing.T) {
+	candidate, close, err := client.NewCandidate(context.TODO(), "https://192.168.0.0:2345/rpc/v0", nil, jsonrpc.WithHTTPClient(client.NewHTTP3Client()))
+	if err != nil {
+		fmt.Println("NewCandidate ", err)
+		return
+	}
+	defer close()
 
-// 	v, err := candidate.Version(context.Background())
-// 	if err != nil {
-// 		fmt.Println("Version ", err)
-// 		return
-// 	}
+	v, err := candidate.Version(context.Background())
+	if err != nil {
+		fmt.Println("Version ", err)
+		return
+	}
 
-// 	fmt.Printf("version: %#v\n", v)
-// }
+	fmt.Printf("version: %#v\n", v)
+}
 
 // func TestUserAPIKey(t *testing.T) {
 // 	sqldb, err := sqldb.NewDB("user01:sql001@tcp(127.0.0.1:3306)/test")
