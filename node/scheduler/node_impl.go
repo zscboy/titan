@@ -1038,9 +1038,62 @@ func (s *Scheduler) NodeExists(ctx context.Context, nodeID string) error {
 }
 
 // NodeKeepalive candidate and edge keepalive
-func (s *Scheduler) NodeKeepalive(ctx context.Context) (uuid.UUID, error) {
-	uuid, _ := s.CommonAPI.Session(ctx)
-	return uuid, xerrors.New("The interface has been deprecated")
+func (s *Scheduler) NodeKeepalive(ctx context.Context) (*types.KeepaliveRsp, error) {
+	uuid, err := s.CommonAPI.Session(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeID := handler.GetNodeID(ctx)
+	if len(nodeID) == 0 {
+		return nil, fmt.Errorf("Can not get nodeID from request")
+	}
+
+	node := s.NodeManager.GetNode(nodeID)
+	if node == nil {
+		return &types.KeepaliveRsp{ErrCode: int(terrors.NodeOffline), ErrMsg: fmt.Sprintf("node %s offline or not exist", nodeID)}, nil
+	}
+
+	if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
+		return &types.KeepaliveRsp{ErrCode: int(terrors.NodeDeactivate), ErrMsg: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}, nil
+	}
+
+	if node.ForceOffline {
+		return &types.KeepaliveRsp{ErrCode: int(terrors.ForceOffline), ErrMsg: fmt.Sprintf("The node %s has been forced offline", nodeID)}, nil
+	}
+
+	if node.Type == types.NodeCandidate {
+		if node.NATType == types.NatTypePortRestricted.String() || node.NATType == types.NatTypeRestricted.String() || node.NATType == types.NatTypeSymmetric.String() {
+			return nil, xerrors.Errorf("The NAT type [%s] of the node [%s] does not conform to the rules", node.NATType, nodeID)
+		}
+
+		if !node.IsStorageNode && !node.IsTestNode {
+			return nil, xerrors.Errorf("%s checkDomain %s ", nodeID, node.ExternalURL)
+		}
+	}
+
+	lastTime := time.Now()
+	remoteAddr := handler.GetRemoteAddr(ctx)
+	if remoteAddr != node.RemoteAddr {
+		count, lastTime := node.GetNumberOfIPChanges()
+		duration := time.Now().Sub(lastTime)
+		seconds := duration.Seconds()
+
+		if seconds > 10*6*20 {
+			node.SetCountOfIPChanges(0)
+
+			if count > 120 {
+				log.Infof("NodeKeepaliveV2 Exceeded expectations %s , ip:%s : %s, count:%d ,resetSeconds:%.2f ", nodeID, remoteAddr, node.RemoteAddr, count, seconds)
+			}
+			return &types.KeepaliveRsp{ErrCode: int(terrors.NodeIPInconsistent), ErrMsg: fmt.Sprintf("node %s new ip %s, old ip %s, resetSeconds:%.2f , resetCount:%d", nodeID, remoteAddr, node.RemoteAddr, seconds, count)}, nil
+		}
+
+		count++
+		node.SetCountOfIPChanges(count)
+	}
+
+	node.SetLastRequestTime(lastTime)
+	return &types.KeepaliveRsp{SessionID: uuid.String()}, err
 }
 
 // NodeKeepaliveV2 candidate and edge keepalive

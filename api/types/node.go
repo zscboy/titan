@@ -642,3 +642,9 @@ type AccessPointRsp struct {
 	Schedulers []string
 	GeoInfo    *region.GeoInfo
 }
+
+type KeepaliveRsp struct {
+	SessionID string
+	ErrCode   int
+	ErrMsg    string
+}

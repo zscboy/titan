@@ -148,7 +148,7 @@ type NodeAPI interface {
 	// NodeExists checks if the node with the specified ID exists.
 	NodeExists(ctx context.Context, nodeID string) error //perm:web
 	// NodeKeepalive
-	NodeKeepalive(ctx context.Context) (uuid.UUID, error) //perm:edge,candidate
+	NodeKeepalive(ctx context.Context) (*types.KeepaliveRsp, error) //perm:edge,candidate
 	// NodeKeepaliveV2 fix the problem of NodeKeepalive, Maintaining old device connections
 	NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) //perm:edge,candidate,l5
 	// RequestActivationCodes Get the device's encrypted activation code

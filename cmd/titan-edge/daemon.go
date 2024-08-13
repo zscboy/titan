@@ -7,9 +7,11 @@ import (
 	"net"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
+	"github.com/Filecoin-Titan/titan/api/terrors"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/metrics"
 	"github.com/Filecoin-Titan/titan/node"
@@ -24,6 +26,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/validation"
 	"github.com/Filecoin-Titan/titan/region"
 	"github.com/filecoin-project/go-jsonrpc"
+	"github.com/filecoin-project/go-jsonrpc/auth"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/quic-go/quic-go"
 	"go.opencensus.io/stats/view"
@@ -53,10 +56,13 @@ type daemon struct {
 	restartChan     chan struct{} // cli restart
 	restartDoneChan chan struct{} // make sure all modules are ready to start
 
-	geoInfo *region.GeoInfo
+	geoInfo   *region.GeoInfo
+	sessionID string
+
+	daemonSwitch *clib.DaemonSwitch
 }
 
-func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
+func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSwitch) (*daemon, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Register all metric views
@@ -245,40 +251,71 @@ func newDaemon(ctx context.Context, repoPath string) (*daemon, error) {
 		restartDoneChan: restartDoneChan,
 
 		geoInfo: accessPoint.GeoInfo,
+
+		daemonSwitch: daemonSwitch,
+		// quitWaitGroup: &sync.WaitGroup{},
 	}
 
 	return d, nil
 }
 
-func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
-	registShutdownSignal(d.shutdownChan)
-
+func (d *daemon) startServer(wg *sync.WaitGroup) error {
+	// registShutdownSignal(d.shutdownChan)
 	handler, httpSrv := buildSrvHandler(d.httpServer, d.edgeAPI, d.edgeConfig, d.schedulerAPI, d.privateKey)
 
 	go func() {
-		err := startHTTP3Server(d.ctx, d.transport, handler, d.edgeConfig)
+		err := startHTTP3Server(wg, d.ctx, d.transport, handler, d.edgeConfig)
 		if err != nil && strings.Contains(err.Error(), serverInternalError) {
 			log.Warnf("http3 server was kill by system, daemon restart")
 			d.restartChan <- struct{}{}
 		}
 	}()
 
-	go startHTTPServer(d.ctx, httpSrv, d.edgeConfig.Network)
+	return startHTTPServer(wg, d.ctx, httpSrv, d.edgeConfig.Network)
 
-	// Wait for the server to start, if the server does not start, the scheduler will fail to connect back.
-	waitServerStart(d.edgeConfig.Network.ListenAddress)
+}
 
-	hbeatParams := heartbeatParams{
-		shutdownChan: d.shutdownChan,
-		edgeAPI:      d.edgeAPI,
-		schedulerAPI: d.schedulerAPI,
-		nodeID:       d.ID,
-		daemonSwitch: daemonSwitch,
-		geoInfo:      d.geoInfo,
+func (d *daemon) restart() error {
+	d, err := newDaemon(context.Background(), d.repoPath, d.daemonSwitch)
+	if err != nil {
+		log.Errorf("newDaemon %s", err.Error())
+		return err
 	}
-	go heartbeat(d.ctx, hbeatParams)
 
-	quitWg.Add(3)
+	wg := &sync.WaitGroup{}
+
+	wg.Add(2)
+	go d.startServer(wg)
+
+	wg.Add(1)
+	go d.connectToServer(wg)
+
+	return d.waitShutdown(wg)
+}
+
+func (d *daemon) connectToServer(wg *sync.WaitGroup) error {
+	defer log.Debugf("Connection exist")
+	defer wg.Done()
+
+	for {
+		isExist, err := d.connect()
+		if err != nil {
+			if d.ctx.Err() != nil && d.ctx.Err() == context.Canceled {
+				return nil
+			}
+			d.daemonSwitch.ErrMsg = err.Error()
+			log.Errorf("connect error: %s", err.Error())
+		} else if isExist {
+			// d.shutdownChan <- struct{}{}
+			return nil
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func (d *daemon) waitShutdown(quitWg *sync.WaitGroup) error {
+	registShutdownSignal(d.shutdownChan)
 
 	for {
 		select {
@@ -292,7 +329,8 @@ func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
 			}
 
 			quitWg.Wait()
-
+			d.daemonSwitch.IsOnline = false
+			d.daemonSwitch.IsStop = true
 			log.Warn("Graceful shutdown successful")
 
 			return nil
@@ -307,17 +345,84 @@ func (d *daemon) startServer(daemonSwitch *clib.DaemonSwitch) error {
 			}
 
 			quitWg.Wait()
+			d.daemonSwitch.IsOnline = false
+			d.daemonSwitch.IsStop = true
 
 			d.restartDoneChan <- struct{}{} // node/edge/impl.go
-
-			d, err = newDaemon(context.Background(), d.repoPath)
-			if err != nil {
-				log.Errorf("newDaemon %s", err.Error())
-				return err
-			}
-			return d.startServer(daemonSwitch)
-			// return daemonStart(context.Background(), daemonSwitch, node.repoPath, node.locatorURL)
+			return d.restart()
 		}
 	}
+}
 
+// return true, if shutdown app
+func (d *daemon) connect() (bool, error) {
+	// Wait for the server to start, if the server does not start, the scheduler will fail to connect back.
+	// waitServerStart(d.edgeConfig.Network.ListenAddress)
+	defer func() {
+		d.daemonSwitch.IsOnline = false
+	}()
+
+	readyCh := waitQuietCh(d.edgeAPI)
+	<-readyCh
+
+	token, err := d.edgeAPI.AuthNew(d.ctx, &types.JWTPayload{Allow: []auth.Permission{api.RoleAdmin}, ID: d.ID})
+	if err != nil {
+		return false, err
+	}
+
+	opts := &types.ConnectOptions{Token: token, GeoInfo: d.geoInfo}
+	if err := d.schedulerAPI.EdgeConnect(d.ctx, opts); err != nil {
+		return false, err
+	}
+
+	d.daemonSwitch.IsOnline = true
+	d.daemonSwitch.IsStop = false
+
+	log.Infof("Edge connect successed")
+
+	sessionID, err := d.schedulerAPI.Session(d.ctx)
+	if err != nil {
+		return false, err
+	}
+
+	failedCount := 0
+
+	heartbeats := time.NewTicker(HeartbeatInterval)
+	defer heartbeats.Stop()
+
+	for {
+		select {
+		case <-d.ctx.Done():
+			return true, nil
+		case <-heartbeats.C:
+			rsp, err := keepalive(d.schedulerAPI, 10*time.Second)
+			if err != nil {
+				log.Error("keepalive ", err.Error())
+				failedCount++
+				if failedCount > 2 {
+					return false, fmt.Errorf("disconnet from server")
+				}
+				continue
+			}
+
+			failedCount = 0
+
+			if rsp.ErrCode != 0 {
+				log.Infof(rsp.ErrMsg)
+				// handle error
+				if rsp.ErrCode == int(terrors.NodeDeactivate) || rsp.ErrCode == int(terrors.ForceOffline) {
+					d.shutdownChan <- struct{}{}
+					log.Infof("Node %s was deactivate", d.ID)
+					return true, nil
+				}
+				return false, fmt.Errorf(rsp.ErrMsg)
+			}
+
+			if rsp.SessionID != sessionID.String() {
+				return false, fmt.Errorf("Session id is change")
+			}
+
+		}
+
+	}
 }
