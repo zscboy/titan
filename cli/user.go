@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/urfave/cli/v2"
 )
@@ -358,7 +359,7 @@ var shareLink = &cli.Command{
 		assetCID := cctx.String("cid")
 
 		ctx := ReqContext(cctx)
-		links, err := schedulerAPI.ShareAssets(ctx, userID, []string{assetCID})
+		links, err := schedulerAPI.ShareAssets(ctx, userID, []string{assetCID}, time.Now().Add(time.Hour))
 		if err != nil {
 			return err
 		}
