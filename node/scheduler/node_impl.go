@@ -1093,7 +1093,7 @@ func (s *Scheduler) NodeKeepalive(ctx context.Context) (*types.KeepaliveRsp, err
 	}
 
 	node.SetLastRequestTime(lastTime)
-	return &types.KeepaliveRsp{SessionID: uuid.String()}, err
+	return &types.KeepaliveRsp{SessionID: uuid.String()}, nil
 }
 
 // NodeKeepaliveV2 candidate and edge keepalive

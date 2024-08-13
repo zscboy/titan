@@ -201,12 +201,16 @@ func (ap *assetPuller) pullBlocks(cids []string) (*pulledResult, error) {
 	}
 
 	ap.mergeWorkloads(workloads)
+
 	// retry
+	var bs []blocks.Block
 	retryCount := 0
 	cidMap := ap.toMap(cids)
 	for len(blks) < len(cids) && retryCount < ap.config.PullBlockRetry {
+		// filter usable download sources
+		sdis = ap.filterSourceDownloadInfosBy(errMsgs, sdis)
 		unPullBlocks := ap.filterUnPulledBlocks(blks, cidMap)
-		bs, err := ap.retryFetchBlocks(unPullBlocks)
+		errMsgs, bs, err = ap.retryFetchBlocks(unPullBlocks, sdis)
 		if err != nil {
 			return nil, err
 		}
@@ -256,6 +260,30 @@ func (ap *assetPuller) pullBlocks(cids []string) (*pulledResult, error) {
 	return ret, nil
 }
 
+func (ap *assetPuller) filterSourceDownloadInfosBy(errMsgs []*fetcher.ErrMsg, sdis []*types.SourceDownloadInfo) []*types.SourceDownloadInfo {
+	if len(sdis) == 0 {
+		return nil
+	}
+
+	if len(errMsgs) == 0 {
+		return sdis
+	}
+
+	errMap := make(map[string]struct{})
+	for _, msg := range errMsgs {
+		errMap[msg.Source] = struct{}{}
+	}
+
+	newSdis := make([]*types.SourceDownloadInfo, 0)
+	for _, sdi := range sdis {
+		if _, ok := errMap[sdi.NodeID]; !ok {
+			newSdis = append(newSdis, sdi)
+		}
+	}
+	log.Debugf("filterSourceDownloadInfosBy old:%#v new:%#v", sdis, newSdis)
+	return newSdis
+}
+
 func (ap *assetPuller) toMap(cids []string) map[string]struct{} {
 	ret := make(map[string]struct{})
 	for _, cid := range cids {
@@ -276,21 +304,21 @@ func (ap *assetPuller) filterUnPulledBlocks(blks []blocks.Block, cidMap map[stri
 	return cids
 }
 
-func (ap *assetPuller) retryFetchBlocks(cids []string) ([]blocks.Block, error) {
+func (ap *assetPuller) retryFetchBlocks(cids []string, sdis []*types.SourceDownloadInfo) ([]*fetcher.ErrMsg, []blocks.Block, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ap.config.PullBlockTimeout)*time.Second)
 	defer cancel()
 
 	ap.cancel = cancel
 
-	var sdis []*types.SourceDownloadInfo = nil
-	if ap.dss != nil && len(ap.dss.Nodes) > 0 {
+	// var sdis []*types.SourceDownloadInfo = nil
+	if len(sdis) == 0 && ap.dss != nil && len(ap.dss.Nodes) > 0 {
 		sdis = ap.dss.Nodes
 	}
 
 	errMsgs, workloads, blks, err := ap.bFetcher.FetchBlocks(ctx, cids, sdis)
 	if err != nil {
 		log.Errorf("retry fetch blocks err %s", err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(errMsgs) > 0 {
@@ -298,7 +326,7 @@ func (ap *assetPuller) retryFetchBlocks(cids []string) ([]blocks.Block, error) {
 	}
 
 	ap.mergeWorkloads(workloads)
-	return blks, nil
+	return errMsgs, blks, nil
 }
 
 // isPulledComplete checks if asset pulling is completed or not
