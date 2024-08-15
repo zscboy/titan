@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -15,6 +16,8 @@ import (
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/handler"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/filecoin-project/go-jsonrpc/auth"
 	"golang.org/x/xerrors"
 )
 
@@ -275,6 +278,10 @@ func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, 
 
 // CreateAsset creates an asset with car CID, car name, and car size.
 func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) {
+	if req == nil {
+		return nil, &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}
+	}
+
 	hash, err := cidutil.CIDToHash(req.AssetCID)
 	if err != nil {
 		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
@@ -285,6 +292,10 @@ func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) 
 
 // CreateSyncAsset Synchronizing assets from other schedulers
 func (s *Scheduler) CreateSyncAsset(ctx context.Context, req *types.CreateSyncAssetReq) error {
+	if req == nil {
+		return &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}
+	}
+
 	hash, err := cidutil.CIDToHash(req.AssetCID)
 	if err != nil {
 		return &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
@@ -384,6 +395,10 @@ func (s *Scheduler) ShareEncryptedAsset(ctx context.Context, userID, assetCID, f
 }
 
 func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error {
+	if event == nil {
+		return fmt.Errorf("event can not empty")
+	}
+
 	// TODO limit rate or verify valid data
 	if len(event.AssetCID) == 0 {
 		return fmt.Errorf("AssetCID can not empty")
@@ -487,4 +502,87 @@ func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce stri
 	}
 
 	return tk, nil
+}
+
+// UserAssetDownloadResult download result
+func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error {
+	nodeID := handler.GetNodeID(ctx)
+	cNode := s.NodeManager.GetNode(nodeID)
+	if cNode == nil {
+		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", nodeID)
+	}
+
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return err
+	}
+
+	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth})
+}
+
+func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string, urlMode bool) (*types.UploadInfo, error) {
+	uID := handler.GetUserID(ctx)
+	if len(uID) > 0 {
+		userID = uID
+	}
+
+	_, nodes := s.NodeManager.GetAllCandidateNodes()
+
+	cNodes := make([]*node.Node, 0)
+	for _, node := range nodes {
+		if node.IsStorageNode {
+			cNodes = append(cNodes, node)
+		}
+	}
+
+	if len(cNodes) == 0 {
+		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+	}
+
+	// mixup nodes
+	rand.Shuffle(len(cNodes), func(i, j int) { cNodes[i], cNodes[j] = cNodes[j], cNodes[i] })
+
+	ret := &types.UploadInfo{
+		List:          make([]*types.NodeUploadInfo, 0),
+		AlreadyExists: false,
+	}
+
+	// TODO remove FilePassNonce in order to avoid L1-updates
+	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID} //  FilePassNonce: passNonce
+
+	var suffix string = "/uploadv2"
+	if urlMode {
+		suffix = "/uploadv3"
+	}
+
+	for _, cNode := range cNodes {
+		token, err := cNode.API.AuthNew(context.Background(), payload)
+		if err != nil {
+			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+		}
+
+		uploadURL := fmt.Sprintf("http://%s%s", cNode.RemoteAddr, suffix)
+		if len(cNode.ExternalURL) > 0 {
+			uploadURL = fmt.Sprintf("%s%s", cNode.ExternalURL, suffix)
+		}
+
+		ret.List = append(ret.List, &types.NodeUploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID})
+
+		if len(ret.List) >= 3 {
+			break
+		}
+	}
+
+	// return &types.UploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID}, nil
+	return ret, nil
+}
+
+// GetAssetDownloadResults Retrieves Asset Download Results
+func (s *Scheduler) GetAssetDownloadResults(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) {
+	info, err := s.db.LoadAssetDownloadResults(start, end, limit, offset)
+	if err != nil {
+		return nil, xerrors.Errorf("LoadAssetDownloadResults err:%s", err.Error())
+	}
+
+	return info, nil
 }

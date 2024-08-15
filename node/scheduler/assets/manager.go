@@ -512,7 +512,12 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 
 	var cNodes []*node.Node
 	if req.NodeID != "" {
-		cNodes = append(cNodes, m.nodeMgr.GetCandidateNode(req.NodeID))
+		node := m.nodeMgr.GetCandidateNode(req.NodeID)
+		if node == nil {
+			return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's node %s not found", req.NodeID)}
+		}
+
+		cNodes = append(cNodes, node)
 	} else {
 		_, nodes := m.nodeMgr.GetAllCandidateNodes()
 		// mixup nodes
@@ -1205,7 +1210,7 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 			continue
 		}
 
-		log.Infof("getDownloadSources %s, source:%s %s; %s \n", hash, cNode.NodeID, cNode.Type.String(), cNode.NATType)
+		// log.Infof("getDownloadSources %s, source:%s %s; %s \n", hash, cNode.NodeID, cNode.Type.String(), cNode.NATType)
 
 		source := &types.SourceDownloadInfo{
 			NodeID:  nodeID,

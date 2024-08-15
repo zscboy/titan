@@ -45,8 +45,10 @@ type AssetAPI interface {
 	GetReplicasForNode(ctx context.Context, nodeID string, limit, offset int, statuses []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) //perm:web,admin
 	// GetReplicaEventsForNode retrieves a replica event list of node
 	GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
-	// GetReplicaEvents retrieves a replica event list of node
+	// GetReplicaEvents retrieves a replica event list
 	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	// GetAssetDownloadResults retrieves a asset download list
+	GetAssetDownloadResults(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) //perm:web,admin
 	// CreateAsset creates an asset with car CID, car name, and car size.
 	CreateAsset(ctx context.Context, req *types.CreateAssetReq) (*types.UploadInfo, error) //perm:web,admin,user
 	// CreateSyncAsset Synchronizing assets from other schedulers

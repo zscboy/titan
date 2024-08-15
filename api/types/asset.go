@@ -325,3 +325,18 @@ type AssetPullRequest struct {
 	Dss        *DownloadSources
 	WorkloadID string
 }
+
+// AssetDownloadResult
+type AssetDownloadResult struct {
+	Hash          string    `db:"hash"`
+	NodeID        string    `db:"node_id"`
+	CreatedTime   time.Time `db:"created_time"`
+	TotalTraffic  int64     `db:"total_traffic"`
+	PeakBandwidth int64     `db:"peak_bandwidth"`
+}
+
+// ListAssetDownloadRsp list replica events
+type ListAssetDownloadRsp struct {
+	Total                int                    `json:"total"`
+	AssetDownloadResults []*AssetDownloadResult `json:"list"`
+}

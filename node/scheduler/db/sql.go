@@ -26,21 +26,17 @@ func NewSQLDB(db *sqlx.DB) (*SQLDB, error) {
 }
 
 const (
-	// userAssetTable       = "user_asset"
-	// userInfoTable        = "user_info"
-	// userAssetGroupTable  = "user_asset_group"
-	// assetVisitCountTable = "asset_visit_count"
-
 	// Database table names.
 	nodeRegisterTable  = "node_register_info"
 	nodeInfoTable      = "node_info"
 	onlineCountTable   = "online_count"
 	candidateCodeTable = "candidate_code"
 
-	assetRecordTable = "asset_record"
-	replicaInfoTable = "replica_info"
-	assetsViewTable  = "asset_view"
-	bucketTable      = "bucket"
+	assetRecordTable   = "asset_record"
+	replicaInfoTable   = "replica_info"
+	assetsViewTable    = "asset_view"
+	bucketTable        = "bucket"
+	assetDownloadTable = "asset_download"
 
 	projectEventTable     = "project_event"
 	validationResultTable = "validation_result"
@@ -71,7 +67,7 @@ const (
 	loadReplicaEventDefaultLimit        = 500
 	loadRetrieveDefaultLimit            = 100
 	loadReplicaDefaultLimit             = 100
-	loadUserDefaultLimit                = 100
+	loadAssetDownloadLimit              = 500
 )
 
 // assetStateTable returns the asset state table name for the given serverID.
@@ -131,6 +127,7 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cPropertiesTable, propertiesTable))
 	tx.MustExec(fmt.Sprintf(cServicesTable, servicesTable))
 	tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
+	tx.MustExec(fmt.Sprintf(cAssetDownloadTable, assetDownloadTable))
 
 	return tx.Commit()
 }
@@ -141,45 +138,12 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
 
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD requirement   BLOB ", projectInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD version              INT             DEFAULT 0", nodeInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN memory ;", projectInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN area_id ;", projectInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec("ALTER TABLE services CHANGE env env varchar(1024) DEFAULT NULL;")
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	// _, err = d.db.Exec(fmt.Sprintf("UPDATE  %s AS ni SET ni.penalty_profit = (SELECT ABS(COALESCE(SUM(pd.profit), 0)) FROM profit_details AS pd  WHERE pd.node_id = ni.node_id AND pd.profit_type = 7);", nodeInfoTable))
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD is_restriction  BOOLEAN      DEFAULT false", nodeRegisterTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-
-	// 	UPDATE node_info AS ni
-	// SET ni.penalty_profit = (
-	//     SELECT ABS(COALESCE(SUM(pd.profit), 0))
-	//     FROM profit_details AS pd
-	//     WHERE pd.node_id = ni.node_id AND pd.profit_type = 7
-	// )
-	// WHERE ni.node_id IN (
-	//     SELECT node_id
-	//     FROM node_info
-	//     WHERE node_id LIKE 'c_%'
-	// );
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 }

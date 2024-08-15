@@ -747,3 +747,39 @@ func (n *SQLDB) DeleteAssetRecordsOfNode(nodeID string) error {
 
 	return tx.Commit()
 }
+
+func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
+	query := fmt.Sprintf(`INSERT INTO %s (hash, node_id, total_traffic, peak_bandwidth) VALUES (:hash, :node_id, :total_traffic, :peak_bandwidth) `, assetDownloadTable)
+	_, err := n.db.NamedExec(query, info)
+
+	return err
+}
+
+// LoadAssetDownloadResults Load results
+func (n *SQLDB) LoadAssetDownloadResults(start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) {
+	res := new(types.ListAssetDownloadRsp)
+
+	var infos []*types.AssetDownloadResult
+	query := fmt.Sprintf("SELECT * FROM %s WHERE created_time BETWEEN ? AND ? order by created_time asc LIMIT ? OFFSET ? ", assetDownloadTable)
+	if limit > loadAssetDownloadLimit {
+		limit = loadAssetDownloadLimit
+	}
+
+	err := n.db.Select(&infos, query, start, end, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.AssetDownloadResults = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE created_time BETWEEN ? AND ? ", assetDownloadTable)
+	var count int
+	err = n.db.Get(&count, countQuery, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}

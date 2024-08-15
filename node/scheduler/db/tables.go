@@ -99,7 +99,7 @@ var cNodeRegisterTable = `
 		node_type       VARCHAR(64)   DEFAULT '' ,
 		activation_key  VARCHAR(128)  DEFAULT '' ,
 		ip 				VARCHAR(16)  DEFAULT '' ,
-		migrate_key     VARCHAR(128)  DEFAULT '' ,
+		migrate_key     VARCHAR(128)  DEFAULT '' ,		
 		PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node register info';`
 
@@ -304,55 +304,16 @@ var cOnlineCountTable = `
 		PRIMARY KEY (node_id,created_time)
 	) ENGINE=InnoDB COMMENT='node and server online count';`
 
-// var cUserAssetTable = `
-//     CREATE TABLE if not exists %s (
-// 	    hash              VARCHAR(128) NOT NULL,
-// 	    user_id           VARCHAR(128) NOT NULL,
-// 	    asset_name        VARCHAR(128) DEFAULT '' ,
-// 		asset_type        VARCHAR(128) DEFAULT '' ,
-// 		share_status      TINYINT      DEFAULT 0,
-// 	    created_time      DATETIME     DEFAULT CURRENT_TIMESTAMP,
-// 		total_size        BIGINT       DEFAULT 0,
-// 		expiration        DATETIME     DEFAULT CURRENT_TIMESTAMP,
-// 		password          VARCHAR(128) DEFAULT '' ,
-// 		group_id          INT          DEFAULT 0,
-// 		PRIMARY KEY (hash,user_id),
-// 		KEY idx_user_id (user_id),
-// 		KEY idx_group_id (group_id)
-//     ) ENGINE=InnoDB COMMENT='user asset';`
-
-// var cUserInfoTable = `
-//     CREATE TABLE if not exists %s (
-// 	    user_id             VARCHAR(128) NOT NULL,
-// 		total_storage_size 	BIGINT      DEFAULT 0,
-// 		used_storage_size 	BIGINT      DEFAULT 0,
-// 		api_keys		    BLOB,
-// 		total_traffic       BIGINT      DEFAULT 0,
-// 		peak_bandwidth 	    INT         DEFAULT 0,
-// 		download_count 	    INT         DEFAULT 0,
-// 		enable_vip  	    BOOLEAN 	DEFAULT false,
-// 		update_peak_time    DATETIME    DEFAULT CURRENT_TIMESTAMP,
-// 		PRIMARY KEY (user_id)
-//     ) ENGINE=InnoDB COMMENT='user infos';`
-
-// var cAssetVisitCountTable = `
-//     CREATE TABLE if not exists %s (
-// 	    hash        VARCHAR(128) NOT NULL,
-// 		count       INT 		 DEFAULT 0,
-// 		PRIMARY KEY (hash)
-//     ) ENGINE=InnoDB COMMENT='user asset visit count';`
-
-// var cUserAssetGroupTable = `
-//     CREATE TABLE if not exists %s (
-// 		id            INT UNSIGNED AUTO_INCREMENT,
-// 	    user_id       VARCHAR(128) NOT NULL,
-// 		name          VARCHAR(32)  DEFAULT '',
-// 		parent        INT          DEFAULT 0,
-// 	    created_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
-// 		PRIMARY KEY (id),
-// 	    KEY idx_user_id (user_id),
-// 	    KEY idx_parent (parent)
-//     ) ENGINE=InnoDB COMMENT='user asset group';`
+var cAssetDownloadTable = `
+	CREATE TABLE if not exists %s (
+		node_id         VARCHAR(128)  NOT NULL,
+		hash            VARCHAR(128)  NOT NULL,
+		created_time    DATETIME      DEFAULT CURRENT_TIMESTAMP,
+ 		total_traffic   BIGINT        DEFAULT 0,
+		peak_bandwidth 	INT           DEFAULT 0,
+ 		KEY idx_hash_id (hash),
+ 		KEY idx_node_id (node_id)
+	) ENGINE=InnoDB COMMENT='node and server online count';`
 
 var cUserAssetGroupTable = `
     CREATE TABLE if not exists %s (

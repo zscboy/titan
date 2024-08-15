@@ -2,6 +2,7 @@ package workload
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -11,7 +12,6 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
-	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("workload")
@@ -23,7 +23,8 @@ type Manager struct {
 	nodeMgr       *node.Manager
 	*db.SQLDB
 
-	resultQueue chan *WorkloadResult
+	resultQueue []*WorkloadResult
+	resultLock  sync.Mutex
 }
 
 // NewManager return new node manager instance
@@ -33,7 +34,7 @@ func NewManager(sdb *db.SQLDB, configFunc dtypes.GetSchedulerConfigFunc, lmgr *l
 		leadershipMgr: lmgr,
 		SQLDB:         sdb,
 		nodeMgr:       nmgr,
-		resultQueue:   make(chan *WorkloadResult),
+		resultQueue:   make([]*WorkloadResult, 0),
 	}
 
 	go manager.handleResults()
@@ -46,6 +47,27 @@ type WorkloadResult struct {
 	nodeID string
 }
 
+func (m *Manager) addWorkloadResult(r *WorkloadResult) {
+	m.resultLock.Lock()
+	defer m.resultLock.Unlock()
+
+	m.resultQueue = append(m.resultQueue, r)
+}
+
+func (m *Manager) popWorkloadResult() *WorkloadResult {
+	m.resultLock.Lock()
+	defer m.resultLock.Unlock()
+
+	if len(m.resultQueue) > 0 {
+		out := m.resultQueue[0]
+		m.resultQueue = m.resultQueue[1:]
+
+		return out
+	}
+
+	return nil
+}
+
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
 	log.Infof("workload PushResult nodeID:[%s] , %s\n", nodeID, data.WorkloadID)
 
@@ -53,25 +75,28 @@ func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error
 		return nil
 	}
 
-	m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
+	m.addWorkloadResult(&WorkloadResult{data: data, nodeID: nodeID})
+	// m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
 
 	return nil
 }
 
 func (m *Manager) handleResults() {
 	for {
-		result := <-m.resultQueue
-
-		m.handleClientWorkload(result.data, result.nodeID)
+		// result := <-m.resultQueue
+		result := m.popWorkloadResult()
+		if result != nil {
+			m.handleClientWorkload(result.data, result.nodeID)
+		} else {
+			time.Sleep(time.Minute)
+		}
 	}
 }
 
 // handleClientWorkload handle node workload
 func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID string) error {
-	downloadTotalSize := int64(0)
-
 	if data.WorkloadID == "" {
-		return xerrors.New("WorkloadID is nil")
+		return nil
 	}
 
 	record, err := m.LoadWorkloadRecordOfID(data.WorkloadID)
@@ -84,6 +109,7 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID str
 		return nil
 	}
 
+	downloadTotalSize := int64(0)
 	for _, dw := range data.Workloads {
 		downloadTotalSize += dw.DownloadSize
 	}
