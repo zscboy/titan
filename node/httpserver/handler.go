@@ -20,9 +20,10 @@ var log = logging.Logger("httpserver")
 const (
 	reqIpfs = "/ipfs"
 
-	reqUpload   = "/upload"   // upload car file
-	reqUploadv2 = "/uploadv2" // upload raw file
-	reqUploadv3 = "/uploadv3" // upload with url
+	reqUpload         = "/upload"   // upload car file
+	reqUploadv2       = "/uploadv2" // upload raw file
+	reqUploadv3       = "/uploadv3" // upload with url
+	reqUploadv3Status = "/statusv3" // status of active or inactive uploadv3 request
 
 	reqRpc                = "/rpc"
 	reqLease              = "/lease"
@@ -74,7 +75,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		!strings.Contains(r.URL.Path, reqUpload) &&
 		!strings.Contains(r.URL.Path, reqRpc) &&
 		!strings.Contains(r.URL.Path, reqLease) &&
-		!strings.Contains(r.URL.Path, reqUploadv2) {
+		!strings.Contains(r.URL.Path, reqUploadv2) &&
+		!strings.Contains(r.URL.Path, reqUploadv3) &&
+		!strings.Contains(r.URL.Path, reqUploadv3Status) {
 		resetPath(r)
 	}
 
@@ -89,6 +92,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.hs.uploadv2Handler(w, r)
 	case reqUploadv3:
 		h.hs.uploadv3Handler(w, r)
+	case reqUploadv3Status:
+		h.hs.uploadv3StatusHandler(w, r)
 	case reqLease:
 		h.hs.LeaseShellHandler(w, r)
 	default:

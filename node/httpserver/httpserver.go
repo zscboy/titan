@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
-	"github.com/Filecoin-Titan/titan/node/container"
 	gopath "path"
 	"sync"
+
+	"github.com/Filecoin-Titan/titan/node/container"
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
@@ -45,6 +46,7 @@ type HttpServer struct {
 	webRedirect         string
 	rateLimiter         *types.RateLimiter
 	client              *container.Client
+	v3Progress          *sync.Map
 }
 
 type HttpServerOptions struct {
@@ -72,6 +74,7 @@ func NewHttpServer(opts *HttpServerOptions) *HttpServer {
 		webRedirect:         opts.WebRedirect,
 		rateLimiter:         opts.RateLimiter,
 		client:              opts.Client,
+		v3Progress:          &sync.Map{},
 	}
 
 	if hs.validation != nil {
