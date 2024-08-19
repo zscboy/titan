@@ -306,13 +306,6 @@ func qualifiedNAT(natType string) bool {
 	return false
 }
 
-// saveInfo Save node information when it comes online
-func (m *Manager) saveInfo(n *types.NodeInfo) error {
-	n.LastSeen = time.Now()
-
-	return m.SaveNodeInfo(n)
-}
-
 func (m *Manager) updateServerOnlineCounts() {
 	now := time.Now()
 

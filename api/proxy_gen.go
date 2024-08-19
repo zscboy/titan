@@ -611,6 +611,8 @@ type SchedulerStruct struct {
 
 		GetValidationResults func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListValidationResultRsp, error) `perm:"web,admin"`
 
+		GetValidator func(p0 context.Context) ([]string, error) `perm:"web,admin"`
+
 		GetWorkloadRecord func(p0 context.Context, p1 string) (*types.WorkloadRecord, error) `perm:"web,admin"`
 
 		GetWorkloadRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListWorkloadRecordRsp, error) `perm:"web,admin"`
@@ -2811,6 +2813,17 @@ func (s *SchedulerStruct) GetValidationResults(p0 context.Context, p1 string, p2
 
 func (s *SchedulerStub) GetValidationResults(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListValidationResultRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetValidator(p0 context.Context) ([]string, error) {
+	if s.Internal.GetValidator == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.GetValidator(p0)
+}
+
+func (s *SchedulerStub) GetValidator(p0 context.Context) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *SchedulerStruct) GetWorkloadRecord(p0 context.Context, p1 string) (*types.WorkloadRecord, error) {

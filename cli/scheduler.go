@@ -28,6 +28,7 @@ var SchedulerCMDs = []*cli.Command{
 	edgeUpdaterCmd,
 	loadWorkloadCmd,
 	reNatCmd,
+	showValidatorCmd,
 }
 
 var (
@@ -163,6 +164,35 @@ var setNodePortCmd = &cli.Command{
 		defer closer()
 
 		return schedulerAPI.UpdateNodePort(ctx, nodeID, port)
+	},
+}
+
+var showValidatorCmd = &cli.Command{
+	Name:  "sv",
+	Usage: "show validators ",
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		list, err := schedulerAPI.GetValidator(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, nodeID := range list {
+			fmt.Println(nodeID)
+		}
+
+		return nil
 	},
 }
 

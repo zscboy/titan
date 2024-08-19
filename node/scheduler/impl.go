@@ -145,8 +145,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	cNode.IsPrivateMinioOnly = opts.IsPrivateMinioOnly
 	cNode.ResourcesStatistics = opts.ResourcesStatistics
 
-	log.Infof("node connected %s, address[%s] , %v, IsPrivateMinioOnly:%v , opts.ExternalURL:%s", nodeID, remoteAddr, alreadyConnect, cNode.IsPrivateMinioOnly, cNode.ExternalURL)
-
 	err = cNode.ConnectRPC(s.Transport, remoteAddr, nodeType)
 	if err != nil {
 		return xerrors.Errorf("%s nodeConnect err ConnectRPC err:%s", nodeID, err.Error())
@@ -216,7 +214,16 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		}
 	}
 
+	log.Infof("node connected %s, address[%s] , %v, ExternalURL:%s ,  nodeVer:%s", nodeID, remoteAddr, alreadyConnect, cNode.ExternalURL, nodeInfo.SystemVersion)
+
 	cNode.InitInfo(nodeInfo)
+
+	if !alreadyConnect || dbInfo == nil || dbInfo.SystemVersion != nodeInfo.SystemVersion {
+		err = s.saveNodeInfo(nodeInfo)
+		if err != nil {
+			return err
+		}
+	}
 
 	if !alreadyConnect {
 		if nodeType == types.NodeEdge {
@@ -260,6 +267,13 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 	s.DataSync.AddNodeToList(nodeID)
 	return nil
+}
+
+// SaveInfo Save node information when it comes online
+func (s *Scheduler) saveNodeInfo(n *types.NodeInfo) error {
+	n.LastSeen = time.Now()
+
+	return s.db.SaveNodeInfo(n)
 }
 
 func checkDomain(domain string) error {
@@ -641,4 +655,8 @@ func (s *Scheduler) ResetCandidateCode(ctx context.Context, nodeID, code string)
 
 func (s *Scheduler) RemoveCandidateCode(ctx context.Context, code string) error {
 	return s.db.DeleteCandidateCodeInfo(code)
+}
+
+func (s *Scheduler) GetValidator(ctx context.Context) ([]string, error) {
+	return s.ValidationMgr.GetValidator(), nil
 }

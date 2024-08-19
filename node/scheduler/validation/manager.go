@@ -53,6 +53,44 @@ type Manager struct {
 	lotusRPCAddress string
 
 	enableValidation bool
+
+	validators []string
+	vLock      sync.Mutex
+}
+
+func (m *Manager) addValidator(nodeID string) {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+
+	m.validators = append(m.validators, nodeID)
+}
+
+func (m *Manager) IsValidator(nodeID string) bool {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+
+	if len(m.validators) == 0 {
+		return false
+	}
+
+	for _, nID := range m.validators {
+		if nID == nodeID {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m *Manager) GetValidator() []string {
+	return m.validators
+}
+
+func (m *Manager) cleanValidator() {
+	m.lck.Lock()
+	defer m.lck.Unlock()
+
+	m.validators = []string{}
 }
 
 // NewManager return new node manager instance

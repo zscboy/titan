@@ -277,4 +277,6 @@ type Scheduler interface {
 
 	// AssignTunserverURL Deprecated
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
+
+	GetValidator(ctx context.Context) ([]string, error) //perm:web,admin
 }

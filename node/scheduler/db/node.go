@@ -8,7 +8,6 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/xerrors"
 )
@@ -147,69 +146,69 @@ func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 	return err
 }
 
-// UpdateValidators update validators
-func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID, cleanOld bool) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
+// // UpdateValidators update validators
+// func (n *SQLDB) UpdateValidators(nodeIDs []string, serverID dtypes.ServerID, cleanOld bool) error {
+// 	tx, err := n.db.Beginx()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("UpdateValidators Rollback err:%s", err.Error())
-		}
-	}()
+// 	defer func() {
+// 		err = tx.Rollback()
+// 		if err != nil && err != sql.ErrTxDone {
+// 			log.Errorf("UpdateValidators Rollback err:%s", err.Error())
+// 		}
+// 	}()
 
-	if cleanOld {
-		// clean old validators
-		dQuery := fmt.Sprintf(`DELETE FROM %s WHERE scheduler_sid=? `, validatorsTable)
-		_, err = tx.Exec(dQuery, serverID)
-		if err != nil {
-			return err
-		}
-	}
+// 	if cleanOld {
+// 		// clean old validators
+// 		dQuery := fmt.Sprintf(`DELETE FROM %s WHERE scheduler_sid=? `, validatorsTable)
+// 		_, err = tx.Exec(dQuery, serverID)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
 
-	for _, nodeID := range nodeIDs {
-		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, scheduler_sid) VALUES (?, ?)`, validatorsTable)
-		tx.Exec(iQuery, nodeID, serverID)
-	}
+// 	for _, nodeID := range nodeIDs {
+// 		iQuery := fmt.Sprintf(`INSERT INTO %s (node_id, scheduler_sid) VALUES (?, ?)`, validatorsTable)
+// 		tx.Exec(iQuery, nodeID, serverID)
+// 	}
 
-	return tx.Commit()
-}
+// 	return tx.Commit()
+// }
 
-// LoadValidators load validators information.
-func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
-	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE scheduler_sid=?`, validatorsTable)
+// // LoadValidators load validators information.
+// func (n *SQLDB) LoadValidators(serverID dtypes.ServerID) ([]string, error) {
+// 	sQuery := fmt.Sprintf(`SELECT node_id FROM %s WHERE scheduler_sid=?`, validatorsTable)
 
-	var out []string
-	err := n.db.Select(&out, sQuery, serverID)
-	if err != nil {
-		return nil, err
-	}
+// 	var out []string
+// 	err := n.db.Select(&out, sQuery, serverID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return out, nil
-}
+// 	return out, nil
+// }
 
-// IsValidator Determine whether the node is a validator
-func (n *SQLDB) IsValidator(nodeID string) (bool, error) {
-	var count int64
-	sQuery := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE node_id=?", validatorsTable)
-	err := n.db.Get(&count, sQuery, nodeID)
-	if err != nil {
-		return false, err
-	}
+// // IsValidator Determine whether the node is a validator
+// func (n *SQLDB) IsValidator(nodeID string) (bool, error) {
+// 	var count int64
+// 	sQuery := fmt.Sprintf("SELECT count(node_id) FROM %s WHERE node_id=?", validatorsTable)
+// 	err := n.db.Get(&count, sQuery, nodeID)
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return count > 0, nil
-}
+// 	return count > 0, nil
+// }
 
-// UpdateValidatorInfo reset scheduler server id for validator
-func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) error {
-	uQuery := fmt.Sprintf(`UPDATE %s SET scheduler_sid=? WHERE node_id=?`, validatorsTable)
-	_, err := n.db.Exec(uQuery, serverID, nodeID)
+// // UpdateValidatorInfo reset scheduler server id for validator
+// func (n *SQLDB) UpdateValidatorInfo(serverID dtypes.ServerID, nodeID string) error {
+// 	uQuery := fmt.Sprintf(`UPDATE %s SET scheduler_sid=? WHERE node_id=?`, validatorsTable)
+// 	_, err := n.db.Exec(uQuery, serverID, nodeID)
 
-	return err
-}
+// 	return err
+// }
 
 // SaveNodeInfo Insert or update node info
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {

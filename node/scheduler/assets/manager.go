@@ -332,7 +332,9 @@ func (m *Manager) retrieveNodePullProgresses(isUpload bool) {
 	}
 
 	getCP := func(nodeID string, cids []string, delay int) {
-		time.Sleep(time.Duration(delay) * time.Second)
+		if delay > 0 {
+			time.Sleep(time.Duration(delay) * time.Second)
+		}
 
 		// request node
 		result, err := m.requestNodePullProgresses(nodeID, cids)
@@ -520,6 +522,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		cNodes = append(cNodes, node)
 	} else {
 		_, nodes := m.nodeMgr.GetAllCandidateNodes()
+
 		// mixup nodes
 		rand.Shuffle(len(nodes), func(i, j int) { nodes[i], nodes[j] = nodes[j], nodes[i] })
 
@@ -967,7 +970,7 @@ func (m *Manager) startAssetTimeoutCounting(hash string, count int, size int64) 
 	} else {
 		needTime := int64(60 * 60 * 2)
 		if size > 0 {
-			needTime = size / (100 * 1024) // 100 kbps
+			needTime = size / (50 * 1024) // 50 kbps
 		}
 
 		if needTime < 5*60 {

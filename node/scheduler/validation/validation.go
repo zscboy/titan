@@ -42,11 +42,12 @@ func (m *Manager) startValidationTicker() {
 		log.Infof("start validation ------------- %d:%d  (%d != 0)[%v] [%v] \n", hour, t.Minute(), hour%2, hour%2 != 0, t.Minute() == 0)
 
 		if hour%2 != 0 && t.Minute() == 0 {
-			log.Infoln("start validation 1------------- ", m.enableValidation)
 			m.doValidate()
 		} else {
-			log.Infoln("start validation 2------------- ")
-			m.computeNodeProfits()
+			m.cleanValidator()
+
+			nodes := m.nodeMgr.GetAllEdgeNode()
+			m.computeNodeProfits(nodes)
 		}
 	}
 
@@ -58,8 +59,11 @@ func (m *Manager) startValidationTicker() {
 	}
 }
 
-func (m *Manager) computeNodeProfits() {
-	nodes := m.nodeMgr.GetAllEdgeNode()
+func (m *Manager) computeNodeProfits(nodes []*node.Node) {
+	if nodes == nil || len(nodes) == 0 {
+		return
+	}
+
 	for _, node := range nodes {
 		rsp, err := m.nodeMgr.LoadValidationResultInfos(node.NodeID, 20, 0)
 		if err != nil || len(rsp.ValidationResultInfos) == 0 {
@@ -129,6 +133,15 @@ func (m *Manager) startValidate() error {
 
 	validateReqs := make(map[string]*api.ValidateReq)
 	_, candidates := m.nodeMgr.GetAllCandidateNodes()
+
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// mixup nodes
+	rand.Shuffle(len(candidates), func(i, j int) { candidates[i], candidates[j] = candidates[j], candidates[i] })
+	candidates = candidates[:len(candidates)/2]
+
 	for _, candidate := range candidates {
 		if candidate == nil {
 			continue
@@ -137,6 +150,8 @@ func (m *Manager) startValidate() error {
 		if candidate.NATType != types.NatTypeNo.String() && candidate.NATType != types.NatTypeUnknown.String() {
 			continue
 		}
+
+		m.addValidator(candidate.NodeID)
 
 		vTCPAddr := candidate.TCPAddr()
 		wURL := candidate.WsURL()
@@ -158,12 +173,14 @@ func (m *Manager) startValidate() error {
 
 	log.Infoln("start validation validateReqs:%d, edges:%d", len(validateReqs), len(edges))
 
-	m.distributeEdges(edges, validateReqs)
+	// L2s that are not randomly checked will be rewarded directly
+	nodes := m.distributeEdges(edges, validateReqs)
+	m.computeNodeProfits(nodes)
 
 	return nil
 }
 
-func (m *Manager) distributeEdges(edges []*node.Node, validateReqs map[string]*api.ValidateReq) {
+func (m *Manager) distributeEdges(edges []*node.Node, validateReqs map[string]*api.ValidateReq) []*node.Node {
 	dbInfos := make([]*types.ValidationResultInfo, 0)
 	totalEdges := len(edges)
 	currentEdgeIndex := 0
@@ -204,6 +221,14 @@ outerLoop:
 	if err != nil {
 		log.Errorf("SaveValidationResultInfos err:%s", err.Error())
 	}
+
+	// No spot check of L2
+	start := currentEdgeIndex
+	if start < totalEdges {
+		return edges[start:]
+	}
+
+	return nil
 }
 
 // sends a validation request to a node.

@@ -289,7 +289,6 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("OnlineDuration"),
 			tablewriter.Col("OfflineDuration"),
 			tablewriter.Col("Geo"),
-			// tablewriter.Col("Test"),
 			// tablewriter.Col("Ver"),
 		)
 
@@ -600,6 +599,7 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("Geo: %s \n", info.AreaID)
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetFlowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetFlowDown)))
+		fmt.Printf("MX: %.2f \n", info.Mx)
 
 		return nil
 	},

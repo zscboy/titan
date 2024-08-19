@@ -479,7 +479,7 @@ func (s *Scheduler) RemoveNodeFailedReplica(ctx context.Context) error {
 					continue
 				}
 
-				log.Infof("remove replica node :%s", info.NodeID)
+				log.Infof("remove replica node:%s, cid:%s", info.NodeID, cid)
 
 				node.DeleteAsset(context.Background(), cid)
 			}
@@ -530,7 +530,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 
 	cNodes := make([]*node.Node, 0)
 	for _, node := range nodes {
-		if node.IsStorageNode {
+		if node.IsStorageNode && !s.ValidationMgr.IsValidator(node.NodeID) {
 			cNodes = append(cNodes, node)
 		}
 	}

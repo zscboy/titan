@@ -141,11 +141,6 @@ func (m *Manager) GetOnlineNodeCount(nodeType types.NodeType) int {
 
 // NodeOnline registers a node as online
 func (m *Manager) NodeOnline(node *Node, info *types.NodeInfo) error {
-	err := m.saveInfo(info)
-	if err != nil {
-		return err
-	}
-
 	switch node.Type {
 	case types.NodeEdge:
 		m.storeEdgeNode(node)

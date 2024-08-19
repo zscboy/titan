@@ -608,6 +608,12 @@ func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) e
 	} else {
 		log.Infof("L5 %s connected, version %s remoteAddr %s", nodeID, l5Version.String(), remoteAddr)
 	}
+
+	err = s.saveNodeInfo(nodeInfo)
+	if err != nil {
+		return err
+	}
+
 	// node
 	return s.NodeManager.NodeOnline(l5, nodeInfo)
 }
@@ -985,7 +991,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 		}
 	}
 
-	log.Infof("GetAssetSourceDownloadInfo clientID:%s, cid:%s", clientID, cid)
+	log.Infof("GetAssetSourceDownloadInfo clientID:%s, cid:%s , nodeID:%s", clientID, cid, nodeID)
 	out, totalSize, err := s.GetDownloadInfos(cid, false)
 	if err != nil {
 		return nil, err
