@@ -614,6 +614,11 @@ func (clib *CLib) checkLocators(str string) *JSONCallResult {
 		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("marshal input args failed:%s", err.Error())}
 	}
 
+	err = os.Setenv("QUIC_GO_DISABLE_ECN", "true")
+	if err != nil {
+		log.Errorf("Error setting environment QUIC_GO_DISABLE_ECN:", err)
+	}
+
 	r, err := http.NewRequest("GET", req.Endpoint, nil)
 	if err != nil {
 		return &JSONCallResult{Code: -1, Msg: fmt.Sprintf("new request error %s", err.Error())}
