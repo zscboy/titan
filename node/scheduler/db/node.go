@@ -981,53 +981,55 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 // func(n *SQLDB)
 
 // CleanData delete events
-func (n *SQLDB) CleanData() error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, replicaEventTable)
+func (n *SQLDB) CleanData() {
+	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData replicaEventTable err:%s", err.Error())
 	}
 
-	cleanTime := time.Now().Add(-30).Unix()
+	cleanTime := time.Now().Add(-10).Unix()
 	query = fmt.Sprintf(`DELETE FROM %s WHERE end_time<? `, retrieveEventTable)
 	_, err = n.db.Exec(query, cleanTime)
 	if err != nil {
-		return err
+		log.Warnf("CleanData retrieveEventTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE client_end_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, workloadRecordTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE client_end_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, workloadRecordTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData workloadRecordTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, validationResultTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, validationResultTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData validationResultTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, profitDetailsTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, profitDetailsTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData profitDetailsTable err:%s", err.Error())
 	}
 
 	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, onlineCountTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData onlineCountTable err:%s", err.Error())
 	}
 
 	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 2 DAY) `, assetDownloadTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
-		return err
+		log.Warnf("CleanData assetDownloadTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, projectEventTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, projectEventTable)
 	_, err = n.db.Exec(query)
-	return err
+	if err != nil {
+		log.Warnf("CleanData projectEventTable err:%s", err.Error())
+	}
 }
 
 // SaveCandidateCodeInfo Insert Node code info

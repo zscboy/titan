@@ -756,45 +756,42 @@ func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
 }
 
 // LoadAssetDownloadResults Load results
-func (n *SQLDB) LoadAssetDownloadResults(hash string, start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) {
+func (n *SQLDB) LoadAssetDownloadResults(hash string, start, end time.Time) (*types.ListAssetDownloadRsp, error) {
 	res := new(types.ListAssetDownloadRsp)
-	if limit > loadAssetDownloadLimit {
-		limit = loadAssetDownloadLimit
-	}
 
 	var infos []*types.AssetDownloadResult
-	var count int
+	// var count int
 
 	if hash != "" {
-		query := fmt.Sprintf("SELECT * FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? order by created_time asc LIMIT ? OFFSET ? ", assetDownloadTable)
-		err := n.db.Select(&infos, query, hash, start, end, limit, offset)
+		query := fmt.Sprintf("SELECT * FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+		err := n.db.Select(&infos, query, hash, start, end)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		query := fmt.Sprintf("SELECT * FROM %s WHERE created_time BETWEEN ? AND ? order by created_time asc LIMIT ? OFFSET ? ", assetDownloadTable)
-		err := n.db.Select(&infos, query, start, end, limit, offset)
+		query := fmt.Sprintf("SELECT * FROM %s WHERE created_time BETWEEN ? AND ?", assetDownloadTable)
+		err := n.db.Select(&infos, query, start, end)
 		if err != nil {
 			return nil, err
 		}
 	}
 	res.AssetDownloadResults = infos
 
-	if hash != "" {
-		countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
-		err := n.db.Get(&count, countQuery, hash, start, end)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE created_time BETWEEN ? AND ? ", assetDownloadTable)
-		err := n.db.Get(&count, countQuery, start, end)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// if hash != "" {
+	// 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+	// 	err := n.db.Get(&count, countQuery, hash, start, end)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// } else {
+	// 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE created_time BETWEEN ? AND ? ", assetDownloadTable)
+	// 	err := n.db.Get(&count, countQuery, start, end)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	res.Total = count
+	res.Total = len(infos)
 
 	return res, nil
 }

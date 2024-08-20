@@ -71,9 +71,9 @@ func (m *Manager) popWorkloadResult() *WorkloadResult {
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
 	log.Infof("workload PushResult nodeID:[%s] , %s\n", nodeID, data.WorkloadID)
 
-	if nodeID == "" {
-		return nil
-	}
+	// if nodeID == "" {
+	// 	return nil
+	// }
 
 	m.addWorkloadResult(&WorkloadResult{data: data, nodeID: nodeID})
 	// m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
@@ -94,7 +94,7 @@ func (m *Manager) handleResults() {
 }
 
 // handleClientWorkload handle node workload
-func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID string) error {
+func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNode string) error {
 	if data.WorkloadID == "" {
 		return nil
 	}
@@ -115,7 +115,7 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID str
 	}
 
 	if record == nil {
-		log.Errorf("handleClientWorkload record is nil : %s, %s", data.AssetCID, nodeID)
+		log.Errorf("handleClientWorkload record is nil : %s, %s", data.AssetCID, downloadNode)
 		return nil
 	}
 
@@ -141,34 +141,36 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, nodeID str
 		}
 
 		// Only edge can get this reward
-		node := m.nodeMgr.GetEdgeNode(dw.SourceID)
+		node := m.nodeMgr.GetNode(dw.SourceID)
 		if node == nil {
 			continue
 		}
 		node.UploadTraffic += dw.DownloadSize
 
-		dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-		if dInfo != nil {
-			dInfo.CID = record.AssetCID
-			dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+		if downloadNode != "" && node.Type == types.NodeEdge {
+			if dw.DownloadSize > limit {
+				dw.DownloadSize = limit
+			}
 
-			detailsList = append(detailsList, dInfo)
-		}
+			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+			if dInfo != nil {
+				dInfo.CID = record.AssetCID
+				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
 
-		if dw.DownloadSize > limit {
-			dw.DownloadSize = limit
-		}
+				detailsList = append(detailsList, dInfo)
+			}
 
-		retrieveEvent := &types.RetrieveEvent{
-			CID:         record.AssetCID,
-			TokenID:     uuid.NewString(),
-			NodeID:      dw.SourceID,
-			ClientID:    record.ClientID,
-			Size:        dw.DownloadSize,
-			CreatedTime: record.CreatedTime.Unix(),
-			EndTime:     time.Now().Unix(),
+			retrieveEvent := &types.RetrieveEvent{
+				CID:         record.AssetCID,
+				TokenID:     uuid.NewString(),
+				NodeID:      dw.SourceID,
+				ClientID:    record.ClientID,
+				Size:        dw.DownloadSize,
+				CreatedTime: record.CreatedTime.Unix(),
+				EndTime:     time.Now().Unix(),
+			}
+			eventList = append(eventList, retrieveEvent)
 		}
-		eventList = append(eventList, retrieveEvent)
 	}
 
 	// Retrieve Event

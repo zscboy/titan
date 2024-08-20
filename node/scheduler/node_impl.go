@@ -998,37 +998,37 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	}
 
 	// init workload
-	if event == types.WorkloadEventSync {
-		out.WorkloadID = uuid.NewString()
+	// if event == types.WorkloadEventSync {
+	out.WorkloadID = uuid.NewString()
 
-		ws := make([]*types.Workload, 0)
-		for _, info := range out.SourceList {
-			ws = append(ws, &types.Workload{SourceID: info.NodeID})
-		}
-
-		buffer := &bytes.Buffer{}
-		enc := gob.NewEncoder(buffer)
-		err := enc.Encode(ws)
-		if err != nil {
-			log.Errorf("GetAssetSourceDownloadInfo encode error:%s", err.Error())
-			return out, nil
-		}
-
-		record := &types.WorkloadRecord{
-			WorkloadID: out.WorkloadID,
-			AssetCID:   cid,
-			ClientID:   clientID,
-			AssetSize:  totalSize,
-			Workloads:  buffer.Bytes(),
-			Event:      event,
-			Status:     types.WorkloadStatusCreate,
-		}
-
-		if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
-			log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
-			return out, nil
-		}
+	ws := make([]*types.Workload, 0)
+	for _, info := range out.SourceList {
+		ws = append(ws, &types.Workload{SourceID: info.NodeID})
 	}
+
+	buffer := &bytes.Buffer{}
+	enc := gob.NewEncoder(buffer)
+	err = enc.Encode(ws)
+	if err != nil {
+		log.Errorf("GetAssetSourceDownloadInfo encode error:%s", err.Error())
+		return out, nil
+	}
+
+	record := &types.WorkloadRecord{
+		WorkloadID: out.WorkloadID,
+		AssetCID:   cid,
+		ClientID:   clientID,
+		AssetSize:  totalSize,
+		Workloads:  buffer.Bytes(),
+		Event:      event,
+		Status:     types.WorkloadStatusCreate,
+	}
+
+	if err = s.NodeManager.SaveWorkloadRecord([]*types.WorkloadRecord{record}); err != nil {
+		log.Errorf("GetAssetSourceDownloadInfo SaveWorkloadRecord error:%s", err.Error())
+		return out, nil
+	}
+	// }
 
 	return out, nil
 }

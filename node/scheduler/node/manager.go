@@ -127,10 +127,7 @@ func (m *Manager) startCheckNodeTimer() {
 
 		m.checkNodeDeactivate()
 
-		err := m.CleanData()
-		if err != nil {
-			log.Errorf("CleanEvents err:%s", err.Error())
-		}
+		m.CleanData()
 
 		timer.Reset(oneDay)
 	}
