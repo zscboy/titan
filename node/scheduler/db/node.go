@@ -1019,6 +1019,12 @@ func (n *SQLDB) CleanData() error {
 		return err
 	}
 
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 2 DAY) `, assetDownloadTable)
+	_, err = n.db.Exec(query)
+	if err != nil {
+		return err
+	}
+
 	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, projectEventTable)
 	_, err = n.db.Exec(query)
 	return err

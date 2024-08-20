@@ -73,7 +73,7 @@ type AssetAPIStruct struct {
 
 		GetAssetCount func(p0 context.Context) (int, error) `perm:"web,admin"`
 
-		GetAssetDownloadResults func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetDownloadRsp, error) `perm:"web,admin"`
+		GetAssetDownloadResults func(p0 context.Context, p1 string, p2 time.Time, p3 time.Time, p4 int, p5 int) (*types.ListAssetDownloadRsp, error) `perm:"web,admin"`
 
 		GetAssetListForBucket func(p0 context.Context, p1 uint32) ([]string, error) `perm:"edge,candidate"`
 
@@ -909,14 +909,14 @@ func (s *AssetAPIStub) GetAssetCount(p0 context.Context) (int, error) {
 	return 0, ErrNotSupported
 }
 
-func (s *AssetAPIStruct) GetAssetDownloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetDownloadRsp, error) {
+func (s *AssetAPIStruct) GetAssetDownloadResults(p0 context.Context, p1 string, p2 time.Time, p3 time.Time, p4 int, p5 int) (*types.ListAssetDownloadRsp, error) {
 	if s.Internal.GetAssetDownloadResults == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetAssetDownloadResults(p0, p1, p2, p3, p4)
+	return s.Internal.GetAssetDownloadResults(p0, p1, p2, p3, p4, p5)
 }
 
-func (s *AssetAPIStub) GetAssetDownloadResults(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetDownloadRsp, error) {
+func (s *AssetAPIStub) GetAssetDownloadResults(p0 context.Context, p1 string, p2 time.Time, p3 time.Time, p4 int, p5 int) (*types.ListAssetDownloadRsp, error) {
 	return nil, ErrNotSupported
 }
 

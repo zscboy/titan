@@ -578,8 +578,8 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 }
 
 // GetAssetDownloadResults Retrieves Asset Download Results
-func (s *Scheduler) GetAssetDownloadResults(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) {
-	info, err := s.db.LoadAssetDownloadResults(start, end, limit, offset)
+func (s *Scheduler) GetAssetDownloadResults(ctx context.Context, hash string, start, end time.Time, limit, offset int) (*types.ListAssetDownloadRsp, error) {
+	info, err := s.db.LoadAssetDownloadResults(hash, start, end, limit, offset)
 	if err != nil {
 		return nil, xerrors.Errorf("LoadAssetDownloadResults err:%s", err.Error())
 	}
