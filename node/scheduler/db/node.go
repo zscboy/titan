@@ -854,10 +854,13 @@ func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {
 	return tx.Commit()
 }
 
-func (n *SQLDB) LoadTodayProfitsForNode(nodeID string, startTime, endTime time.Time) (float64, error) {
+func (n *SQLDB) LoadTodayProfitsForNode(nodeID string) (float64, error) {
+	start := time.Now()
+	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+
 	size := 0.0
-	query := fmt.Sprintf("SELECT COALESCE(SUM(profit), 0) FROM %s WHERE node_id=? AND created_time BETWEEN ? AND ? ", profitDetailsTable)
-	err := n.db.Get(&size, query, nodeID, startTime, endTime)
+	query := fmt.Sprintf("SELECT COALESCE(SUM(profit), 0) FROM %s WHERE node_id=? AND created_time>?", profitDetailsTable)
+	err := n.db.Get(&size, query, nodeID, start)
 	if err != nil {
 		return 0, err
 	}

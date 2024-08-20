@@ -83,6 +83,8 @@ type AssetAPIStruct struct {
 
 		GetAssetsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) `perm:"web,admin"`
 
+		GetDownloadResultsFromAsset func(p0 context.Context, p1 string, p2 time.Time, p3 time.Time) (*types.AssetDownloadResultRsp, error) `perm:"web,admin"`
+
 		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetReplicaEventsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
@@ -961,6 +963,17 @@ func (s *AssetAPIStruct) GetAssetsForNode(p0 context.Context, p1 string, p2 int,
 }
 
 func (s *AssetAPIStub) GetAssetsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetDownloadResultsFromAsset(p0 context.Context, p1 string, p2 time.Time, p3 time.Time) (*types.AssetDownloadResultRsp, error) {
+	if s.Internal.GetDownloadResultsFromAsset == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetDownloadResultsFromAsset(p0, p1, p2, p3)
+}
+
+func (s *AssetAPIStub) GetDownloadResultsFromAsset(p0 context.Context, p1 string, p2 time.Time, p3 time.Time) (*types.AssetDownloadResultRsp, error) {
 	return nil, ErrNotSupported
 }
 

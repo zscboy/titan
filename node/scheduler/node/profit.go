@@ -2,7 +2,6 @@ package node
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 )
@@ -64,11 +63,7 @@ var (
 // }
 
 func (m *Manager) isExceededLimit(nodeID string) bool {
-	start := time.Now()
-	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
-	end := start.Add(24 * time.Hour)
-
-	todayProfit, err := m.LoadTodayProfitsForNode(nodeID, start, end)
+	todayProfit, err := m.LoadTodayProfitsForNode(nodeID)
 	if err != nil {
 		log.Errorf("%s LoadTodayProfitsForNode err:%s", nodeID, err.Error())
 		return true

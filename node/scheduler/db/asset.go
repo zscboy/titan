@@ -755,6 +755,26 @@ func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
 	return err
 }
 
+// LoadDownloadResultsFromAsset Load results
+func (n *SQLDB) LoadDownloadResultsFromAsset(hash string, start, end time.Time) (int64, int64, error) {
+	// var count int
+	totalTraffic := int64(0)
+	query := fmt.Sprintf("SELECT COALESCE(SUM(total_traffic), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+	err := n.db.Get(&totalTraffic, query, hash, start, end)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	peakBandwidth := int64(0)
+	query = fmt.Sprintf("SELECT COALESCE(MAX(peak_bandwidth), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+	err = n.db.Get(&peakBandwidth, query, hash, start, end)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return totalTraffic, peakBandwidth, nil
+}
+
 // LoadAssetDownloadResults Load results
 func (n *SQLDB) LoadAssetDownloadResults(hash string, start, end time.Time) (*types.ListAssetDownloadRsp, error) {
 	res := new(types.ListAssetDownloadRsp)

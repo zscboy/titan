@@ -340,3 +340,9 @@ type ListAssetDownloadRsp struct {
 	Total                int                    `json:"total"`
 	AssetDownloadResults []*AssetDownloadResult `json:"list"`
 }
+
+// AssetDownloadResultRsp
+type AssetDownloadResultRsp struct {
+	TotalTraffic  int64
+	PeakBandwidth int64
+}
