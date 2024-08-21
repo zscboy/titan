@@ -9,6 +9,7 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/xerrors"
 )
@@ -756,33 +757,25 @@ func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
 }
 
 // LoadDownloadResultsFromAsset Load results
-func (n *SQLDB) LoadDownloadResultsFromAsset(hash string, start, end time.Time) (int64, int64, error) {
-	// var count int
-	totalTraffic := int64(0)
-	peakBandwidth := int64(0)
+func (n *SQLDB) LoadDownloadResultsFromAsset(ctx context.Context, hashes []string, start, end time.Time) ([]*types.AssetDownloadResultRsp, error) {
+	var list []*types.AssetDownloadResultRsp
 
-	// query := fmt.Sprintf("SELECT COALESCE(SUM(total_traffic), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
-	// err := n.db.Get(&totalTraffic, query, hash, start, end)
-	// if err != nil {
-	// 	return 0, 0, err
-	// }
-
-	// query = fmt.Sprintf("SELECT COALESCE(MAX(peak_bandwidth), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
-	// err = n.db.Get(&peakBandwidth, query, hash, start, end)
-	// if err != nil {
-	// 	return 0, 0, err
-	// }
-
-	// Combining the SUM and MAX queries into one
-	query := fmt.Sprintf(`SELECT COALESCE(SUM(total_traffic), 0) as total_traffic,  COALESCE(MAX(peak_bandwidth), 0) as peak_bandwidth FROM %s WHERE hash=? AND created_time BETWEEN ? AND ?`, assetDownloadTable)
-
-	// Executing the query and scanning both results
-	err := n.db.QueryRow(query, hash, start, end).Scan(&totalTraffic, &peakBandwidth)
+	sq := squirrel.Select("hash,COALESCE(MAX(total_traffic), 0) AS total_traffic,COALESCE(MAX(peak_bandwidth), 0) AS peak_bandwidth").
+		From(assetDownloadTable).Where("created_time BETWEEN ? AND ?", start, end)
+	if len(hashes) > 0 {
+		sq = sq.Where(squirrel.Eq{"hash": hashes})
+	}
+	query, args, err := sq.GroupBy("hash").ToSql()
 	if err != nil {
-		return 0, 0, err
+		return nil, fmt.Errorf("generate sql of get DownloadResultsFromAssets error:%w", err)
 	}
 
-	return totalTraffic, peakBandwidth, nil
+	err = n.db.SelectContext(ctx, &list, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get DownloadResultsFromAssets error:%w", err)
+	}
+
+	return list, nil
 }
 
 // LoadAssetDownloadResults Load results

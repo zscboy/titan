@@ -591,27 +591,7 @@ func (s *Scheduler) GetAssetDownloadResults(ctx context.Context, hash string, st
 	return info, nil
 }
 
-// GetDownloadResultsFromAsset Retrieves Asset Download Results
-func (s *Scheduler) GetDownloadResultsFromAsset(ctx context.Context, hash string, start, end time.Time) (*types.AssetDownloadResultRsp, error) {
-	totalTraffic, peakBandwidth, err := s.db.LoadDownloadResultsFromAsset(hash, start, end)
-	if err != nil {
-		return nil, xerrors.Errorf("LoadDownloadResultsFromAsset err:%s", err.Error())
-	}
-
-	return &types.AssetDownloadResultRsp{TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth}, nil
-}
-
 // GetDownloadResultsFromAssets Retrieves Asset Download Results
-func (s *Scheduler) GetDownloadResultsFromAssets(ctx context.Context, hashes []string, start, end time.Time) (map[string]*types.AssetDownloadResultRsp, error) {
-	out := make(map[string]*types.AssetDownloadResultRsp)
-	for _, hash := range hashes {
-		totalTraffic, peakBandwidth, err := s.db.LoadDownloadResultsFromAsset(hash, start, end)
-		if err != nil {
-			continue
-		}
-
-		out[hash] = &types.AssetDownloadResultRsp{TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth}
-	}
-
-	return out, nil
+func (s *Scheduler) GetDownloadResultsFromAssets(ctx context.Context, hashes []string, start, end time.Time) ([]*types.AssetDownloadResultRsp, error) {
+	return s.db.LoadDownloadResultsFromAsset(ctx, hashes, start, end)
 }

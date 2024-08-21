@@ -343,6 +343,7 @@ type ListAssetDownloadRsp struct {
 
 // AssetDownloadResultRsp
 type AssetDownloadResultRsp struct {
-	TotalTraffic  int64
-	PeakBandwidth int64
+	Hash          string `db:"hash"`
+	TotalTraffic  int64  `db:"total_traffic"`
+	PeakBandwidth int64  `db:"peak_bandwidth"`
 }
