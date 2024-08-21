@@ -287,6 +287,10 @@ func (s *Scheduler) CreateAsset(ctx context.Context, req *types.CreateAssetReq) 
 		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
 	}
 
+	if hash == "1220e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+		return nil, &api.ErrWeb{Code: terrors.InvalidAsset.Int(), Message: "Uploading empty files is not allowed"}
+	}
+
 	return s.AssetManager.CreateAssetUploadTask(hash, req)
 }
 
@@ -595,4 +599,19 @@ func (s *Scheduler) GetDownloadResultsFromAsset(ctx context.Context, hash string
 	}
 
 	return &types.AssetDownloadResultRsp{TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth}, nil
+}
+
+// GetDownloadResultsFromAssets Retrieves Asset Download Results
+func (s *Scheduler) GetDownloadResultsFromAssets(ctx context.Context, hashes []string, start, end time.Time) (map[string]*types.AssetDownloadResultRsp, error) {
+	out := make(map[string]*types.AssetDownloadResultRsp)
+	for _, hash := range hashes {
+		totalTraffic, peakBandwidth, err := s.db.LoadDownloadResultsFromAsset(hash, start, end)
+		if err != nil {
+			continue
+		}
+
+		out[hash] = &types.AssetDownloadResultRsp{TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth}
+	}
+
+	return out, nil
 }

@@ -759,15 +759,25 @@ func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
 func (n *SQLDB) LoadDownloadResultsFromAsset(hash string, start, end time.Time) (int64, int64, error) {
 	// var count int
 	totalTraffic := int64(0)
-	query := fmt.Sprintf("SELECT COALESCE(SUM(total_traffic), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
-	err := n.db.Get(&totalTraffic, query, hash, start, end)
-	if err != nil {
-		return 0, 0, err
-	}
-
 	peakBandwidth := int64(0)
-	query = fmt.Sprintf("SELECT COALESCE(MAX(peak_bandwidth), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
-	err = n.db.Get(&peakBandwidth, query, hash, start, end)
+
+	// query := fmt.Sprintf("SELECT COALESCE(SUM(total_traffic), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+	// err := n.db.Get(&totalTraffic, query, hash, start, end)
+	// if err != nil {
+	// 	return 0, 0, err
+	// }
+
+	// query = fmt.Sprintf("SELECT COALESCE(MAX(peak_bandwidth), 0) FROM %s WHERE hash=? AND created_time BETWEEN ? AND ? ", assetDownloadTable)
+	// err = n.db.Get(&peakBandwidth, query, hash, start, end)
+	// if err != nil {
+	// 	return 0, 0, err
+	// }
+
+	// Combining the SUM and MAX queries into one
+	query := fmt.Sprintf(`SELECT COALESCE(SUM(total_traffic), 0) as total_traffic,  COALESCE(MAX(peak_bandwidth), 0) as peak_bandwidth FROM %s WHERE hash=? AND created_time BETWEEN ? AND ?`, assetDownloadTable)
+
+	// Executing the query and scanning both results
+	err := n.db.QueryRow(query, hash, start, end).Scan(&totalTraffic, &peakBandwidth)
 	if err != nil {
 		return 0, 0, err
 	}

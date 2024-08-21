@@ -37,6 +37,7 @@ const (
 	AssetNotFound       // asset not found
 
 	ForceOffline // node force offline
+	InvalidAsset
 
 	Success = 0
 	Unknown = -1

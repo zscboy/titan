@@ -985,13 +985,13 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 
 // CleanData delete events
 func (n *SQLDB) CleanData() {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, replicaEventTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData replicaEventTable err:%s", err.Error())
 	}
 
-	cleanTime := time.Now().Add(-10).Unix()
+	cleanTime := time.Now().Add(-5).Unix()
 	query = fmt.Sprintf(`DELETE FROM %s WHERE end_time<? `, retrieveEventTable)
 	_, err = n.db.Exec(query, cleanTime)
 	if err != nil {
@@ -1004,19 +1004,19 @@ func (n *SQLDB) CleanData() {
 		log.Warnf("CleanData workloadRecordTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, validationResultTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE start_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, validationResultTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData validationResultTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, profitDetailsTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 7 DAY) `, profitDetailsTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData profitDetailsTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, onlineCountTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 8 DAY) `, onlineCountTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData onlineCountTable err:%s", err.Error())
@@ -1028,7 +1028,7 @@ func (n *SQLDB) CleanData() {
 		log.Warnf("CleanData assetDownloadTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, projectEventTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 7 DAY) `, projectEventTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData projectEventTable err:%s", err.Error())
