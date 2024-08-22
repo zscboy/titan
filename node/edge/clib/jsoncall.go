@@ -135,7 +135,7 @@ type (
 	CLib            struct {
 		daemonStart daemonStartFunc
 		repoPath    string
-		isInit      bool
+		isStaring   bool
 		dSwitch     DaemonSwitch
 		downloader  *Downloader
 	}
@@ -217,11 +217,20 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	// 	}
 	// 	return nil
 	// }
-	if clib.isInit && !clib.dSwitch.IsStop {
+	if !clib.dSwitch.IsStop {
 		log.Infof("daemon already start")
 		return nil
 	}
-	clib.isInit = true
+
+	if clib.isStaring {
+		return fmt.Errorf("Is starting, please wait")
+	}
+	clib.isStaring = true
+	defer func() {
+		clib.isStaring = false
+	}()
+
+	// clib.isInit = true
 	clib.dSwitch = DaemonSwitch{StopChan: make(chan bool)}
 
 	types.RunningNodeType = types.NodeEdge
@@ -233,11 +242,11 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	clib.repoPath = req.RepoPath
 
 	if err = clib.daemonStart(context.Background(), &clib.dSwitch, req.RepoPath, req.LocatorURL); err != nil {
-		clib.isInit = false
+		// clib.isInit = false
 		return err
 	}
 
-	clib.isInit = true
+	// clib.isInit = true
 	clib.dSwitch.IsStop = false
 
 	log.Info("deamon start")
@@ -245,9 +254,9 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 }
 
 func (clib *CLib) stopDaemon() error {
-	if !clib.isInit {
-		return fmt.Errorf("Daemon not init")
-	}
+	// if !clib.isInit {
+	// 	return fmt.Errorf("Daemon not init")
+	// }
 
 	if clib.dSwitch.IsStop {
 		return fmt.Errorf("Daemon already stop")

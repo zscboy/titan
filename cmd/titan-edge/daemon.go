@@ -113,15 +113,6 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 		return nil, err
 	}
 
-	udpPacketConn, err := net.ListenPacket("udp", edgeCfg.Network.ListenAddress)
-	if err != nil {
-		return nil, fmt.Errorf("ListenPacket %w", err)
-	}
-
-	transport := &quic.Transport{
-		Conn: udpPacketConn,
-	}
-
 	accessPoint, err := getAccessPoint(edgeCfg.Network.LocatorURL, nodeID, edgeCfg.AreaID)
 	if err != nil {
 		return nil, err
@@ -132,6 +123,15 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 	}
 
 	schedulerURL := accessPoint.Schedulers[0]
+
+	udpPacketConn, err := net.ListenPacket("udp", edgeCfg.Network.ListenAddress)
+	if err != nil {
+		return nil, fmt.Errorf("ListenPacket %w", err)
+	}
+
+	transport := &quic.Transport{
+		Conn: udpPacketConn,
+	}
 
 	schedulerAPI, closeScheduler, err := newSchedulerAPI(transport, schedulerURL, nodeID, privateKey)
 	if err != nil {
