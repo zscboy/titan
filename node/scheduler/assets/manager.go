@@ -25,6 +25,7 @@ import (
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
+	"github.com/Filecoin-Titan/titan/node/scheduler/validation"
 	"github.com/Filecoin-Titan/titan/node/scheduler/workload"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -69,7 +70,8 @@ const (
 
 // Manager manages asset replicas
 type Manager struct {
-	nodeMgr            *node.Manager // node manager
+	nodeMgr            *node.Manager       // node manager
+	validationMgr      *validation.Manager // node manager
 	workloadMgr        *workload.Manager
 	stateMachineWait   sync.WaitGroup
 	assetStateMachines *statemachine.StateGroup
@@ -97,9 +99,10 @@ type pullingAssetsInfo struct {
 }
 
 // NewManager returns a new AssetManager instance
-func NewManager(nodeManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB, wMgr *workload.Manager) *Manager {
+func NewManager(vManager *validation.Manager, nManager *node.Manager, ds datastore.Batching, configFunc dtypes.GetSchedulerConfigFunc, sdb *db.SQLDB, wMgr *workload.Manager) *Manager {
 	m := &Manager{
-		nodeMgr: nodeManager,
+		nodeMgr:       nManager,
+		validationMgr: vManager,
 		// pullingAssets:        make(map[string]int),
 		config:               configFunc,
 		SQLDB:                sdb,
@@ -516,7 +519,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	if req.NodeID != "" {
 		node := m.nodeMgr.GetCandidateNode(req.NodeID)
 		if node == nil {
-			return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's node %s not found", req.NodeID)}
+			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int(), Message: fmt.Sprintf("storage's node %s not found", req.NodeID)}
 		}
 
 		cNodes = append(cNodes, node)
@@ -527,21 +530,21 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		rand.Shuffle(len(nodes), func(i, j int) { nodes[i], nodes[j] = nodes[j], nodes[i] })
 
 		for _, node := range nodes {
-			if node.IsStorageNode && len(cNodes) <= maxCandidateForSelect {
+			if node.IsStorageNode && !m.validationMgr.IsValidator(node.NodeID) && len(cNodes) <= maxCandidateForSelect {
 				cNodes = append(cNodes, node)
 			}
 		}
 	}
 
 	if len(cNodes) == 0 {
-		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int(), Message: fmt.Sprintf("storage's nodes not found")}
 	}
 
 	payload := &types.AuthUserUploadDownloadAsset{
 		UserID:     req.UserID,
 		AssetCID:   req.AssetCID,
 		AssetSize:  req.AssetSize,
-		Expiration: time.Now().Add(time.Hour),
+		Expiration: time.Now().Add(time.Hour * 24),
 	}
 
 	ret := &types.UploadInfo{
@@ -553,7 +556,9 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 	for _, cNode := range cNodes {
 		token, err := cNode.API.CreateAsset(context.Background(), payload)
 		if err != nil {
-			return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
+			log.Errorf("%s CreateAsset err:%s \n", cNode.NodeID, err.Error())
+			continue
+			// return nil, &api.ErrWeb{Code: terrors.RequestNodeErr.Int(), Message: err.Error()}
 		}
 
 		uploadURL := fmt.Sprintf("http://%s/upload", cNode.RemoteAddr)
@@ -564,6 +569,10 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		ret.List = append(ret.List, &types.NodeUploadInfo{UploadURL: uploadURL, Token: token, NodeID: cNode.NodeID})
 
 		seedIDs = append(seedIDs, cNode.NodeID)
+	}
+
+	if len(ret.List) == 0 {
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int(), Message: fmt.Sprintf("storage's nodes not found")}
 	}
 
 	record := &types.AssetRecord{
@@ -1458,12 +1467,4 @@ func (m *Manager) generateToken(assetCID string, sources []*types.SourceDownload
 	}
 
 	return m.generateTokenForDownloadSources(ts, titanRsa, assetCID, node.NodeID, size)
-}
-
-func (m *Manager) saveTokenPayload(payloads []*types.WorkloadRecord) error {
-	if len(payloads) == 0 {
-		return nil
-	}
-
-	return m.SaveWorkloadRecord(payloads)
 }

@@ -180,9 +180,11 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 		}
 	}
 
-	err = m.nodeMgr.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("AddNodeProfit err:%s", err.Error())
+	for _, info := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(info)
+		if err != nil {
+			log.Errorf("AddNodeProfit err:%s", err.Error())
+		}
 	}
 
 	return nil

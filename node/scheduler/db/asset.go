@@ -89,30 +89,13 @@ func (n *SQLDB) UpdateReplicasStatusToFailed(hash string) error {
 
 // SaveReplicasStatus inserts or updates replicas status
 func (n *SQLDB) SaveReplicasStatus(infos []*types.ReplicaInfo) error {
-	tx, err := n.db.Beginx()
-	if err != nil {
-		return err
-	}
+	query := fmt.Sprintf(
+		`INSERT INTO %s (hash, node_id, status, is_candidate, start_time)
+			VALUES (:hash, :node_id, :status, :is_candidate, NOW())
+			ON DUPLICATE KEY UPDATE status=:status, start_time=NOW()`, replicaInfoTable)
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveReplicasStatus Rollback err:%s", err.Error())
-		}
-	}()
-
-	for _, info := range infos {
-		query := fmt.Sprintf(
-			`INSERT INTO %s (hash, node_id, status, is_candidate, start_time)
-				VALUES (:hash, :node_id, :status, :is_candidate, NOW())
-				ON DUPLICATE KEY UPDATE status=:status, start_time=NOW()`, replicaInfoTable)
-
-		_, err := tx.NamedExec(query, info)
-		if err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
+	_, err := n.db.NamedExec(query, infos)
+	return err
 }
 
 // SaveReplicaStatus inserts or updates replicas status
@@ -673,26 +656,21 @@ func (n *SQLDB) LoadReplicaEvents(start, end time.Time, limit, offset int) (*typ
 
 // SaveReplenishBackup Save assets that require replenish backups
 func (n *SQLDB) SaveReplenishBackup(hashes []string) error {
-	tx, err := n.db.Beginx()
+	stmt, err := n.db.Preparex(`INSERT INTO ` + replenishBackupTable + ` (hash)
+        VALUES (?)
+        ON DUPLICATE KEY UPDATE hash=?`)
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveReplenishBackup Rollback err:%s", err.Error())
-		}
-	}()
+	defer stmt.Close()
 
 	for _, hash := range hashes {
-		query := fmt.Sprintf(
-			`INSERT INTO %s (hash) 
-		        VALUES (?) 
-				ON DUPLICATE KEY UPDATE hash=?`, replenishBackupTable)
-		tx.Exec(query, hash, hash)
+		if _, err := stmt.Exec(hash, hash); err != nil {
+			log.Errorf("SaveReplenishBackup %s err:%s", hash, err.Error())
+		}
 	}
-	return tx.Commit()
+
+	return nil
 }
 
 // DeleteReplenishBackup delete

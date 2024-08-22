@@ -263,50 +263,36 @@ func (n *SQLDB) DeleteUnfinishedProjectReplicas(id string) error {
 
 // UpdateProjectReplicaStatusFromNode
 func (n *SQLDB) UpdateProjectReplicaStatusFromNode(nodeID string, uuids []string, status types.ProjectReplicaStatus) error {
-	tx, err := n.db.Beginx()
+	stmt, err := n.db.Preparex(`UPDATE ` + projectReplicasTable + ` SET status=?,end_time=NOW() WHERE id=? AND node_id=?`)
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("UpdateProjectReplicaStatusToOffline Rollback err:%s", err.Error())
-		}
-	}()
+	defer stmt.Close()
 
 	for _, uid := range uuids {
-		// update state table
-		query := fmt.Sprintf(
-			`UPDATE %s SET status=?,end_time=NOW() WHERE id=? AND node_id=?`, projectReplicasTable)
-		tx.Exec(query, status, uid, nodeID)
+		if _, err := stmt.Exec(status, uid, nodeID); err != nil {
+			log.Errorf("UpdateProjectReplicaStatusToFailed %s err:%s", nodeID, err.Error())
+		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // UpdateProjectReplicaStatusToFailed
 func (n *SQLDB) UpdateProjectReplicaStatusToFailed(id string, nodes []string) error {
-	tx, err := n.db.Beginx()
+	stmt, err := n.db.Preparex(`UPDATE ` + projectReplicasTable + ` SET status=?,end_time=NOW() WHERE id=? AND node_id=?`)
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("UpdateProjectReplicaStatusToFailed Rollback err:%s", err.Error())
+	for _, nodeID := range nodes {
+		if _, err := stmt.Exec(types.ProjectReplicaStatusError, id, nodeID); err != nil {
+			log.Errorf("UpdateProjectReplicaStatusToFailed %s err:%s", nodeID, err.Error())
 		}
-	}()
-
-	for _, nid := range nodes {
-		// update state table
-		query := fmt.Sprintf(
-			`UPDATE %s SET status=?,end_time=NOW() WHERE id=? AND node_id=?`, projectReplicasTable)
-		tx.Exec(query, types.ProjectReplicaStatusError, id, nid)
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // UpdateProjectStateInfo update project information

@@ -1,7 +1,11 @@
 package validation
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
+	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -13,6 +17,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/docker/go-units"
 	"github.com/google/uuid"
+	"github.com/ipfs/go-cid"
 )
 
 const (
@@ -268,7 +273,7 @@ func (m *Manager) getValidationResultInfo(nodeID, vID string) (*types.Validation
 		// NodeCount:   m.nodeMgr.TotalNetworkEdges,
 	}
 
-	cid, err := m.assetMgr.RandomAsset(nodeID, m.seed)
+	cid, err := m.RandomAsset(nodeID, m.seed)
 	if err != nil {
 		return dbInfo, err
 	}
@@ -277,6 +282,71 @@ func (m *Manager) getValidationResultInfo(nodeID, vID string) (*types.Validation
 	dbInfo.Cid = cid.String()
 
 	return dbInfo, nil
+}
+
+// RandomAsset get node asset with random seed
+func (m *Manager) RandomAsset(nodeID string, seed int64) (*cid.Cid, error) {
+	r := rand.New(rand.NewSource(seed))
+	bytes, err := m.nodeMgr.LoadBucketHashes(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	hashes := make(map[uint32]string)
+	if err := decode(bytes, &hashes); err != nil {
+		return nil, err
+	}
+
+	if len(hashes) == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	// TODO　save bucket hashes as array
+	bucketIDs := make([]int, 0, len(hashes))
+	for k := range hashes {
+		bucketIDs = append(bucketIDs, int(k))
+	}
+
+	sort.Ints(bucketIDs)
+
+	index := r.Intn(len(bucketIDs))
+	bucketID := bucketIDs[index]
+
+	id := fmt.Sprintf("%s:%d", nodeID, bucketID)
+	bytes, err = m.nodeMgr.LoadBucket(id)
+	if err != nil {
+		return nil, err
+	}
+
+	assetHashes := make([]string, 0)
+	if err = decode(bytes, &assetHashes); err != nil {
+		return nil, err
+	}
+
+	if len(assetHashes) == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	index = r.Intn(len(assetHashes))
+	hash := assetHashes[index]
+
+	bytes, err = hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	c := cid.NewCidV0(bytes)
+	return &c, nil
+}
+
+func decode(data []byte, out interface{}) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	buffer := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buffer)
+	return dec.Decode(out)
 }
 
 // getRandNum generates a random number up to a given maximum value.
@@ -326,9 +396,11 @@ func (m *Manager) updateTimeoutResultInfo() {
 		}
 	}
 
-	err = m.nodeMgr.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("AddNodeProfit err:%s", err.Error())
+	for _, info := range detailsList {
+		err = m.nodeMgr.AddNodeProfit(info)
+		if err != nil {
+			log.Errorf("AddNodeProfit err:%s", err.Error())
+		}
 	}
 }
 

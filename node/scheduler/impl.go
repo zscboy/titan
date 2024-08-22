@@ -191,6 +191,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 	}
 
 	nodeInfo.FirstTime = time.Now()
+	nodeInfo.LastSeen = time.Now()
 	if dbInfo != nil {
 		// init node info
 		nodeInfo.PortMapping = dbInfo.PortMapping
@@ -271,8 +272,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 
 // SaveInfo Save node information when it comes online
 func (s *Scheduler) saveNodeInfo(n *types.NodeInfo) error {
-	n.LastSeen = time.Now()
-
 	return s.db.SaveNodeInfo(n)
 }
 

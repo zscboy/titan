@@ -252,7 +252,9 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 			continue
 		}
 
-		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
+		if workload != nil {
+			m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
+		}
 
 		go func() {
 			// err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
@@ -360,7 +362,9 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 			continue
 		}
 
-		m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
+		if workload != nil {
+			m.SaveWorkloadRecord([]*types.WorkloadRecord{workload})
+		}
 
 		go func() {
 			// err := cNode.PullAsset(ctx.Context(), info.CID, downloadSource)

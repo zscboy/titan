@@ -279,14 +279,19 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 		nodes = append(nodes, &node.NodeDynamicInfo)
 	}
 
+	// for _, info := range nodes {
 	err := m.UpdateNodeDynamicInfo(nodes)
 	if err != nil {
-		log.Errorf("UpdateNodeDynamicInfo err:%s", err.Error())
+		log.Errorf("updateNodeData UpdateNodeDynamicInfo err:%s", err.Error())
+		// log.Errorf("updateNodeData UpdateNodeDynamicInfo %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
 	}
+	// }
 
-	err = m.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("AddNodeProfit err:%s", err.Error())
+	for _, info := range detailsList {
+		err := m.AddNodeProfit(info)
+		if err != nil {
+			log.Errorf("updateNodeData AddNodeProfit %s profit:%.2f err:%s", info.NodeID, info.Profit, err.Error())
+		}
 	}
 }
 

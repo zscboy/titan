@@ -9,7 +9,6 @@ import (
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/lotuscli"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
-	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/filecoin-project/pubsub"
@@ -29,9 +28,8 @@ const (
 
 // Manager validation manager
 type Manager struct {
-	nodeMgr  *node.Manager
-	assetMgr *assets.Manager
-	notify   *pubsub.PubSub
+	nodeMgr *node.Manager
+	notify  *pubsub.PubSub
 
 	seed       int64
 	curRoundID string
@@ -94,10 +92,9 @@ func (m *Manager) cleanValidator() {
 }
 
 // NewManager return new node manager instance
-func NewManager(nodeMgr *node.Manager, assetMgr *assets.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
+func NewManager(nodeMgr *node.Manager,  configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
 	manager := &Manager{
 		nodeMgr:       nodeMgr,
-		assetMgr:      assetMgr,
 		config:        configFunc,
 		close:         make(chan struct{}),
 		updateCh:      make(chan struct{}, 1),

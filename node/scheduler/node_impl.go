@@ -595,6 +595,8 @@ func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) e
 		NodeDynamicInfo: types.NodeDynamicInfo{NodeID: nodeID},
 		RemoteAddr:      remoteAddr,
 	}
+
+	nodeInfo.LastSeen = time.Now()
 	l5.InitInfo(nodeInfo)
 
 	err = l5.ConnectRPC(s.Transport, remoteAddr, types.NodeL5)

@@ -57,8 +57,10 @@ func (m *Manager) penaltyNode() {
 		}
 	}
 
-	err = m.AddNodeProfits(detailsList)
-	if err != nil {
-		log.Errorf("AddNodeProfit err:%s", err.Error())
+	for _, info := range detailsList {
+		err = m.AddNodeProfit(info)
+		if err != nil {
+			log.Errorf("AddNodeProfit err:%s", err.Error())
+		}
 	}
 }

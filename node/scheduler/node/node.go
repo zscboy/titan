@@ -170,6 +170,7 @@ func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
 	n.Level = nodeInfo.Level
 	n.IncomeIncr = nodeInfo.IncomeIncr
 	n.Mx = nodeInfo.Mx
+	n.LastSeen = nodeInfo.LastSeen
 }
 
 // SetCountOfIPChanges node change ip count
