@@ -142,7 +142,7 @@ type (
 )
 
 func NewCLib(daemonStart daemonStartFunc) *CLib {
-	return &CLib{daemonStart: daemonStart, downloader: newDownloader()}
+	return &CLib{daemonStart: daemonStart, downloader: newDownloader(), dSwitch: DaemonSwitch{IsStop: true}}
 }
 
 func (clib *CLib) JSONCall(jsonStr string) *JSONCallResult {
@@ -219,7 +219,7 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	// }
 	if !clib.dSwitch.IsStop {
 		log.Infof("daemon already start")
-		return nil
+		return fmt.Errorf("Daemon already start")
 	}
 
 	if clib.isStaring {
@@ -231,7 +231,7 @@ func (clib *CLib) startDaemon(jsonStr string) error {
 	}()
 
 	// clib.isInit = true
-	clib.dSwitch = DaemonSwitch{StopChan: make(chan bool)}
+	// clib.dSwitch = DaemonSwitch{StopChan: make(chan bool)}
 
 	types.RunningNodeType = types.NodeEdge
 

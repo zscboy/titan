@@ -542,7 +542,7 @@ func (l *Locator) getSchedulerByLowestNumberOfNodes(schedulerCfgs []*types.Sched
 	lock := sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	var config *types.SchedulerCfg
-	minCount := math.MaxInt64
+	minCount := math.MaxInt
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

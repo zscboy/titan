@@ -42,7 +42,7 @@ type HttpServer struct {
 	validation          Validation
 	tokens              *sync.Map
 	apiSecret           *jwt.HMACSHA
-	maxSizeOfUploadFile int
+	maxSizeOfUploadFile int64
 	webRedirect         string
 	rateLimiter         *types.RateLimiter
 	client              *container.Client
@@ -55,7 +55,7 @@ type HttpServerOptions struct {
 	PrivateKey          *rsa.PrivateKey
 	Validation          Validation
 	APISecret           *jwt.HMACSHA
-	MaxSizeOfUploadFile int
+	MaxSizeOfUploadFile int64
 	WebRedirect         string
 	RateLimiter         *types.RateLimiter
 	Client              *container.Client

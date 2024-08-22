@@ -294,7 +294,7 @@ func (d *daemon) restart() error {
 }
 
 func (d *daemon) connectToServer(wg *sync.WaitGroup) error {
-	defer log.Debugf("Connection exist")
+	defer log.Info("Connection exist")
 	defer wg.Done()
 
 	for {
