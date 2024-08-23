@@ -150,9 +150,6 @@ func (m *Manager) triggerPuller() {
 func (m *Manager) start() {
 	defer log.Debugf("Manager finish")
 
-	// close the assetView db
-	defer m.CloseAssetView()
-
 	go m.startTick()
 
 	// delay 15 second to pull asset if exist waitList
@@ -166,6 +163,12 @@ func (m *Manager) start() {
 			return
 		}
 	}
+}
+
+// The assetView needs to be closed before app exiting
+func (m *Manager) Stop() error {
+	log.Infof("Asset manager stop")
+	return m.CloseAssetView()
 }
 
 // pullAssets pulls all assets that are waiting to be pulled
