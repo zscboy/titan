@@ -133,6 +133,14 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 		Conn: udpPacketConn,
 	}
 
+	// Close udpPacketConn when exit with error
+	isExistWithError := true
+	defer func() {
+		if isExistWithError {
+			transport.Close()
+		}
+	}()
+
 	schedulerAPI, closeScheduler, err := newSchedulerAPI(transport, schedulerURL, nodeID, privateKey)
 	if err != nil {
 		return nil, xerrors.Errorf("new scheduler api: %w", err)
@@ -228,6 +236,8 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 	}
 
 	log.Info("New titan daemon")
+
+	isExistWithError = false
 
 	d := &daemon{
 		ID:           nodeID,
