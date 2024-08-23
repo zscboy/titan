@@ -35,36 +35,21 @@ func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 }
 
 func (n *SQLDB) SaveReplicaEvent(hash, cid, nodeID string, size int64, expiration time.Time, event types.ReplicaEvent, source int64) error {
-	tx, err := n.db.Beginx()
+	// update node asset count
+	query := fmt.Sprintf(`UPDATE %s SET asset_count=asset_count+? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, 1, nodeID)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("SaveReplicaEvent Rollback err:%s", err.Error())
-		}
-	}()
-
 	// replica event
-	query := fmt.Sprintf(
+	query = fmt.Sprintf(
 		`INSERT INTO %s (hash, event, node_id, total_size, cid, expiration, source) 
 			VALUES (?, ?, ?, ?, ?, ?, ?)`, replicaEventTable)
 
-	_, err = tx.Exec(query, hash, event, nodeID, size, cid, expiration, source)
-	if err != nil {
-		return err
-	}
+	_, err = n.db.Exec(query, hash, event, nodeID, size, cid, expiration, source)
 
-	// update node asset count
-	query = fmt.Sprintf(`UPDATE %s SET asset_count=asset_count+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(query, 1, nodeID)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 // LoadNodesOfPullingReplica

@@ -1759,7 +1759,7 @@ func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) (m
 func (s *Scheduler) ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error {
 	data := s.NodeManager.GetReimburseProfitDetails(nodeID, profit, note)
 	if data != nil {
-		err := s.db.AddNodeProfit(data)
+		err := s.db.AddNodeProfits([]*types.ProfitDetails{data})
 		if err != nil {
 			return xerrors.Errorf("AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
 		}

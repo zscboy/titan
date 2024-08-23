@@ -578,34 +578,19 @@ func (n *SQLDB) RemoveInvalidValidationResult(sIDs []int) error {
 
 // SaveRetrieveEventInfo save retrieve event and update node info
 func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
-	tx, err := n.db.Beginx()
+	// update node info
+	query := fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+? WHERE node_id=?`, nodeInfoTable)
+	_, err := n.db.Exec(query, 1, cInfo.NodeID)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("Rollback err:%s", err.Error())
-		}
-	}()
-
-	query := fmt.Sprintf(
+	query = fmt.Sprintf(
 		`INSERT INTO %s (token_id, node_id, client_id, cid, size, created_time, end_time, profit ) 
 				VALUES (:token_id, :node_id, :client_id, :cid, :size, :created_time, :end_time, :profit )`, retrieveEventTable)
-	_, err = tx.NamedExec(query, cInfo)
-	if err != nil {
-		return err
-	}
+	_, err = n.db.NamedExec(query, cInfo)
 
-	// update node info
-	query = fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(query, 1, cInfo.NodeID)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 // LoadRetrieveEvent load retrieve event
@@ -650,37 +635,56 @@ func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*typ
 	return res, nil
 }
 
-func (n *SQLDB) AddNodeProfit(profitInfo *types.ProfitDetails) error {
-	if profitInfo == nil {
-		return nil
-	}
-
+func (n *SQLDB) nodeProfitBatch(batch []*types.ProfitDetails) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
 	}
-
 	defer func() {
-		err = tx.Rollback()
-		if err != nil && err != sql.ErrTxDone {
-			log.Errorf("Rollback err:%s", err.Error())
+		if err != nil {
+			err = tx.Rollback()
+			if err != nil && err != sql.ErrTxDone {
+				log.Errorf("nodeProfitBatch Rollback err:%s", err.Error())
+			}
 		}
 	}()
 
-	// add profit details
-	sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
-	_, err = tx.NamedExec(sqlString, profitInfo)
-	if err != nil {
-		return err
-	}
+	for _, profitInfo := range batch {
+		// add profit details
+		sqlString := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
+		_, err = tx.NamedExec(sqlString, profitInfo)
+		if err != nil {
+			log.Errorf("nodeProfitBatch Exec INSERT %s err:%s", profitInfo.NodeID, err.Error())
+			continue
+		}
 
-	iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
-	_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.Penalty, profitInfo.NodeID)
-	if err != nil {
-		return err
+		iQuery := fmt.Sprintf(`UPDATE %s SET profit=profit+?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
+		_, err = tx.Exec(iQuery, profitInfo.Profit, profitInfo.Penalty, profitInfo.NodeID)
+		if err != nil {
+			log.Errorf("nodeProfitBatch Exec UPDATE %s err:%s", profitInfo.NodeID, err.Error())
+		}
 	}
 
 	return tx.Commit()
+}
+
+func (n *SQLDB) AddNodeProfits(profitInfos []*types.ProfitDetails) error {
+	if profitInfos == nil {
+		return nil
+	}
+
+	const batchSize = 100
+	for i := 0; i < len(profitInfos); i += batchSize {
+		end := i + batchSize
+		if end > len(profitInfos) {
+			end = len(profitInfos)
+		}
+		if err := n.nodeProfitBatch(profitInfos[i:end]); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (n *SQLDB) LoadTodayProfitsForNode(nodeID string) (float64, error) {

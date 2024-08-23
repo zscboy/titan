@@ -101,7 +101,7 @@ func (m *Manager) computeNodeProfits(nodes []*node.Node) {
 
 		dInfo := m.nodeMgr.GetNodeValidatableProfitDetails(node, size)
 		if dInfo != nil {
-			err := m.nodeMgr.AddNodeProfit(dInfo)
+			err := m.nodeMgr.AddNodeProfits([]*types.ProfitDetails{dInfo})
 			if err != nil {
 				log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
 			}
@@ -396,11 +396,9 @@ func (m *Manager) updateTimeoutResultInfo() {
 		}
 	}
 
-	for _, info := range detailsList {
-		err = m.nodeMgr.AddNodeProfit(info)
-		if err != nil {
-			log.Errorf("AddNodeProfit err:%s", err.Error())
-		}
+	err = m.nodeMgr.AddNodeProfits(detailsList)
+	if err != nil {
+		log.Errorf("AddNodeProfit err:%s", err.Error())
 	}
 }
 
@@ -431,7 +429,7 @@ func (m *Manager) updateResultInfo(status types.ValidationStatus, vr *api.Valida
 			if dInfo != nil {
 				profit = dInfo.Profit
 
-				err := m.nodeMgr.AddNodeProfit(dInfo)
+				err := m.nodeMgr.AddNodeProfits([]*types.ProfitDetails{dInfo})
 				if err != nil {
 					log.Errorf("updateResultInfo AddNodeProfit %s,%d, %.4f err:%s", dInfo.NodeID, dInfo.PType, dInfo.Profit, err.Error())
 				}
