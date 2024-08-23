@@ -12,6 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// CreateDeployment initializes a new deployment and its associated services within a transaction, ensuring all or nothing is committed to the database.
 func (m *SQLDB) CreateDeployment(ctx context.Context, deployment *types.Deployment) error {
 	tx, err := m.db.Beginx()
 	if err != nil {
@@ -32,6 +33,7 @@ func (m *SQLDB) CreateDeployment(ctx context.Context, deployment *types.Deployme
 	return tx.Commit()
 }
 
+// addNewDeployment inserts a new deployment record into the database or updates it if it already exists based on the primary key.
 func addNewDeployment(ctx context.Context, tx *sqlx.Tx, deployment *types.Deployment) error {
 	qry := `INSERT INTO deployments (id, name, owner, state, type, authority, version, balance, cost, expiration, provider_id, created_at) 
 		        VALUES (:id, :name, :owner, :state, :type, :authority, :version, :balance, :cost, :expiration, :provider_id, :created_at)
@@ -41,6 +43,7 @@ func addNewDeployment(ctx context.Context, tx *sqlx.Tx, deployment *types.Deploy
 	return err
 }
 
+// addNewServices inserts multiple service records associated with a deployment into the database, updating them if they already exist.
 func addNewServices(ctx context.Context, tx *sqlx.Tx, services []*types.Service) error {
 	qry := `INSERT INTO services (id, name, image, ports, cpu, gpu, memory, storage, deployment_id, env, arguments, error_message, replicas, created_at) 
 		        VALUES (:id,:name, :image, :ports, :cpu, :gpu, :memory, :storage, :deployment_id, :env, :arguments, :error_message, :replicas, :created_at) 
@@ -51,11 +54,13 @@ func addNewServices(ctx context.Context, tx *sqlx.Tx, services []*types.Service)
 	return err
 }
 
+// DeploymentService deployment
 type DeploymentService struct {
 	types.Deployment
 	types.Service `db:"service"`
 }
 
+// GetDeployments retrieves deployments and their related service information based on filtering options, with pagination support.
 func (m *SQLDB) GetDeployments(ctx context.Context, option *types.GetDeploymentOption) (int64, []*types.Deployment, error) {
 	var ds []*DeploymentService
 	qry := `SELECT d.*, 
@@ -147,7 +152,8 @@ func (m *SQLDB) GetDeployments(ctx context.Context, option *types.GetDeploymentO
 	return total, out, nil
 }
 
-func (m *SQLDB) GetDeploymentById(ctx context.Context, id types.DeploymentID) (*types.Deployment, error) {
+// GetDeploymentByID fetches a single deployment by its ID, leveraging the more general GetDeployments function for consistency.
+func (m *SQLDB) GetDeploymentByID(ctx context.Context, id types.DeploymentID) (*types.Deployment, error) {
 	_, out, err := m.GetDeployments(ctx, &types.GetDeploymentOption{
 		DeploymentID: id,
 	})
@@ -162,6 +168,7 @@ func (m *SQLDB) GetDeploymentById(ctx context.Context, id types.DeploymentID) (*
 	return out[0], nil
 }
 
+// DeleteDeployment removes a deployment and all its associated services from the database, ensuring data consistency within a transaction.
 func (m *SQLDB) DeleteDeployment(ctx context.Context, id types.DeploymentID) error {
 	tx, err := m.db.Beginx()
 	if err != nil {
@@ -184,6 +191,7 @@ func (m *SQLDB) DeleteDeployment(ctx context.Context, id types.DeploymentID) err
 	return tx.Commit()
 }
 
+// AddProperties inserts or updates properties associated with a deployment, handling data through an upsert operation.
 func (m *SQLDB) AddProperties(ctx context.Context, properties *types.Properties) error {
 	qry := `INSERT INTO properties (id, provider_id, app_id, app_type, created_at) 
 		        VALUES (:id, :provider_id, :app_id, :app_type, :created_at) ON DUPLICATE KEY UPDATE 
@@ -193,6 +201,7 @@ func (m *SQLDB) AddProperties(ctx context.Context, properties *types.Properties)
 	return err
 }
 
+// GetDomain retrieves domain information based on its hostname, providing details necessary for deployment mappings.
 func (m *SQLDB) GetDomain(ctx context.Context, hostname string) (*types.DeploymentDomain, error) {
 	qry := `SELECT * FROM domains where name = ?`
 	var out types.DeploymentDomain
@@ -202,6 +211,7 @@ func (m *SQLDB) GetDomain(ctx context.Context, hostname string) (*types.Deployme
 	return &out, nil
 }
 
+// AddDomain adds or updates a domain entry in the database, linking it with deployments and providers.
 func (m *SQLDB) AddDomain(ctx context.Context, domain *types.DeploymentDomain) error {
 	statement := `INSERT INTO domains (name, state, deployment_id, provider_id, created_at) VALUES (:name, :state, :deployment_id, :provider_id, :created_at) 
 		ON DUPLICATE KEY UPDATE deployment_id = VALUES(deployment_id), provider_id = values(provider_id);`
@@ -209,12 +219,14 @@ func (m *SQLDB) AddDomain(ctx context.Context, domain *types.DeploymentDomain) e
 	return err
 }
 
+// DeleteDomain removes a domain record from the database based on its name, ensuring cleanup of unused domain entries.
 func (m *SQLDB) DeleteDomain(ctx context.Context, name string) error {
 	statement := `DELETE from domains where name = ?`
 	_, err := m.db.ExecContext(ctx, statement, name)
 	return err
 }
 
+// AddNewProvider inserts a new provider record or updates an existing one in the database, maintaining up-to-date provider details.
 func (m *SQLDB) AddNewProvider(ctx context.Context, provider *types.Provider) error {
 	qry := `INSERT INTO providers (id, owner, remote_addr, ip, state, created_at) 
 		        VALUES (:id, :owner, :remote_addr, :ip, :state, :created_at) ON DUPLICATE KEY UPDATE  owner=:owner, remote_addr=:remote_addr, 
@@ -224,13 +236,15 @@ func (m *SQLDB) AddNewProvider(ctx context.Context, provider *types.Provider) er
 	return err
 }
 
+// UpdateProviderState updates the state of a provider in the database, reflecting changes such as activation or deactivation.
 func (m *SQLDB) UpdateProviderState(ctx context.Context, id string, state types.ProviderState) error {
 	statement := `UPDATE providers set state = ? where id = ?`
 	_, err := m.db.ExecContext(ctx, statement, state, id)
 	return err
 }
 
-func (m *SQLDB) GetProviderById(ctx context.Context, id string) (*types.Provider, error) {
+// GetProviderByID fetches a provider's details from the database using the provider's ID, ensuring accurate retrieval of provider information.
+func (m *SQLDB) GetProviderByID(ctx context.Context, id string) (*types.Provider, error) {
 	qry := `SELECT * FROM providers where id = ?`
 	var out types.Provider
 	if err := m.db.GetContext(ctx, &out, qry, id); err != nil {
@@ -239,6 +253,7 @@ func (m *SQLDB) GetProviderById(ctx context.Context, id string) (*types.Provider
 	return &out, nil
 }
 
+// GetAllProviders retrieves a list of all providers based on filtering options, with pagination support, and returns the total count of providers matching the filters.
 func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOption) (int64, []*types.Provider, error) {
 	qry := `SELECT * from providers`
 	var condition []string
@@ -258,19 +273,19 @@ func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOp
 		condition = append(condition, fmt.Sprintf(`state in (%s)`, strings.Join(states, ",")))
 	}
 
-	countSql := `select count(id) from providers`
+	countSQL := `select count(id) from providers`
 
 	if len(condition) > 0 {
 		qry += ` WHERE `
 		qry += strings.Join(condition, ` AND `)
-		countSql += ` WHERE `
-		countSql += strings.Join(condition, ` AND `)
+		countSQL += ` WHERE `
+		countSQL += strings.Join(condition, ` AND `)
 	}
 
-	fmt.Println("===<", countSql)
+	fmt.Println("===<", countSQL)
 
 	var total int64
-	if err := m.db.GetContext(ctx, &total, countSql); err != nil {
+	if err := m.db.GetContext(ctx, &total, countSQL); err != nil {
 		return 0, nil, err
 	}
 

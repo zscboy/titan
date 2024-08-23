@@ -532,7 +532,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthDownSize, req.ProjectID)
 		if pInfo != nil {
 			pInfo.Profit = 0 // TODO test
-			err := s.db.AddNodeProfits([]*types.ProfitDetails{pInfo})
+			err := s.db.AddNodeProfitDetails([]*types.ProfitDetails{pInfo})
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
 			}
@@ -543,7 +543,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 		pInfo := s.NodeManager.GetUploadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
 		if pInfo != nil {
 			pInfo.Profit = 0 // TODO test
-			err := s.db.AddNodeProfits([]*types.ProfitDetails{pInfo})
+			err := s.db.AddNodeProfitDetails([]*types.ProfitDetails{pInfo})
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
 			}

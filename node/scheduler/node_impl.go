@@ -406,7 +406,7 @@ func (s *Scheduler) MigrateNodeIn(ctx context.Context, info *types.NodeMigrateIn
 
 	info.NodeInfo.SchedulerID = s.ServerID
 
-	return s.db.MigrateIn(info)
+	return s.db.MigrateNodeDetails(info)
 }
 
 // CleanupNode removes residual data from the source server after a node has been migrated.
@@ -1759,7 +1759,7 @@ func (s *Scheduler) GetCurrentRegionInfos(ctx context.Context, areaID string) (m
 func (s *Scheduler) ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error {
 	data := s.NodeManager.GetReimburseProfitDetails(nodeID, profit, note)
 	if data != nil {
-		err := s.db.AddNodeProfits([]*types.ProfitDetails{data})
+		err := s.db.AddNodeProfitDetails([]*types.ProfitDetails{data})
 		if err != nil {
 			return xerrors.Errorf("AddNodeProfit %s,%d, %.4f err:%s", data.NodeID, data.PType, data.Profit, err.Error())
 		}

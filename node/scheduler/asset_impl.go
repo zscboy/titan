@@ -85,7 +85,7 @@ func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, stat
 		serverID = s.ServerID
 	}
 
-	rows, err := s.db.LoadAssetRecords(statuses, limit, offset, serverID)
+	rows, err := s.db.LoadAssetRecordRows(statuses, limit, offset, serverID)
 	if err != nil {
 		return nil, xerrors.Errorf("LoadAssetRecords err:%s", err.Error())
 	}

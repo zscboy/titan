@@ -12,7 +12,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// UpdatePortMapping sets the node's mapping port.
+// UpdatePortMapping updates the port mapping for a given node in the database.
 func (n *SQLDB) UpdatePortMapping(nodeID, port string) error {
 	// update
 	query := fmt.Sprintf(`UPDATE %s SET port_mapping=? WHERE node_id=?`, nodeInfoTable)
@@ -20,7 +20,7 @@ func (n *SQLDB) UpdatePortMapping(nodeID, port string) error {
 	return err
 }
 
-// SaveValidationResultInfos inserts validation result information.
+// SaveValidationResultInfos stores multiple validation result records in the database.
 func (n *SQLDB) SaveValidationResultInfos(infos []*types.ValidationResultInfo) error {
 	query := fmt.Sprintf(`INSERT INTO %s (round_id, node_id, validator_id, status, cid, start_time, end_time, calculated_profit, file_saved, node_count) 
 	VALUES (:round_id, :node_id, :validator_id, :status, :cid, :start_time, :end_time, :calculated_profit, :file_saved, :node_count)`, validationResultTable)
@@ -29,7 +29,7 @@ func (n *SQLDB) SaveValidationResultInfos(infos []*types.ValidationResultInfo) e
 	return err
 }
 
-// LoadNodeValidationInfo load the cid of a validation result.
+// LoadNodeValidationInfo retrieves a specific validation result by round and node ID.
 func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.ValidationResultInfo, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE round_id=? AND node_id=?", validationResultTable)
 	var info types.ValidationResultInfo
@@ -37,7 +37,7 @@ func (n *SQLDB) LoadNodeValidationInfo(roundID, nodeID string) (*types.Validatio
 	return &info, err
 }
 
-// UpdateValidationResultInfo updates the validation result information.
+// UpdateValidationResultInfo updates existing validation result details in the database.
 func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) error {
 	query := fmt.Sprintf(`UPDATE %s SET block_number=:block_number,status=:status, duration=:duration, bandwidth=:bandwidth, end_time=NOW(), profit=:profit, token_id=:token_id WHERE round_id=:round_id AND node_id=:node_id`, validationResultTable)
 	_, err := n.db.NamedExec(query, info)
@@ -48,14 +48,14 @@ func (n *SQLDB) UpdateValidationResultInfo(info *types.ValidationResultInfo) err
 	return nil
 }
 
-// UpdateValidationResultsTimeout sets the validation results' status as timeout.
+// UpdateValidationResultStatus marks the validation results as timeout for a given round and node.
 func (n *SQLDB) UpdateValidationResultStatus(roundID, nodeID string, status types.ValidationStatus) error {
 	query := fmt.Sprintf(`UPDATE %s SET status=?, end_time=NOW() WHERE round_id=? AND node_id=?`, validationResultTable)
 	_, err := n.db.Exec(query, status, roundID, nodeID)
 	return err
 }
 
-// LoadCreateValidationResultInfos load validation results.
+// LoadCreateValidationResultInfos fetches validation results that are in the 'create' status.
 func (n *SQLDB) LoadCreateValidationResultInfos() ([]*types.ValidationResultInfo, error) {
 	var infos []*types.ValidationResultInfo
 	query := fmt.Sprintf("SELECT * FROM %s WHERE status=?", validationResultTable)
@@ -68,7 +68,7 @@ func (n *SQLDB) LoadCreateValidationResultInfos() ([]*types.ValidationResultInfo
 	return infos, nil
 }
 
-// LoadValidationResultInfos load validation results.
+// LoadValidationResultInfos retrieves a paginated list of validation results for a specific node.
 func (n *SQLDB) LoadValidationResultInfos(nodeID string, limit, offset int) (*types.ListValidationResultRsp, error) {
 	res := new(types.ListValidationResultRsp)
 	var infos []types.ValidationResultInfo
@@ -97,14 +97,14 @@ func (n *SQLDB) LoadValidationResultInfos(nodeID string, limit, offset int) (*ty
 	return res, nil
 }
 
-// SaveEdgeUpdateConfig inserts edge update information.
+// SaveEdgeUpdateConfig records or updates edge update configuration details.
 func (n *SQLDB) SaveEdgeUpdateConfig(info *api.EdgeUpdateConfig) error {
 	sqlString := fmt.Sprintf(`INSERT INTO %s (node_type, app_name, version, hash, download_url) VALUES (:node_type, :app_name, :version, :hash, :download_url) ON DUPLICATE KEY UPDATE app_name=:app_name, version=:version, hash=:hash, download_url=:download_url`, edgeUpdateTable)
 	_, err := n.db.NamedExec(sqlString, info)
 	return err
 }
 
-// LoadEdgeUpdateConfigs load edge update information.
+// LoadEdgeUpdateConfigs fetches all edge update configurations, returning them as a map keyed by node type.
 func (n *SQLDB) LoadEdgeUpdateConfigs() (map[int]*api.EdgeUpdateConfig, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s`, edgeUpdateTable)
 
@@ -120,14 +120,14 @@ func (n *SQLDB) LoadEdgeUpdateConfigs() (map[int]*api.EdgeUpdateConfig, error) {
 	return ret, nil
 }
 
-// DeleteEdgeUpdateConfig delete edge update info
+// DeleteEdgeUpdateConfig removes an edge update configuration for a specified node type.
 func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 	deleteString := fmt.Sprintf(`DELETE FROM %s WHERE node_type=?`, edgeUpdateTable)
 	_, err := n.db.Exec(deleteString, nodeType)
 	return err
 }
 
-// SaveNodeInfo Insert or update node info
+// SaveNodeInfo upserts a node's information into the database.
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info, version,
@@ -142,7 +142,7 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
-// UpdateNodeDynamicInfo update node online time , last time , disk usage ...
+// UpdateNodeDynamicInfo updates various dynamic information fields for multiple nodes.
 func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) error {
 	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET last_seen=?,online_duration=?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,
 		    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`)
@@ -159,17 +159,9 @@ func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) error {
 	}
 
 	return nil
-
-	// query := fmt.Sprintf(`UPDATE %s SET last_seen=?,online_duration=?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,
-	// 	    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`, nodeInfoTable)
-	// _, err := n.db.Exec(query, info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage,
-	// 	info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID)
-
-	// // Commit
-	// return err
 }
 
-// SaveNodeRegisterInfos Insert Node register info
+// SaveNodeRegisterInfos stores registration details for multiple nodes.
 func (n *SQLDB) SaveNodeRegisterInfos(details []*types.ActivationDetail) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, created_time, node_type, activation_key, ip)
@@ -180,7 +172,7 @@ func (n *SQLDB) SaveNodeRegisterInfos(details []*types.ActivationDetail) error {
 	return err
 }
 
-// LoadNodeRegisterInfo load node information.
+// LoadNodeRegisterInfo retrieves registration details for a specific node.
 func (n *SQLDB) LoadNodeRegisterInfo(nodeID string) (*types.ActivationDetail, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, nodeRegisterTable)
 
@@ -193,7 +185,7 @@ func (n *SQLDB) LoadNodeRegisterInfo(nodeID string) (*types.ActivationDetail, er
 	return &out, nil
 }
 
-// SaveNodePublicKey update node public key
+// SaveNodePublicKey updates the public key associated with a node.
 func (n *SQLDB) SaveNodePublicKey(pKey, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET public_key=? WHERE node_id=? `, nodeRegisterTable)
 	_, err := n.db.Exec(query, pKey, nodeID)
@@ -201,7 +193,7 @@ func (n *SQLDB) SaveNodePublicKey(pKey, nodeID string) error {
 	return err
 }
 
-// SaveMigrateKey update node public key
+// SaveMigrateKey updates the migration key associated with a node.
 func (n *SQLDB) SaveMigrateKey(pKey, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET migrate_key=? WHERE node_id=? `, nodeRegisterTable)
 	_, err := n.db.Exec(query, pKey, nodeID)
@@ -209,7 +201,7 @@ func (n *SQLDB) SaveMigrateKey(pKey, nodeID string) error {
 	return err
 }
 
-// DeleteNodeInfo delete Node info
+// DeleteNodeInfo removes all information related to a node from the database.
 func (n *SQLDB) DeleteNodeInfo(nodeID string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, nodeID)
@@ -222,7 +214,7 @@ func (n *SQLDB) DeleteNodeInfo(nodeID string) error {
 	return err
 }
 
-// LoadNodeActivationKey load activation key of node.
+// LoadNodeActivationKey fetches the activation key for a specific node.
 func (n *SQLDB) LoadNodeActivationKey(nodeID string) (string, error) {
 	var pKey string
 
@@ -234,7 +226,7 @@ func (n *SQLDB) LoadNodeActivationKey(nodeID string) (string, error) {
 	return pKey, nil
 }
 
-// LoadNodePublicKey load public key of node.
+// LoadNodePublicKey retrieves the public key for a specific node.
 func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	var pKey string
 
@@ -246,7 +238,7 @@ func (n *SQLDB) LoadNodePublicKey(nodeID string) (string, error) {
 	return pKey, nil
 }
 
-// LoadNodeType load type of node.
+// LoadNodeType fetches the type of a node.
 func (n *SQLDB) LoadNodeType(nodeID string) (types.NodeType, error) {
 	var nodeType types.NodeType
 
@@ -258,7 +250,7 @@ func (n *SQLDB) LoadNodeType(nodeID string) (types.NodeType, error) {
 	return nodeType, nil
 }
 
-// NodeExistsFromType is node exists
+// NodeExistsFromType checks if a node of a specific type exists.
 func (n *SQLDB) NodeExistsFromType(nodeID string, nodeType types.NodeType) error {
 	var count int
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? AND node_type=?`, nodeRegisterTable)
@@ -274,7 +266,7 @@ func (n *SQLDB) NodeExistsFromType(nodeID string, nodeType types.NodeType) error
 	return nil
 }
 
-// NodeExists is node exists
+// NodeExists verifies the existence of a node in the database.
 func (n *SQLDB) NodeExists(nodeID string) error {
 	var count int
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE node_id=? `, nodeRegisterTable)
@@ -290,7 +282,7 @@ func (n *SQLDB) NodeExists(nodeID string) error {
 	return nil
 }
 
-// TodayRegisterCount get the number of registrations for this ip today
+// RegisterCount calculates the number of registrations from a specific IP address for the current day.
 func (n *SQLDB) RegisterCount(ip string) (int, error) {
 	var count int
 	cQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE ip=?`, nodeRegisterTable)
@@ -304,7 +296,7 @@ func (n *SQLDB) RegisterCount(ip string) (int, error) {
 	return count, nil
 }
 
-// LoadNodeInfos load nodes information.
+// LoadNodeInfos retrieves detailed information about nodes, including their type and last seen time.
 func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	t := time.Now().Add(-(time.Hour * 6))
 
@@ -324,7 +316,7 @@ func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	return rows, total, err
 }
 
-// LoadNodeInfosOfType load node infos
+// LoadNodeInfosOfType fetches node information filtered by node type.
 func (n *SQLDB) LoadNodeInfosOfType(nodeType int) ([]*types.NodeInfo, error) {
 	query := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where b.node_type=?;`, nodeInfoTable, nodeRegisterTable)
 
@@ -336,7 +328,7 @@ func (n *SQLDB) LoadNodeInfosOfType(nodeType int) ([]*types.NodeInfo, error) {
 	return out, nil
 }
 
-// LoadNodeInfo load node information.
+// LoadNodeInfo retrieves detailed information for a specific node.
 func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	err := n.NodeExists(nodeID)
 	if err != nil {
@@ -354,7 +346,7 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 	return &out, nil
 }
 
-// LoadNodeLastSeenTime loads the last seen time of a node
+// LoadNodeLastSeenTime fetches the last seen timestamp for a specific node.
 func (n *SQLDB) LoadNodeLastSeenTime(nodeID string) (time.Time, error) {
 	var t time.Time
 	query := fmt.Sprintf(`SELECT last_seen FROM %s WHERE node_id=?`, nodeInfoTable)
@@ -362,7 +354,7 @@ func (n *SQLDB) LoadNodeLastSeenTime(nodeID string) (time.Time, error) {
 	return t, err
 }
 
-// LoadTopHash load assets view top hash
+// LoadTopHash retrieves the top hash from an asset view for a specific node.
 func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 	query := fmt.Sprintf(`SELECT top_hash FROM %s WHERE node_id=?`, assetsViewTable)
 
@@ -378,7 +370,7 @@ func (n *SQLDB) LoadTopHash(nodeID string) (string, error) {
 	return out, nil
 }
 
-// LoadSyncTime load assets view sync time
+// LoadSyncTime fetches the last synchronization time for an asset view related to a specific node.
 func (n *SQLDB) LoadSyncTime(nodeID string) (time.Time, error) {
 	query := fmt.Sprintf(`SELECT sync_time FROM %s WHERE node_id=?`, assetsViewTable)
 
@@ -394,14 +386,14 @@ func (n *SQLDB) LoadSyncTime(nodeID string) (time.Time, error) {
 	return out, nil
 }
 
-// UpdateSyncTime update assets view sync time
+// UpdateSyncTime updates the synchronization time for an asset view related to a specific node.
 func (n *SQLDB) UpdateSyncTime(nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET sync_time=? WHERE node_id=?`, assetsViewTable)
 	_, err := n.db.Exec(query, time.Now(), nodeID)
 	return err
 }
 
-// LoadBucketHashes load assets view buckets hashes
+// LoadBucketHashes retrieves the bucket hashes for a specific node from the assets view.
 func (n *SQLDB) LoadBucketHashes(nodeID string) ([]byte, error) {
 	query := fmt.Sprintf(`SELECT bucket_hashes FROM %s WHERE node_id=?`, assetsViewTable)
 
@@ -417,9 +409,7 @@ func (n *SQLDB) LoadBucketHashes(nodeID string) ([]byte, error) {
 	return data, nil
 }
 
-// SaveAssetsView update or insert top hash and buckets hashes to assets view
-// bucketHashes key is number of bucket, value is bucket hash
-// TODO save bucketHashes as array
+// SaveAssetsView stores or updates the top hash and bucket hashes in the assets view for a node.
 func (n *SQLDB) SaveAssetsView(nodeID string, topHash string, bucketHashes []byte) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, top_hash, bucket_hashes) VALUES (?, ?, ?) 
@@ -429,15 +419,14 @@ func (n *SQLDB) SaveAssetsView(nodeID string, topHash string, bucketHashes []byt
 	return err
 }
 
-// DeleteAssetsView delete the asset view for node
+// DeleteAssetsView removes the assets view record for a specific node.
 func (n *SQLDB) DeleteAssetsView(nodeID string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE node_id=?`, assetsViewTable)
 	_, err := n.db.Exec(query, nodeID)
 	return err
 }
 
-// LoadBucket load assets ids from bucket
-// return hashes of asset
+// LoadBucket fetches asset identifiers stored in a specific bucket.
 func (n *SQLDB) LoadBucket(bucketID string) ([]byte, error) {
 	query := fmt.Sprintf(`SELECT asset_hashes FROM %s WHERE bucket_id=?`, bucketTable)
 
@@ -453,7 +442,7 @@ func (n *SQLDB) LoadBucket(bucketID string) ([]byte, error) {
 	return data, nil
 }
 
-// SaveBucket update or insert assets ids to bucket
+// SaveBucket stores or updates asset identifiers in a specific bucket.
 func (n *SQLDB) SaveBucket(bucketID string, assetHashes []byte) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (bucket_id, asset_hashes) VALUES (?, ?) 
@@ -463,14 +452,14 @@ func (n *SQLDB) SaveBucket(bucketID string, assetHashes []byte) error {
 	return err
 }
 
-// DeleteBucket delete the bucket
+// DeleteBucket removes a bucket record from the database.
 func (n *SQLDB) DeleteBucket(bucketID string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE bucket_id=?`, bucketTable)
 	_, err := n.db.Exec(query, bucketID)
 	return err
 }
 
-// SaveWorkloadRecord save workload record
+// SaveWorkloadRecord stores workload records in the database.
 func (n *SQLDB) SaveWorkloadRecord(records []*types.WorkloadRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (workload_id, asset_cid, client_id, asset_size, workloads, status, event) 
@@ -480,7 +469,7 @@ func (n *SQLDB) SaveWorkloadRecord(records []*types.WorkloadRecord) error {
 	return err
 }
 
-// UpdateWorkloadRecord update workload record
+// UpdateWorkloadRecord updates a specific workload record's status and details.
 func (n *SQLDB) UpdateWorkloadRecord(record *types.WorkloadRecord, status types.WorkloadStatus) error {
 	query := fmt.Sprintf(`UPDATE %s SET workloads=?, client_end_time=NOW(), status=? WHERE workload_id=? AND status=?`, workloadRecordTable)
 	result, err := n.db.Exec(query, record.Workloads, record.Status, record.WorkloadID, status)
@@ -496,7 +485,7 @@ func (n *SQLDB) UpdateWorkloadRecord(record *types.WorkloadRecord, status types.
 	return err
 }
 
-// LoadWorkloadRecord load workload record
+// LoadWorkloadRecord retrieves workload records based on asset CID, client ID, and status.
 func (n *SQLDB) LoadWorkloadRecord(workload *types.WorkloadRecord) ([]*types.WorkloadRecord, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE asset_cid=? AND client_id=? AND status=?`, workloadRecordTable)
 	var records []*types.WorkloadRecord
@@ -508,7 +497,7 @@ func (n *SQLDB) LoadWorkloadRecord(workload *types.WorkloadRecord) ([]*types.Wor
 	return records, nil
 }
 
-// LoadWorkloadRecordOfID load workload record
+// LoadWorkloadRecordOfID fetches a specific workload record by its identifier.
 func (n *SQLDB) LoadWorkloadRecordOfID(workloadID string) (*types.WorkloadRecord, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE workload_id=? `, workloadRecordTable)
 	var record types.WorkloadRecord
@@ -520,7 +509,7 @@ func (n *SQLDB) LoadWorkloadRecordOfID(workloadID string) (*types.WorkloadRecord
 	return &record, nil
 }
 
-// LoadWorkloadRecords Load workload records
+// LoadWorkloadRecords retrieves a paginated list of workload records for a specific node.
 func (n *SQLDB) LoadWorkloadRecords(nodeID string, limit, offset int) (*types.ListWorkloadRecordRsp, error) {
 	res := new(types.ListWorkloadRecordRsp)
 
@@ -550,19 +539,19 @@ func (n *SQLDB) LoadWorkloadRecords(nodeID string, limit, offset int) (*types.Li
 	return res, nil
 }
 
-// LoadUnCalculatedValidationResults Load not calculated profit validation results
+// LoadUnCalculatedValidationResults fetches validation results that have not yet had profits calculated.
 func (n *SQLDB) LoadUnCalculatedValidationResults(maxTime time.Time, limit int) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE calculated_profit=? AND start_time<? order by start_time asc LIMIT ?`, validationResultTable)
 	return n.db.QueryxContext(context.Background(), sQuery, false, maxTime, limit)
 }
 
-// LoadUnSavedValidationResults Load not save to file validation results
+// LoadUnSavedValidationResults retrieves validation results that have not been saved to file.
 func (n *SQLDB) LoadUnSavedValidationResults(limit int) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE file_saved=? AND calculated_profit=? order by start_time asc LIMIT ?`, validationResultTable)
 	return n.db.QueryxContext(context.Background(), sQuery, false, true, limit)
 }
 
-// RemoveInvalidValidationResult Remove invalid validation results
+// RemoveInvalidValidationResult deletes validation results that are deemed invalid.
 func (n *SQLDB) RemoveInvalidValidationResult(sIDs []int) error {
 	rQuery := fmt.Sprintf(`DELETE FROM %s WHERE id in (?)`, validationResultTable)
 
@@ -576,7 +565,7 @@ func (n *SQLDB) RemoveInvalidValidationResult(sIDs []int) error {
 	return err
 }
 
-// SaveRetrieveEventInfo save retrieve event and update node info
+// SaveRetrieveEventInfo records a retrieval event and updates the associated node information in the database.
 func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
 	// update node info
 	query := fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+? WHERE node_id=?`, nodeInfoTable)
@@ -593,7 +582,7 @@ func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
 	return err
 }
 
-// LoadRetrieveEvent load retrieve event
+// LoadRetrieveEvent retrieves a specific retrieval event by its token ID.
 func (n *SQLDB) LoadRetrieveEvent(tokenID string) (*types.RetrieveEvent, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE token_id=?`, retrieveEventTable)
 	var record types.RetrieveEvent
@@ -605,7 +594,7 @@ func (n *SQLDB) LoadRetrieveEvent(tokenID string) (*types.RetrieveEvent, error) 
 	return &record, nil
 }
 
-// LoadRetrieveEventRecords Load retrieve events
+// LoadRetrieveEventRecords fetches a paginated list of retrieval events for a specific node, ordered by creation time.
 func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) {
 	res := new(types.ListRetrieveEventRsp)
 
@@ -635,7 +624,8 @@ func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*typ
 	return res, nil
 }
 
-func (n *SQLDB) nodeProfitBatch(batch []*types.ProfitDetails) error {
+// processes and commits a batch of node profit details within a transaction.
+func (n *SQLDB) processNodeProfitBatch(batch []*types.ProfitDetails) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -668,7 +658,8 @@ func (n *SQLDB) nodeProfitBatch(batch []*types.ProfitDetails) error {
 	return tx.Commit()
 }
 
-func (n *SQLDB) AddNodeProfits(profitInfos []*types.ProfitDetails) error {
+// AddNodeProfitDetails adds profit details for nodes in batches to manage large sets of data efficiently.
+func (n *SQLDB) AddNodeProfitDetails(profitInfos []*types.ProfitDetails) error {
 	if profitInfos == nil {
 		return nil
 	}
@@ -679,7 +670,7 @@ func (n *SQLDB) AddNodeProfits(profitInfos []*types.ProfitDetails) error {
 		if end > len(profitInfos) {
 			end = len(profitInfos)
 		}
-		if err := n.nodeProfitBatch(profitInfos[i:end]); err != nil {
+		if err := n.processNodeProfitBatch(profitInfos[i:end]); err != nil {
 			return err
 		}
 	}
@@ -687,6 +678,7 @@ func (n *SQLDB) AddNodeProfits(profitInfos []*types.ProfitDetails) error {
 	return nil
 }
 
+// LoadTodayProfitsForNode calculates the total profit for a specific node for the current day.
 func (n *SQLDB) LoadTodayProfitsForNode(nodeID string) (float64, error) {
 	start := time.Now()
 	start = time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
@@ -701,7 +693,7 @@ func (n *SQLDB) LoadTodayProfitsForNode(nodeID string) (float64, error) {
 	return size, nil
 }
 
-// LoadNodeProfits load profit info.
+// LoadNodeProfits retrieves a paginated list of profit details for a specific node, filtered by profit types.
 func (n *SQLDB) LoadNodeProfits(nodeID string, limit, offset int, ts []int) (*types.ListNodeProfitDetailsRsp, error) {
 	res := new(types.ListNodeProfitDetailsRsp)
 	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? AND profit_type in (?) order by created_time desc LIMIT ? OFFSET ?", profitDetailsTable)
@@ -741,28 +733,28 @@ func (n *SQLDB) LoadNodeProfits(nodeID string, limit, offset int, ts []int) (*ty
 	return res, nil
 }
 
-// SaveDeactivateNode save deactivate node time
+// SaveDeactivateNode records the time a node was deactivated and adjusts the node's profit and penalty.
 func (n *SQLDB) SaveDeactivateNode(nodeID string, time int64, penaltyPoint float64) error {
 	query := fmt.Sprintf(`UPDATE %s SET deactivate_time=?, profit=profit-?,penalty_profit=penalty_profit+? WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, time, penaltyPoint, penaltyPoint, nodeID)
 	return err
 }
 
-// SaveForceOffline save
+// SaveForceOffline updates the force offline status of a node.
 func (n *SQLDB) SaveForceOffline(nodeID string, value bool) error {
 	query := fmt.Sprintf(`UPDATE %s SET force_offline=? WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, value, nodeID)
 	return err
 }
 
-// SaveWSServerID save id
+// SaveWSServerID updates the WebSocket server ID associated with a node.
 func (n *SQLDB) SaveWSServerID(nodeID, wID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET ws_server_id=? WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, wID, nodeID)
 	return err
 }
 
-// LoadWSServerID
+// LoadWSServerID retrieves the WebSocket server ID associated with a specific node.
 func (n *SQLDB) LoadWSServerID(nodeID string) (string, error) {
 	var wID string
 	query := fmt.Sprintf(`SELECT ws_server_id FROM %s WHERE node_id=?`, nodeInfoTable)
@@ -770,7 +762,7 @@ func (n *SQLDB) LoadWSServerID(nodeID string) (string, error) {
 	return wID, err
 }
 
-// LoadDeactivateNodeTime Get node deactivate time
+// LoadDeactivateNodeTime fetches the time at which a node was last deactivated.
 func (n *SQLDB) LoadDeactivateNodeTime(nodeID string) (int64, error) {
 	query := fmt.Sprintf(`SELECT deactivate_time FROM %s WHERE node_id=?`, nodeInfoTable)
 
@@ -783,14 +775,14 @@ func (n *SQLDB) LoadDeactivateNodeTime(nodeID string) (int64, error) {
 	return time, nil
 }
 
-// SaveFreeUpDiskTime save free up disk time
+// SaveFreeUpDiskTime records the time at which disk space was last freed up on a node.
 func (n *SQLDB) SaveFreeUpDiskTime(nodeID string, time time.Time) error {
 	query := fmt.Sprintf(`UPDATE %s SET free_up_disk_time=? WHERE node_id=?`, nodeInfoTable)
 	_, err := n.db.Exec(query, time, nodeID)
 	return err
 }
 
-// LoadFreeUpDiskTime Get free up disk time
+// LoadFreeUpDiskTime retrieves the time at which disk space was last freed up on a specific node.
 func (n *SQLDB) LoadFreeUpDiskTime(nodeID string) (time.Time, error) {
 	query := fmt.Sprintf(`SELECT free_up_disk_time FROM %s WHERE node_id=?`, nodeInfoTable)
 
@@ -803,7 +795,7 @@ func (n *SQLDB) LoadFreeUpDiskTime(nodeID string) (time.Time, error) {
 	return time, nil
 }
 
-// LoadDeactivateNodes load all deactivate node.
+// LoadDeactivateNodes fetches the IDs of nodes that have been deactivated before a specified time.
 func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 	var out []string
 	query := fmt.Sprintf(`SELECT node_id FROM %s WHERE deactivate_time>0 AND deactivate_time<?`, nodeInfoTable)
@@ -814,9 +806,7 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 	return out, nil
 }
 
-// func(n *SQLDB)
-
-// CleanData delete events
+// CleanData performs a cleanup of outdated records across various tables based on predefined intervals.
 func (n *SQLDB) CleanData() {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
@@ -868,7 +858,7 @@ func (n *SQLDB) CleanData() {
 	}
 }
 
-// SaveCandidateCodeInfo Insert Node code info
+// SaveCandidateCodeInfo stores information related to candidate codes used in node verification or testing.
 func (n *SQLDB) SaveCandidateCodeInfo(infos []*types.CandidateCodeInfo) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (code, expiration, node_type, is_test)
@@ -878,7 +868,7 @@ func (n *SQLDB) SaveCandidateCodeInfo(infos []*types.CandidateCodeInfo) error {
 	return err
 }
 
-// GetCandidateCodeInfos code info
+// GetCandidateCodeInfos retrieves all candidate code information from the database.
 func (n *SQLDB) GetCandidateCodeInfos() ([]*types.CandidateCodeInfo, error) {
 	var infos []*types.CandidateCodeInfo
 	query := fmt.Sprintf("SELECT * FROM %s ", candidateCodeTable)
@@ -891,7 +881,7 @@ func (n *SQLDB) GetCandidateCodeInfos() ([]*types.CandidateCodeInfo, error) {
 	return infos, nil
 }
 
-// GetCandidateCodeInfoForNodeID code info
+// GetCandidateCodeInfoForNodeID fetches candidate code information associated with a specific node ID.
 func (n *SQLDB) GetCandidateCodeInfoForNodeID(nodeID string) (*types.CandidateCodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=?`, candidateCodeTable)
 
@@ -904,7 +894,7 @@ func (n *SQLDB) GetCandidateCodeInfoForNodeID(nodeID string) (*types.CandidateCo
 	return &out, nil
 }
 
-// GetCandidateCodeInfo code info
+// GetCandidateCodeInfo retrieves candidate code information based on a specific code.
 func (n *SQLDB) GetCandidateCodeInfo(code string) (*types.CandidateCodeInfo, error) {
 	query := fmt.Sprintf(`SELECT * FROM %s WHERE code=?`, candidateCodeTable)
 
@@ -917,7 +907,7 @@ func (n *SQLDB) GetCandidateCodeInfo(code string) (*types.CandidateCodeInfo, err
 	return &out, nil
 }
 
-// UpdateCandidateCodeInfo code info
+// UpdateCandidateCodeInfo associates a candidate code with a node if not already associated.
 func (n *SQLDB) UpdateCandidateCodeInfo(code, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET node_id=? WHERE code=? AND node_id=''`, candidateCodeTable)
 	result, err := n.db.Exec(query, nodeID, code)
@@ -933,7 +923,7 @@ func (n *SQLDB) UpdateCandidateCodeInfo(code, nodeID string) error {
 	return err
 }
 
-// ResetCandidateCodeInfo code info
+// ResetCandidateCodeInfo resets the node ID associated with a candidate code.
 func (n *SQLDB) ResetCandidateCodeInfo(code, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET node_id=? WHERE code=? `, candidateCodeTable)
 	result, err := n.db.Exec(query, nodeID, code)
@@ -949,13 +939,14 @@ func (n *SQLDB) ResetCandidateCodeInfo(code, nodeID string) error {
 	return err
 }
 
-// DeleteCandidateCodeInfo code info
+// DeleteCandidateCodeInfo removes candidate code information from the database.
 func (n *SQLDB) DeleteCandidateCodeInfo(code string) error {
 	query := fmt.Sprintf(`DELETE FROM %s WHERE code=?`, candidateCodeTable)
 	_, err := n.db.Exec(query, code)
 	return err
 }
 
+// UpdateOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
 func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time) error {
 	stmt, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
         VALUES (?, ?, ?)
@@ -974,7 +965,7 @@ func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time)
 	return nil
 }
 
-// GetOnlineCount
+// GetOnlineCount retrieves the online count for a specific node on a given date.
 func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {
 	count := 0
 	query := fmt.Sprintf("SELECT online_count FROM %s WHERE node_id=? AND created_time=? ", onlineCountTable)
@@ -987,7 +978,7 @@ func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {
 	return count, nil
 }
 
-// UpdateNodePenalty
+// UpdateNodePenalty updates the penalty duration and last seen time for nodes based on their online status.
 func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
 	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET offline_duration=offline_duration+1,last_seen=NOW() WHERE node_id=`)
 	if err != nil {
@@ -1004,8 +995,8 @@ func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
 	return nil
 }
 
-// MigrateIn Insert Node register info
-func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
+// MigrateNodeDetails migrates comprehensive node-related details into the database, including registration, node info, profit details, and online counts within a transaction.
+func (n *SQLDB) MigrateNodeDetails(info *types.NodeMigrateInfo) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -1060,11 +1051,6 @@ func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
 		}
 	}
 
-	// for _, info := range info.ProfitList {
-	// 	query := fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
-	// 	tx.NamedExec(query, info)
-	// }
-
 	query = fmt.Sprintf(`INSERT INTO %s (node_id, profit, profit_type, size, note, cid, rate) VALUES (:node_id, :profit, :profit_type, :size, :note, :cid, :rate)`, profitDetailsTable)
 	tx.NamedExec(query, info.ProfitList)
 
@@ -1072,7 +1058,7 @@ func (n *SQLDB) MigrateIn(info *types.NodeMigrateInfo) error {
 	return tx.Commit()
 }
 
-// CleanNodeInfo
+// CleanNodeInfo removes all data related to a specific node across multiple tables in a single transaction to ensure data consistency.
 func (n *SQLDB) CleanNodeInfo(nodeID string) error {
 	tx, err := n.db.Beginx()
 	if err != nil {

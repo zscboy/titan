@@ -5,6 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
+	"time"
+
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/handler"
@@ -14,9 +18,6 @@ import (
 	"github.com/google/uuid"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/pkg/errors"
-	"net"
-	"net/url"
-	"time"
 )
 
 var log = logging.Logger("manager")
@@ -162,7 +163,7 @@ func (m *Manager) CreateDeployment(ctx context.Context, deployment *types.Deploy
 }
 
 func (m *Manager) UpdateDeployment(ctx context.Context, deployment *types.Deployment) error {
-	deploy, err := m.DB.GetDeploymentById(ctx, deployment.ID)
+	deploy, err := m.DB.GetDeploymentByID(ctx, deployment.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("deployment not found")
 	}
@@ -186,7 +187,7 @@ func (m *Manager) UpdateDeployment(ctx context.Context, deployment *types.Deploy
 	//	return err
 	//}
 
-	//deployment.ProviderExposeIP = providerExternalIP
+	// deployment.ProviderExposeIP = providerExternalIP
 
 	if len(deployment.Name) == 0 {
 		deployment.Name = deploy.Name
@@ -225,7 +226,7 @@ func (m *Manager) UpdateDeployment(ctx context.Context, deployment *types.Deploy
 
 func (m *Manager) CloseDeployment(ctx context.Context, deployment *types.Deployment, force bool) error {
 	remoteClose := func() error {
-		deploy, err := m.DB.GetDeploymentById(ctx, deployment.ID)
+		deploy, err := m.DB.GetDeploymentByID(ctx, deployment.ID)
 		if errors.Is(err, sql.ErrNoRows) {
 			return errors.New("deployment not found")
 		}
@@ -259,7 +260,7 @@ func (m *Manager) CloseDeployment(ctx context.Context, deployment *types.Deploym
 }
 
 func (m *Manager) GetLogs(ctx context.Context, deployment *types.Deployment) ([]*types.ServiceLog, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, deployment.ID)
+	deploy, err := m.DB.GetDeploymentByID(ctx, deployment.ID)
 	if errors.As(err, sql.ErrNoRows) {
 		return nil, ErrDeploymentNotFound
 	}
@@ -288,7 +289,7 @@ func (m *Manager) GetLogs(ctx context.Context, deployment *types.Deployment) ([]
 }
 
 func (m *Manager) GetEvents(ctx context.Context, deployment *types.Deployment) ([]*types.ServiceEvent, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, deployment.ID)
+	deploy, err := m.DB.GetDeploymentByID(ctx, deployment.ID)
 	if errors.As(err, sql.ErrNoRows) {
 		return nil, ErrDeploymentNotFound
 	}
@@ -322,7 +323,7 @@ const (
 )
 
 func (m *Manager) GetDeploymentDomains(ctx context.Context, id types.DeploymentID) ([]*types.DeploymentDomain, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.As(err, sql.ErrNoRows) {
 		return nil, ErrDeploymentNotFound
 	}
@@ -336,7 +337,7 @@ func (m *Manager) GetDeploymentDomains(ctx context.Context, id types.DeploymentI
 		return nil, ErrOfflineNode
 	}
 
-	provider, err := m.DB.GetProviderById(ctx, deploy.ProviderID)
+	provider, err := m.DB.GetProviderByID(ctx, deploy.ProviderID)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +387,7 @@ func (m *Manager) AddDeploymentDomain(ctx context.Context, id types.DeploymentID
 		return ErrDomainAlreadyExist
 	}
 
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrDeploymentNotFound
 	}
@@ -415,7 +416,7 @@ func (m *Manager) AddDeploymentDomain(ctx context.Context, id types.DeploymentID
 }
 
 func (m *Manager) DeleteDeploymentDomain(ctx context.Context, id types.DeploymentID, domain string) error {
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrDeploymentNotFound
 	}
@@ -443,7 +444,7 @@ func (m *Manager) DeleteDeploymentDomain(ctx context.Context, id types.Deploymen
 }
 
 func (m *Manager) GetLeaseShellEndpoint(ctx context.Context, id types.DeploymentID) (*types.LeaseEndpoint, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrDeploymentNotFound
 	}
@@ -478,7 +479,7 @@ func (m *Manager) GetLeaseShellEndpoint(ctx context.Context, id types.Deployment
 }
 
 func (m *Manager) GetIngress(ctx context.Context, id types.DeploymentID) (*types.Ingress, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrDeploymentNotFound
 	}
@@ -505,7 +506,7 @@ func (m *Manager) UpdateIngress(ctx context.Context, id types.DeploymentID, anno
 		return ErrInvalidAnnotations
 	}
 
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrDeploymentNotFound
 	}
@@ -538,7 +539,7 @@ func (m *Manager) GenerateTokenForLeaseShell(commonAPI api.Common, deploy *types
 }
 
 func (m *Manager) GetDeploymentProviderIP(ctx context.Context, id types.DeploymentID) (string, error) {
-	deploy, err := m.DB.GetDeploymentById(ctx, id)
+	deploy, err := m.DB.GetDeploymentByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", ErrDeploymentNotFound
 	}

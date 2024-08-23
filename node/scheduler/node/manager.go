@@ -287,7 +287,7 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 	}
 	// }
 
-	err = m.AddNodeProfits(detailsList)
+	err = m.AddNodeProfitDetails(detailsList)
 	if err != nil {
 		log.Errorf("updateNodeData AddNodeProfits err:%s", err.Error())
 	}

@@ -40,7 +40,7 @@ func (m *Manager) StopFillDiskTimer() {
 }
 
 func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
-	list, err := m.LoadRecords([]string{SeedFailed.String(), CandidatesFailed.String(), EdgesFailed.String()}, m.nodeMgr.ServerID)
+	list, err := m.LoadAssetRecords([]string{SeedFailed.String(), CandidatesFailed.String(), EdgesFailed.String()}, m.nodeMgr.ServerID)
 	if err != nil {
 		log.Errorf("autoRestartAssetReplicas LoadAssetRecords err:%s", err.Error())
 		return false
