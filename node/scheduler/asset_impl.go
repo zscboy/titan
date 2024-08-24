@@ -44,6 +44,11 @@ func (s *Scheduler) UpdateAssetExpiration(ctx context.Context, cid string, t tim
 	return s.AssetManager.UpdateAssetExpiration(cid, t)
 }
 
+// ResetAssetReplicaCount resets the replica count for an asset with the specified CID
+func (s *Scheduler) ResetAssetReplicaCount(ctx context.Context, cid string, count int) error {
+	return s.AssetManager.ResetAssetReplicaCount(cid, count)
+}
+
 // GetAssetRecord retrieves an asset record by its CID.
 func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) {
 	hash, err := cidutil.CIDToHash(cid)

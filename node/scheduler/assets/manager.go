@@ -1014,6 +1014,24 @@ func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 	return m.UpdateAssetRecordExpiration(hash, t)
 }
 
+// ResetAssetReplicaCount updates the asset replica count for a given CID
+func (m *Manager) ResetAssetReplicaCount(cid string, count int) error {
+	if count > assetEdgeReplicasLimit || count < 1 {
+		return xerrors.Errorf("ResetAssetReplicaCount count %d not meeting the requirements", count)
+	}
+
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return err
+	}
+
+	// TODO
+
+	log.Infof("asset event %s, reset asset replica count:%s", cid, count)
+
+	return m.UpdateAssetRecordReplicaCount(hash, count)
+}
+
 // cleanUploadFailedAssetReplicas clean upload failed assets
 func (m *Manager) cleanUploadFailedAssetReplicas() {
 	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String(), SyncFailed.String()})

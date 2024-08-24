@@ -32,7 +32,9 @@ type AssetAPI interface {
 	// RePullFailedAssets retries the pull process for a list of failed assets
 	RePullFailedAssets(ctx context.Context, hashes []types.AssetHash) error //perm:admin
 	// UpdateAssetExpiration updates the expiration time for an asset with the specified CID
-	UpdateAssetExpiration(ctx context.Context, cid string, time time.Time) error //perm:admin
+	UpdateAssetExpiration(ctx context.Context, cid string, time time.Time) error //perm:web,admin
+	// ResetAssetReplicaCount updates the replica count for an asset with the specified CID
+	ResetAssetReplicaCount(ctx context.Context, cid string, count int) error //perm:web,admin
 	// NodeRemoveAssetResult the result of an asset removal operation
 	NodeRemoveAssetResult(ctx context.Context, resultInfo types.RemoveAssetResult) error //perm:edge,candidate
 	// GetAssetListForBucket retrieves a list of asset hashes for a bucket associated with the specified bucket ID (bucketID is hash code)

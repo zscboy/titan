@@ -69,11 +69,7 @@ func (m *Manager) popWorkloadResult() *WorkloadResult {
 }
 
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
-	log.Infof("workload PushResult nodeID:[%s] , %s\n", nodeID, data.WorkloadID)
-
-	// if nodeID == "" {
-	// 	return nil
-	// }
+	// log.Infof("workload PushResult nodeID:[%s] , %s\n", nodeID, data.WorkloadID)
 
 	m.addWorkloadResult(&WorkloadResult{data: data, nodeID: nodeID})
 	// m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
@@ -96,6 +92,14 @@ func (m *Manager) handleResults() {
 // handleClientWorkload handle node workload
 func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNode string) error {
 	if data.WorkloadID == "" {
+		// L1 download
+		for _, dw := range data.Workloads {
+			speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
+			if speed > 0 {
+				m.nodeMgr.UpdateNodeBandwidths(downloadNode, speed, 0)
+			}
+		}
+
 		return nil
 	}
 
@@ -109,21 +113,11 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 		return nil
 	}
 
-	downloadTotalSize := int64(0)
-	for _, dw := range data.Workloads {
-		downloadTotalSize += dw.DownloadSize
-	}
-
-	if record == nil {
-		log.Errorf("handleClientWorkload record is nil : %s, %s", data.AssetCID, downloadNode)
-		return nil
-	}
-
 	// update status
 	record.Status = types.WorkloadStatusSucceeded
 	err = m.UpdateWorkloadRecord(record, types.WorkloadStatusCreate)
 	if err != nil {
-		log.Errorf("handleClientWorkload UpdateWorkloadRecord error: %s", err.Error())
+		log.Errorf("handleClientWorkload UpdateWorkloadRecord %s error: %s", data.WorkloadID, err.Error())
 		return err
 	}
 
@@ -136,7 +130,7 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 		// update node bandwidths
 		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
 		if speed > 0 {
-			// m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
+			m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
 			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
 		}
 

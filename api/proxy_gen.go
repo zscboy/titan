@@ -111,6 +111,8 @@ type AssetAPIStruct struct {
 
 		RemoveNodeFailedReplica func(p0 context.Context) (error) `perm:"web,admin"`
 
+		ResetAssetReplicaCount func(p0 context.Context, p1 string, p2 int) (error) `perm:"web,admin"`
+
 		ShareAssets func(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) `perm:"web,admin,user"`
 
 		ShareEncryptedAsset func(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) `perm:"web,admin,user"`
@@ -119,7 +121,7 @@ type AssetAPIStruct struct {
 
 		SwitchFillDiskTimer func(p0 context.Context, p1 bool) (error) `perm:"web,admin"`
 
-		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) (error) `perm:"admin"`
+		UpdateAssetExpiration func(p0 context.Context, p1 string, p2 time.Time) (error) `perm:"web,admin"`
 
 	}
 }
@@ -1117,6 +1119,17 @@ func (s *AssetAPIStruct) RemoveNodeFailedReplica(p0 context.Context) (error) {
 }
 
 func (s *AssetAPIStub) RemoveNodeFailedReplica(p0 context.Context) (error) {
+	return ErrNotSupported
+}
+
+func (s *AssetAPIStruct) ResetAssetReplicaCount(p0 context.Context, p1 string, p2 int) (error) {
+	if s.Internal.ResetAssetReplicaCount == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.ResetAssetReplicaCount(p0, p1, p2)
+}
+
+func (s *AssetAPIStub) ResetAssetReplicaCount(p0 context.Context, p1 string, p2 int) (error) {
 	return ErrNotSupported
 }
 

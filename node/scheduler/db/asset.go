@@ -528,9 +528,9 @@ func (n *SQLDB) LoadAssetStateInfo(hash string, serverID dtypes.ServerID) (*type
 }
 
 // UpdateAssetRecordReplicaCount updates the count of edge replicas for a specific content identifier in the asset record table.
-func (n *SQLDB) UpdateAssetRecordReplicaCount(cid string, count int) error {
-	query := fmt.Sprintf(`UPDATE %s SET edge_replicas=? WHERE cid=?`, assetRecordTable)
-	_, err := n.db.Exec(query, count, cid)
+func (n *SQLDB) UpdateAssetRecordReplicaCount(hash string, count int) error {
+	query := fmt.Sprintf(`UPDATE %s SET edge_replicas=? WHERE hash=?`, assetRecordTable)
+	_, err := n.db.Exec(query, count, hash)
 
 	return err
 }
