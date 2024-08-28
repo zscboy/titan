@@ -51,7 +51,7 @@ func (m *Manager) startValidationTicker() {
 		} else {
 			m.cleanValidator()
 
-			nodes := m.nodeMgr.GetAllEdgeNode()
+			nodes := m.nodeMgr.GetResourceEdgeNode()
 			m.computeNodeProfits(nodes)
 		}
 	}
@@ -171,7 +171,7 @@ func (m *Manager) startValidate() error {
 		validateReqs[candidate.NodeID] = req
 	}
 
-	edges := m.nodeMgr.GetAllEdgeNode()
+	edges := m.nodeMgr.GetResourceEdgeNode()
 	sort.Slice(edges, func(i, j int) bool {
 		return edges[i].LastValidateTime < edges[j].LastValidateTime
 	})

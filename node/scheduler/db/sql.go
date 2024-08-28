@@ -138,10 +138,10 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
 
-	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD is_restriction  BOOLEAN      DEFAULT false", nodeRegisterTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD owner VARCHAR(128) DEFAULT ''", assetRecordTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())

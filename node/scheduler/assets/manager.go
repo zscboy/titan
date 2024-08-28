@@ -465,6 +465,7 @@ func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq
 		TotalSize:             req.AssetSize,
 		CreatedTime:           time.Now(),
 		Source:                int64(AssetSourceStorage),
+		Owner:                 req.Owner,
 	}
 
 	err = m.SaveAssetRecord(record)
@@ -524,7 +525,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 
 		cNodes = append(cNodes, node)
 	} else {
-		_, nodes := m.nodeMgr.GetAllCandidateNodes()
+		_, nodes := m.nodeMgr.GetResourceCandidateNodes()
 
 		// mixup nodes
 		rand.Shuffle(len(nodes), func(i, j int) { nodes[i], nodes[j] = nodes[j], nodes[i] })
@@ -587,6 +588,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		TotalSize:             req.AssetSize,
 		CreatedTime:           time.Now(),
 		Source:                int64(AssetSourceStorage),
+		Owner:                 req.Owner,
 	}
 
 	err = m.SaveAssetRecord(record)
@@ -1319,12 +1321,6 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 		count = 1
 	}
 
-	// If the number of filterNodes is equal or greater than the total edge nodes,
-	// there are no nodes to consider, so return an empty map and the result string
-	// if len(filterNodes) >= m.nodeMgr.Edges {
-	// 	return selectMap, str
-	// }
-
 	filterMap := make(map[string]struct{})
 	for _, nodeID := range filterNodes {
 		filterMap[nodeID] = struct{}{}
@@ -1342,10 +1338,6 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 		if node == nil {
 			return false
 		}
-
-		// if node.Type == types.NodeValidator {
-		// 	return false
-		// }
 
 		nodeID := node.NodeID
 
@@ -1393,7 +1385,7 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 	// if count >= m.nodeMgr.Edges-len(filterNodes) {
 	// choose all
 	if m.sortEdges {
-		nodes := m.nodeMgr.GetAllEdgeNode()
+		nodes := m.nodeMgr.GetResourceEdgeNode()
 		sort.Slice(nodes, func(i, j int) bool {
 			return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
 		})

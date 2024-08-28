@@ -7,6 +7,7 @@ type CreateSyncAssetReq struct {
 	AssetSize     int64
 	ReplicaCount  int64
 	ExpirationDay int
+	Owner         string
 
 	DownloadInfo *SourceDownloadInfo
 }
@@ -18,6 +19,7 @@ type CreateAssetReq struct {
 	NodeID        string
 	ReplicaCount  int64
 	ExpirationDay int
+	Owner         string
 }
 
 type UploadInfo struct {

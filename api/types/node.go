@@ -44,9 +44,9 @@ type NodeInfo struct {
 	Level           int
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	AreaID          string
-	Mx              float64
-	AssetCount      int64 `db:"asset_count"`
-	RetrieveCount   int64 `db:"retrieve_count"`
+	Mx              float64 // Node online coefficient
+	AssetCount      int64   `db:"asset_count"`
+	RetrieveCount   int64   `db:"retrieve_count"`
 
 	FirstTime      time.Time       `db:"first_login_time"`
 	NetFlowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`

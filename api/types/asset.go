@@ -47,6 +47,7 @@ type AssetRecord struct {
 	NeedBandwidth         int64           `db:"bandwidth"` // unit:MiB/
 	Note                  string          `db:"note"`
 	Source                int64           `db:"source"`
+	Owner                 string          `db:"owner"`
 
 	RetryCount        int64 `db:"retry_count"`
 	ReplenishReplicas int64 `db:"replenish_replicas"`

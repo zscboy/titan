@@ -217,11 +217,11 @@ func (m *Manager) deleteL5Node(node *Node) {
 
 // DistributeNodeWeight Distribute Node Weight
 func (m *Manager) DistributeNodeWeight(node *Node) {
-	if node.IsAbnormal() {
+	node.Level = m.getNodeScoreLevel(node)
+	if !node.IsResourceNode() {
 		return
 	}
 
-	node.Level = m.getNodeScoreLevel(node)
 	wNum := m.weightMgr.getWeightNum(node.Level)
 	if node.Type == types.NodeCandidate {
 		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
@@ -340,8 +340,11 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		}
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
-
 		node.Level = m.getNodeScoreLevel(node)
+
+		if !node.IsResourceNode() {
+			continue
+		}
 		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeCandidateWeight(node.NodeID, wNum)
 	}
@@ -354,8 +357,11 @@ func (m *Manager) redistributeNodeSelectWeights() {
 		}
 
 		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
-
 		node.Level = m.getNodeScoreLevel(node)
+
+		if !node.IsResourceNode() {
+			continue
+		}
 		wNum := m.weightMgr.getWeightNum(node.Level)
 		node.selectWeights = m.weightMgr.distributeEdgeWeight(node.NodeID, wNum)
 	}
@@ -392,25 +398,6 @@ func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) floa
 	}
 
 	return float64(nodeC) / float64(serverC)
-}
-
-// GetAllEdgeNode load all edge node
-func (m *Manager) GetAllEdgeNode() []*Node {
-	nodes := make([]*Node, 0)
-
-	m.edgeNodes.Range(func(key, value interface{}) bool {
-		node := value.(*Node)
-
-		if node.IsAbnormal() {
-			return true
-		}
-
-		nodes = append(nodes, node)
-
-		return true
-	})
-
-	return nodes
 }
 
 // UpdateNodeBandwidths update node bandwidthDown and bandwidthUp

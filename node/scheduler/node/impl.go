@@ -7,20 +7,48 @@ import (
 	"github.com/Filecoin-Titan/titan/api/types"
 )
 
-// GetAllNodes  Get all valid candidate and edge nodes
-func (m *Manager) GetAllNodes() []*Node {
-	var nodes []*Node
+// GetResourceEdgeNode retrieves all edge nodes that are available for resource utilization.
+func (m *Manager) GetResourceEdgeNode() []*Node {
+	nodes := make([]*Node, 0)
 
-	m.candidateNodes.Range(func(key, value interface{}) bool {
+	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
 
-		if node.IsAbnormal() {
+		if !node.IsResourceNode() {
 			return true
 		}
 
 		nodes = append(nodes, node)
+
 		return true
 	})
+
+	return nodes
+}
+
+// GetResourceCandidateNodes retrieves all valid candidate nodes that are available for resource utilization.
+func (m *Manager) GetResourceCandidateNodes() ([]string, []*Node) {
+	var ids []string
+	var nodes []*Node
+	m.candidateNodes.Range(func(key, value interface{}) bool {
+		nodeID := key.(string)
+		node := value.(*Node)
+
+		if !node.IsResourceNode() {
+			return true
+		}
+
+		ids = append(ids, nodeID)
+		nodes = append(nodes, node)
+		return true
+	})
+
+	return ids, nodes
+}
+
+// GetAllEdgeNode load all edge node
+func (m *Manager) GetAllEdgeNode() []*Node {
+	nodes := make([]*Node, 0)
 
 	m.edgeNodes.Range(func(key, value interface{}) bool {
 		node := value.(*Node)
@@ -30,6 +58,7 @@ func (m *Manager) GetAllNodes() []*Node {
 		}
 
 		nodes = append(nodes, node)
+
 		return true
 	})
 
@@ -113,7 +142,7 @@ func (m *Manager) GetCandidateNode(nodeID string) *Node {
 	return nil
 }
 
-// GetCandidateNode retrieves a candidate node with the given node ID
+// GetL5Node retrieves a l5 node with the given node ID
 func (m *Manager) GetL5Node(nodeID string) *Node {
 	nodeI, exist := m.l5Nodes.Load(nodeID)
 	if exist && nodeI != nil {
@@ -179,7 +208,7 @@ func (m *Manager) SetTunserverURL(edgeID, candidateID string) error {
 func (m *Manager) UpdateTunserverURL(edgeID string) (*Node, error) {
 	var vNode *Node
 	// select candidate
-	_, list := m.GetAllCandidateNodes()
+	_, list := m.GetResourceCandidateNodes()
 	if len(list) > 0 {
 		index := rand.Intn(len(list))
 		vNode = list[index]

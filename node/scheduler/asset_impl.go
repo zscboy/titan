@@ -535,7 +535,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 		userID = uID
 	}
 
-	_, nodes := s.NodeManager.GetAllCandidateNodes()
+	_, nodes := s.NodeManager.GetResourceCandidateNodes()
 
 	cNodes := make([]*node.Node, 0)
 	for _, node := range nodes {

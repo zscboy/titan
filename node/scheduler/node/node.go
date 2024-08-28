@@ -62,7 +62,6 @@ type Node struct {
 	Level           int
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	// GeoInfo         *region.GeoInfo
-	Mx     float64
 	AreaID string
 	// InternalIP      string
 	// Status          types.NodeStatus
@@ -162,6 +161,7 @@ func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
 	n.ExternalIP = nodeInfo.ExternalIP
 	// n.InternalIP = nodeInfo.InternalIP
 	n.MemoryUsage = nodeInfo.MemoryUsage
+	n.CPUUsage = nodeInfo.CPUUsage
 	n.AreaID = nodeInfo.AreaID
 	n.NATType = nodeInfo.NATType
 	n.ClientType = nodeInfo.ClientType
@@ -169,7 +169,6 @@ func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
 	n.RemoteAddr = nodeInfo.RemoteAddr
 	n.Level = nodeInfo.Level
 	n.IncomeIncr = nodeInfo.IncomeIncr
-	n.Mx = nodeInfo.Mx
 	n.LastSeen = nodeInfo.LastSeen
 }
 
@@ -238,14 +237,25 @@ func (n *Node) ConnectRPC(transport *quic.Transport, addr string, nodeType types
 	return xerrors.Errorf("node %s type %d not wrongful", n.NodeID, n.Type)
 }
 
+// IsResourceNode checks if the node is available for resource utilization.
+func (n *Node) IsResourceNode() bool {
+	// Node is considered unavailable if it has been deactivated.
+	if n.IsAbnormal() {
+		return false
+	}
+
+	// ...
+	return true
+}
+
 // IsAbnormal is node abnormal
 func (n *Node) IsAbnormal() bool {
-	// waiting for deactivate
+	// Node is considered unavailable if it has been deactivated.
 	if n.DeactivateTime > 0 {
 		return true
 	}
 
-	// is minio node
+	// Node is considered unavailable if it is dedicated as a private Minio node.
 	if n.IsPrivateMinioOnly {
 		return true
 	}

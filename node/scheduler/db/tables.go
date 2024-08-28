@@ -98,7 +98,7 @@ var cNodeRegisterTable = `
 		created_time    VARCHAR(64)   DEFAULT '' ,
 		node_type       VARCHAR(64)   DEFAULT '' ,
 		activation_key  VARCHAR(128)  DEFAULT '' ,
-		ip 				VARCHAR(16)  DEFAULT '' ,
+		ip 				VARCHAR(16)   DEFAULT '' ,
 		migrate_key     VARCHAR(128)  DEFAULT '' ,		
 		PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node register info';`
@@ -118,6 +118,7 @@ var cAssetRecordTable = `
 		bandwidth          BIGINT       DEFAULT 0,
 		note               VARCHAR(128) DEFAULT '',
 		source             TINYINT      DEFAULT 0,
+		owner              VARCHAR(128) DEFAULT '',
 		PRIMARY KEY (hash)
 	) ENGINE=InnoDB COMMENT='asset record';`
 

@@ -231,7 +231,11 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			incr, _ := s.NodeManager.GetEdgeBaseProfitDetails(cNode, 0)
 			cNode.IncomeIncr = incr
 		}
-		s.NodeManager.GeoMgr.AddNodeGeo(nodeInfo, cNode.AreaID)
+
+		if cNode.IsResourceNode() {
+			s.NodeManager.GeoMgr.AddNodeGeo(nodeInfo, cNode.AreaID)
+		}
+
 		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
 
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)

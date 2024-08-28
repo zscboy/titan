@@ -177,7 +177,7 @@ func (m *Manager) fillDiskTasks() {
 }
 
 func (m *Manager) requestNodePullAsset(bucket, cid string, candidateCount int64, size float64) {
-	_, nodes := m.nodeMgr.GetAllCandidateNodes()
+	_, nodes := m.nodeMgr.GetResourceCandidateNodes()
 
 	sort.Slice(nodes, func(i, j int) bool {
 		return nodes[i].TitanDiskUsage < nodes[j].TitanDiskUsage
