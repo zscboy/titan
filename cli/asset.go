@@ -72,7 +72,7 @@ var switchFillDiskTimerCmd = &cli.Command{
 }
 
 var addAWSDataCmd = &cli.Command{
-	Name:  "aws",
+	Name:  "add-aws",
 	Usage: "Add AWS data ",
 	Flags: []cli.Flag{
 		&cli.StringFlag{

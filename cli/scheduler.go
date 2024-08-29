@@ -18,12 +18,11 @@ var SchedulerCMDs = []*cli.Command{
 	WithCategory("node", nodeCmds),
 	WithCategory("asset", assetCmds),
 	WithCategory("config", sConfigCmds),
-	WithCategory("user", userCmds),
 	WithCategory("project", projectCmds),
 	WithCategory("codes", codesCmds),
 	WithCategory("provider", providerCmds),
 	WithCategory("deployment", deploymentCmds),
-	startElectionCmd,
+	// startElectionCmd,
 	// other
 	edgeUpdaterCmd,
 	loadWorkloadCmd,
@@ -140,33 +139,6 @@ var loadWorkloadCmd = &cli.Command{
 	},
 }
 
-var setNodePortCmd = &cli.Command{
-	Name:  "set-node-port",
-	Usage: "set the node port",
-	Flags: []cli.Flag{
-		nodeIDFlag,
-		portFlag,
-	},
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		nodeID := cctx.String("node-id")
-		port := cctx.String("port")
-
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		return schedulerAPI.UpdateNodePort(ctx, nodeID, port)
-	},
-}
-
 var showValidatorCmd = &cli.Command{
 	Name:  "sv",
 	Usage: "show validators ",
@@ -221,26 +193,26 @@ var reNatCmd = &cli.Command{
 	},
 }
 
-var startElectionCmd = &cli.Command{
-	Name:  "start-election",
-	Usage: "Start election validator",
+// var startElectionCmd = &cli.Command{
+// 	Name:  "start-election",
+// 	Usage: "Start election validator",
 
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
+// 	Before: func(cctx *cli.Context) error {
+// 		return nil
+// 	},
+// 	Action: func(cctx *cli.Context) error {
+// 		ctx := ReqContext(cctx)
 
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
+// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+// 		if err != nil {
+// 			return err
+// 		}
 
-		defer closer()
+// 		defer closer()
 
-		return schedulerAPI.TriggerElection(ctx)
-	},
-}
+// 		return schedulerAPI.TriggerElection(ctx)
+// 	},
+// }
 
 var edgeUpdaterCmd = &cli.Command{
 	Name:  "edge-updater",
