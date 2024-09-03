@@ -486,6 +486,26 @@ func (n *SQLDB) LoadAssetCount(serverID dtypes.ServerID, filterState string) (in
 	return size, nil
 }
 
+// LoadActiveAssetRecords retrieves detailed information about nodes, including their type and last seen time.
+func (n *SQLDB) LoadActiveAssetRecords(serverID dtypes.ServerID, limit, offset int) (*sqlx.Rows, int64, error) {
+	t := time.Now().Add(-(time.Hour * 6))
+
+	var total int64
+	cQuery := fmt.Sprintf(`SELECT count(hash) FROM %s  where end_time>?`, assetRecordTable)
+	err := n.db.Get(&total, cQuery, t)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if limit > loadAssetRecordsDefaultLimit || limit == 0 {
+		limit = loadAssetRecordsDefaultLimit
+	}
+
+	sQuery := fmt.Sprintf(`SELECT * FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.end_time>? order by a.hash asc LIMIT ? OFFSET ?`, assetRecordTable, assetStateTable(serverID))
+	rows, err := n.db.QueryxContext(context.Background(), sQuery, t, limit, offset)
+	return rows, total, err
+}
+
 // LoadAllAssetRecords retrieves all asset records for a specified server ID, applying a filter by state with pagination.
 func (n *SQLDB) LoadAllAssetRecords(serverID dtypes.ServerID, limit, offset int, statuses []string) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.state in (?) order by a.hash asc limit ? offset ?`, assetStateTable(serverID), assetRecordTable)
@@ -705,7 +725,7 @@ func (n *SQLDB) DeleteAssetRecordsOfNode(nodeID string) error {
 
 // SaveAssetDownloadResult records the result of an asset download for a node, including traffic and bandwidth metrics.
 func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
-	query := fmt.Sprintf(`INSERT INTO %s (hash, node_id, total_traffic, peak_bandwidth) VALUES (:hash, :node_id, :total_traffic, :peak_bandwidth) `, assetDownloadTable)
+	query := fmt.Sprintf(`INSERT INTO %s (hash, node_id, total_traffic, peak_bandwidth, user_id) VALUES (:hash, :node_id, :total_traffic, :peak_bandwidth, :user_id) `, assetDownloadTable)
 	_, err := n.db.NamedExec(query, info)
 
 	return err

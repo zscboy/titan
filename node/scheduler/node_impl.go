@@ -710,7 +710,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.Node
 func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*types.ListNodesRsp, error) {
 	info := &types.ListNodesRsp{Data: make([]types.NodeInfo, 0)}
 
-	rows, total, err := s.NodeManager.LoadNodeInfos(limit, offset)
+	rows, total, err := s.NodeManager.LoadActiveNodeInfos(limit, offset)
 	if err != nil {
 		return nil, xerrors.Errorf("LoadNodeInfos err:%s", err.Error())
 	}

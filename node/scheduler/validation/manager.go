@@ -80,7 +80,7 @@ func (m *Manager) IsValidator(nodeID string) bool {
 	return false
 }
 
-func (m *Manager) GetValidator() []string {
+func (m *Manager) GetValidators() []string {
 	return m.validators
 }
 
@@ -92,7 +92,7 @@ func (m *Manager) cleanValidator() {
 }
 
 // NewManager return new node manager instance
-func NewManager(nodeMgr *node.Manager,  configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
+func NewManager(nodeMgr *node.Manager, configFunc dtypes.GetSchedulerConfigFunc, p *pubsub.PubSub, lmgr *leadership.Manager) *Manager {
 	manager := &Manager{
 		nodeMgr:       nodeMgr,
 		config:        configFunc,

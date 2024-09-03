@@ -296,8 +296,8 @@ func (n *SQLDB) RegisterCount(ip string) (int, error) {
 	return count, nil
 }
 
-// LoadNodeInfos retrieves detailed information about nodes, including their type and last seen time.
-func (n *SQLDB) LoadNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
+// LoadActiveNodeInfos retrieves detailed information about nodes, including their type and last seen time.
+func (n *SQLDB) LoadActiveNodeInfos(limit, offset int) (*sqlx.Rows, int64, error) {
 	t := time.Now().Add(-(time.Hour * 6))
 
 	var total int64

@@ -526,7 +526,7 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 		return err
 	}
 
-	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth})
+	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth, UserID: userID})
 }
 
 func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string, urlMode bool) (*types.UploadInfo, error) {
@@ -599,4 +599,32 @@ func (s *Scheduler) GetAssetDownloadResults(ctx context.Context, hash string, st
 // GetDownloadResultsFromAssets Retrieves Asset Download Results
 func (s *Scheduler) GetDownloadResultsFromAssets(ctx context.Context, hashes []string, start, end time.Time) ([]*types.AssetDownloadResultRsp, error) {
 	return s.db.LoadDownloadResultsFromAsset(ctx, hashes, start, end)
+}
+
+// GetActiveAssetRecords retrieves a list of asset records.
+func (s *Scheduler) GetActiveAssetRecords(ctx context.Context, offset int, limit int) (*types.ListAssetRecordRsp, error) {
+	info := &types.ListAssetRecordRsp{List: make([]*types.AssetRecord, 0)}
+
+	rows, total, err := s.NodeManager.LoadActiveAssetRecords(s.ServerID, limit, offset)
+	if err != nil {
+		return nil, xerrors.Errorf("LoadNodeInfos err:%s", err.Error())
+	}
+	defer rows.Close()
+
+	list := make([]*types.AssetRecord, 0)
+	for rows.Next() {
+		cInfo := &types.AssetRecord{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("NodeInfo StructScan err: %s", err.Error())
+			continue
+		}
+
+		list = append(list, cInfo)
+	}
+
+	info.List = list
+	info.Total = total
+
+	return info, nil
 }

@@ -119,7 +119,8 @@ var cAssetRecordTable = `
 		note               VARCHAR(128) DEFAULT '',
 		source             TINYINT      DEFAULT 0,
 		owner              VARCHAR(128) DEFAULT '',
-		PRIMARY KEY (hash)
+		PRIMARY KEY (hash),
+		KEY idx_end_time (end_time)
 	) ENGINE=InnoDB COMMENT='asset record';`
 
 var cEdgeUpdateTable = `
@@ -312,6 +313,7 @@ var cAssetDownloadTable = `
 		created_time    DATETIME      DEFAULT CURRENT_TIMESTAMP,
  		total_traffic   BIGINT        DEFAULT 0,
 		peak_bandwidth 	INT           DEFAULT 0,
+		user_id         VARCHAR(128)  DEFAULT '',
  		KEY idx_hash_id (hash),
  		KEY idx_node_id (node_id)
 	) ENGINE=InnoDB COMMENT='node and server online count';`

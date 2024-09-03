@@ -81,6 +81,8 @@ type AssetAPI interface {
 	LoadAWSData(ctx context.Context, limit, offset int, isDistribute bool) ([]*types.AWSDataInfo, error) //perm:web,admin
 	// RemoveNodeFailedReplica
 	RemoveNodeFailedReplica(ctx context.Context) error //perm:web,admin
+	// GetActiveAssetRecords
+	GetActiveAssetRecords(ctx context.Context, offset int, limit int) (*types.ListAssetRecordRsp, error) //perm:web,admin
 }
 
 // NodeAPI is an interface for node
@@ -282,5 +284,5 @@ type Scheduler interface {
 	// AssignTunserverURL Deprecated
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
 
-	GetValidator(ctx context.Context) ([]string, error) //perm:web,admin
+	GetValidators(ctx context.Context) ([]string, error) //perm:web,admin
 }

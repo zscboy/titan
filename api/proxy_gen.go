@@ -71,6 +71,8 @@ type AssetAPIStruct struct {
 
 		GenerateTokenForDownloadSource func(p0 context.Context, p1 string, p2 string) (*types.SourceDownloadInfo, error) `perm:"web,admin,user"`
 
+		GetActiveAssetRecords func(p0 context.Context, p1 int, p2 int) (*types.ListAssetRecordRsp, error) `perm:"web,admin"`
+
 		GetAssetCount func(p0 context.Context) (int, error) `perm:"web,admin"`
 
 		GetAssetDownloadResults func(p0 context.Context, p1 string, p2 time.Time, p3 time.Time) (*types.ListAssetDownloadRsp, error) `perm:"web,admin"`
@@ -615,7 +617,7 @@ type SchedulerStruct struct {
 
 		GetValidationResults func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListValidationResultRsp, error) `perm:"web,admin"`
 
-		GetValidator func(p0 context.Context) ([]string, error) `perm:"web,admin"`
+		GetValidators func(p0 context.Context) ([]string, error) `perm:"web,admin"`
 
 		GetWorkloadRecord func(p0 context.Context, p1 string) (*types.WorkloadRecord, error) `perm:"web,admin"`
 
@@ -899,6 +901,17 @@ func (s *AssetAPIStruct) GenerateTokenForDownloadSource(p0 context.Context, p1 s
 }
 
 func (s *AssetAPIStub) GenerateTokenForDownloadSource(p0 context.Context, p1 string, p2 string) (*types.SourceDownloadInfo, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetActiveAssetRecords(p0 context.Context, p1 int, p2 int) (*types.ListAssetRecordRsp, error) {
+	if s.Internal.GetActiveAssetRecords == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetActiveAssetRecords(p0, p1, p2)
+}
+
+func (s *AssetAPIStub) GetActiveAssetRecords(p0 context.Context, p1 int, p2 int) (*types.ListAssetRecordRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -2841,14 +2854,14 @@ func (s *SchedulerStub) GetValidationResults(p0 context.Context, p1 string, p2 i
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetValidator(p0 context.Context) ([]string, error) {
-	if s.Internal.GetValidator == nil {
+func (s *SchedulerStruct) GetValidators(p0 context.Context) ([]string, error) {
+	if s.Internal.GetValidators == nil {
 		return *new([]string), ErrNotSupported
 	}
-	return s.Internal.GetValidator(p0)
+	return s.Internal.GetValidators(p0)
 }
 
-func (s *SchedulerStub) GetValidator(p0 context.Context) ([]string, error) {
+func (s *SchedulerStub) GetValidators(p0 context.Context) ([]string, error) {
 	return *new([]string), ErrNotSupported
 }
 

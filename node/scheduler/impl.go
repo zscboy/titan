@@ -660,6 +660,6 @@ func (s *Scheduler) RemoveCandidateCode(ctx context.Context, code string) error 
 	return s.db.DeleteCandidateCodeInfo(code)
 }
 
-func (s *Scheduler) GetValidator(ctx context.Context) ([]string, error) {
-	return s.ValidationMgr.GetValidator(), nil
+func (s *Scheduler) GetValidators(ctx context.Context) ([]string, error) {
+	return s.ValidationMgr.GetValidators(), nil
 }

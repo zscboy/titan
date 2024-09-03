@@ -56,30 +56,10 @@ type AssetRecord struct {
 	SPCount int64
 }
 
-type UserAssetDetail struct {
-	UserID      string    `db:"user_id"`
-	Hash        string    `db:"hash"`
-	AssetName   string    `db:"asset_name"`
-	AssetType   string    `db:"asset_type"`
-	ShareStatus int64     `db:"share_status"`
-	Expiration  time.Time `db:"expiration"`
-	CreatedTime time.Time `db:"created_time"`
-	TotalSize   int64     `db:"total_size"`
-	Password    string    `db:"password"`
-	GroupID     int       `db:"group_id"`
-}
-
-type AssetOverview struct {
-	AssetRecord      *AssetRecord
-	UserAssetDetail  *UserAssetDetail
-	VisitCount       int
-	RemainVisitCount int
-}
-
 // ListAssetRecordRsp list asset records
 type ListAssetRecordRsp struct {
-	Total          int              `json:"total"`
-	AssetOverviews []*AssetOverview `json:"asset_infos"`
+	Total int64          `json:"total"`
+	List  []*AssetRecord `json:"asset_infos"`
 }
 
 // AssetStateInfo represents information about an asset state
@@ -334,6 +314,7 @@ type AssetDownloadResult struct {
 	CreatedTime   time.Time `db:"created_time"`
 	TotalTraffic  int64     `db:"total_traffic"`
 	PeakBandwidth int64     `db:"peak_bandwidth"`
+	UserID        string    `db:"user_id"`
 }
 
 // ListAssetDownloadRsp list replica events

@@ -155,7 +155,7 @@ var showValidatorCmd = &cli.Command{
 		}
 		defer closer()
 
-		list, err := schedulerAPI.GetValidator(ctx)
+		list, err := schedulerAPI.GetValidators(ctx)
 		if err != nil {
 			return err
 		}

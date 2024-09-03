@@ -61,7 +61,7 @@ const (
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
 	loadValidationResultsDefaultLimit   = 100
-	loadAssetRecordsDefaultLimit        = 100
+	loadAssetRecordsDefaultLimit        = 1000
 	loadExpiredAssetRecordsDefaultLimit = 100
 	loadWorkloadDefaultLimit            = 100
 	loadReplicaEventDefaultLimit        = 500
@@ -139,6 +139,11 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// }
 
 	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD owner VARCHAR(128) DEFAULT ''", assetRecordTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD user_id         VARCHAR(128)  DEFAULT ''", assetDownloadTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
