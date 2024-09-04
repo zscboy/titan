@@ -9,7 +9,7 @@ type CreateSyncAssetReq struct {
 	ExpirationDay int
 	Owner         string
 
-	DownloadInfo *SourceDownloadInfo
+	DownloadInfos []*SourceDownloadInfo
 }
 
 type CreateAssetReq struct {

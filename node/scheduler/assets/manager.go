@@ -296,7 +296,7 @@ func (m *Manager) retrieveNodePullProgresses(isUpload bool) {
 				continue
 			}
 		} else {
-			if stateInfo.State != EdgesPulling.String() && stateInfo.State != CandidatesPulling.String() && stateInfo.State != SeedPulling.String() {
+			if stateInfo.State != EdgesPulling.String() && stateInfo.State != CandidatesPulling.String() && stateInfo.State != SeedPulling.String() && stateInfo.State != SeedSyncing.String() {
 				continue
 			}
 		}
@@ -377,14 +377,30 @@ func (m *Manager) requestNodePullProgresses(nodeID string, cids []string) (resul
 	return
 }
 
+func (m *Manager) getSourceDownloadInfo(cNode *node.Node, cid string, titanRsa *titanrsa.Rsa) *types.SourceDownloadInfo {
+	tk, err := cNode.EncryptToken(cid, uuid.NewString(), titanRsa, m.nodeMgr.PrivateKey)
+	if err != nil {
+		return nil
+	}
+
+	return &types.SourceDownloadInfo{
+		NodeID:  cNode.NodeID,
+		Address: cNode.DownloadAddr(),
+		Tk:      tk,
+	}
+}
+
 // GenerateTokenForDownloadSource Generate Token
-func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) (*types.SourceDownloadInfo, error) {
+func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) ([]*types.SourceDownloadInfo, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
 	}
 
-	var cNode *node.Node
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	var out []*types.SourceDownloadInfo
+
+	limit := 5
 	if nodeID == "" {
 		replicas, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 		if err != nil {
@@ -392,29 +408,34 @@ func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) (*types.Sou
 		}
 
 		for _, rInfo := range replicas {
-			cNode = m.nodeMgr.GetCandidateNode(rInfo.NodeID)
-			if cNode != nil {
+			cNode := m.nodeMgr.GetCandidateNode(rInfo.NodeID)
+			if cNode == nil {
+				continue
+			}
+
+			sInfo := m.getSourceDownloadInfo(cNode, cid, titanRsa)
+			if sInfo == nil {
+				continue
+			}
+
+			out = append(out, sInfo)
+
+			if len(out) >= limit {
 				break
 			}
 		}
 	} else {
-		cNode = m.nodeMgr.GetCandidateNode(nodeID)
+		cNode := m.nodeMgr.GetCandidateNode(nodeID)
+		if cNode != nil {
+			sInfo := m.getSourceDownloadInfo(cNode, cid, titanRsa)
+			if sInfo != nil {
+				out = append(out, sInfo)
+			}
+		}
 	}
 
-	if cNode == nil {
+	if len(out) == 0 {
 		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
-	}
-
-	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	tk, err := cNode.EncryptToken(cid, uuid.NewString(), titanRsa, m.nodeMgr.PrivateKey)
-	if err != nil {
-		return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
-	}
-
-	out := &types.SourceDownloadInfo{
-		NodeID:  cNode.NodeID,
-		Address: cNode.DownloadAddr(),
-		Tk:      tk,
 	}
 
 	return out, nil
@@ -425,7 +446,7 @@ func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add sync asset ", req.AssetCID)
 
-	if req.DownloadInfo == nil {
+	if len(req.DownloadInfos) == 0 {
 		return &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}
 	}
 
@@ -447,7 +468,7 @@ func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq
 		return &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
 	}
 
-	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != UploadFailed.String() {
+	if assetRecord != nil && assetRecord.State != "" && assetRecord.State != Remove.String() && assetRecord.State != SyncFailed.String() {
 		m.UpdateAssetRecordExpiration(hash, expiration)
 
 		return nil
@@ -473,10 +494,14 @@ func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq
 		return &api.ErrWeb{Code: terrors.DatabaseErr.Int(), Message: err.Error()}
 	}
 
+	ss := []*SourceDownloadInfo{}
+	for _, s := range req.DownloadInfos {
+		ss = append(ss, sourceDownloadInfoFrom(s))
+	}
 	// create asset task
 	rInfo := AssetForceState{
-		State:          SeedSync,
-		DownloadSource: sourceDownloadInfoFrom(req.DownloadInfo),
+		State:           SeedSync,
+		DownloadSources: ss,
 	}
 	if err := m.assetStateMachines.Send(AssetHash(hash), rInfo); err != nil {
 		return &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
@@ -1036,7 +1061,7 @@ func (m *Manager) ResetAssetReplicaCount(cid string, count int) error {
 
 // cleanUploadFailedAssetReplicas clean upload failed assets
 func (m *Manager) cleanUploadFailedAssetReplicas() {
-	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String(), SyncFailed.String()})
+	aRows, err := m.LoadAllAssetRecords(m.nodeMgr.ServerID, checkAssetReplicaLimit, 0, []string{UploadFailed.String(), SyncFailed.String(), SeedFailed.String()})
 	if err != nil {
 		log.Errorf("LoadAllAssetRecords err:%s", err.Error())
 		return

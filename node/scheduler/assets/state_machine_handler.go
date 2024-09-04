@@ -46,8 +46,7 @@ func (m *Manager) handleSeedSync(ctx statemachine.Context, info AssetPullingInfo
 		return ctx.Send(SkipStep{})
 	}
 
-	downloadSource := info.DownloadSource
-	if downloadSource == nil {
+	if len(info.DownloadSources) == 0 {
 		return ctx.Send(SelectFailed{error: xerrors.New("source node not found")})
 	}
 
@@ -65,7 +64,11 @@ func (m *Manager) handleSeedSync(ctx statemachine.Context, info AssetPullingInfo
 		return ctx.Send(SelectFailed{error: xerrors.Errorf("node not found; %s", str)})
 	}
 
-	ds := &types.DownloadSources{Nodes: []*types.SourceDownloadInfo{downloadSource.ToSourceDownloadInfo()}}
+	ss := []*types.SourceDownloadInfo{}
+	for _, s := range info.DownloadSources {
+		ss = append(ss, s.ToSourceDownloadInfo())
+	}
+	ds := &types.DownloadSources{Nodes: ss}
 
 	// err = cNode.PullAsset(ctx.Context(), info.CID, downloadSource)
 	err := cNode.PullAssetV2(ctx.Context(), &types.AssetPullRequest{AssetCID: info.CID, Dss: ds})

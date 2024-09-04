@@ -58,7 +58,7 @@ type AssetAPI interface {
 	// CreateSyncAsset Synchronizing assets from other schedulers
 	CreateSyncAsset(ctx context.Context, req *types.CreateSyncAssetReq) error //perm:web,admin,user
 	// GenerateTokenForDownloadSource Generate Token For Download Source
-	GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) (*types.SourceDownloadInfo, error) //perm:web,admin,user
+	GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) ([]*types.SourceDownloadInfo, error) //perm:web,admin,user
 	// // ListAssets lists the assets of the user.
 	// ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
 	// // DeleteAsset deletes the asset of the user.
