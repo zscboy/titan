@@ -390,8 +390,8 @@ func (m *Manager) getSourceDownloadInfo(cNode *node.Node, cid string, titanRsa *
 	}
 }
 
-// GenerateTokenForDownloadSource Generate Token
-func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) ([]*types.SourceDownloadInfo, error) {
+// GenerateTokenForDownloadSources Generate Token
+func (m *Manager) GenerateTokenForDownloadSources(cid string) ([]*types.SourceDownloadInfo, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
@@ -401,6 +401,46 @@ func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) ([]*types.S
 	var out []*types.SourceDownloadInfo
 
 	limit := 5
+	replicas, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	if err != nil {
+		return nil, &api.ErrWeb{Code: terrors.AssetNotFound.Int(), Message: err.Error()}
+	}
+
+	for _, rInfo := range replicas {
+		cNode := m.nodeMgr.GetCandidateNode(rInfo.NodeID)
+		if cNode == nil {
+			continue
+		}
+
+		sInfo := m.getSourceDownloadInfo(cNode, cid, titanRsa)
+		if sInfo == nil {
+			continue
+		}
+
+		out = append(out, sInfo)
+
+		if len(out) >= limit {
+			break
+		}
+	}
+
+	if len(out) == 0 {
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
+	}
+
+	return out, nil
+}
+
+// GenerateTokenForDownloadSource Generate Token
+func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) (*types.SourceDownloadInfo, error) {
+	hash, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
+	}
+
+	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+	var out *types.SourceDownloadInfo
+
 	if nodeID == "" {
 		replicas, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 		if err != nil {
@@ -418,23 +458,20 @@ func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) ([]*types.S
 				continue
 			}
 
-			out = append(out, sInfo)
-
-			if len(out) >= limit {
-				break
-			}
+			out = sInfo
+			break
 		}
 	} else {
 		cNode := m.nodeMgr.GetCandidateNode(nodeID)
 		if cNode != nil {
 			sInfo := m.getSourceDownloadInfo(cNode, cid, titanRsa)
 			if sInfo != nil {
-				out = append(out, sInfo)
+				out = sInfo
 			}
 		}
 	}
 
-	if len(out) == 0 {
+	if out == nil {
 		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 	}
 
@@ -445,6 +482,10 @@ func (m *Manager) GenerateTokenForDownloadSource(nodeID, cid string) ([]*types.S
 func (m *Manager) CreateSyncAssetTask(hash string, req *types.CreateSyncAssetReq) error {
 	m.stateMachineWait.Wait()
 	log.Infof("asset event: %s, add sync asset ", req.AssetCID)
+
+	if req.DownloadInfo != nil {
+		req.DownloadInfos = append(req.DownloadInfos, req.DownloadInfo)
+	}
 
 	if len(req.DownloadInfos) == 0 {
 		return &api.ErrWeb{Code: terrors.ParametersAreWrong.Int()}

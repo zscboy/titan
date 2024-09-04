@@ -10,6 +10,7 @@ type CreateSyncAssetReq struct {
 	Owner         string
 
 	DownloadInfos []*SourceDownloadInfo
+	DownloadInfo  *SourceDownloadInfo
 }
 
 type CreateAssetReq struct {

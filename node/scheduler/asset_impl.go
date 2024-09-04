@@ -313,8 +313,18 @@ func (s *Scheduler) CreateSyncAsset(ctx context.Context, req *types.CreateSyncAs
 	return s.AssetManager.CreateSyncAssetTask(hash, req)
 }
 
+// GenerateTokenForDownloadSources Generate Token For Download Source
+func (s *Scheduler) GenerateTokenForDownloadSources(ctx context.Context, cid string) ([]*types.SourceDownloadInfo, error) {
+	_, err := cidutil.CIDToHash(cid)
+	if err != nil {
+		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
+	}
+
+	return s.AssetManager.GenerateTokenForDownloadSources(cid)
+}
+
 // GenerateTokenForDownloadSource Generate Token For Download Source
-func (s *Scheduler) GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) ([]*types.SourceDownloadInfo, error) {
+func (s *Scheduler) GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) (*types.SourceDownloadInfo, error) {
 	_, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, &api.ErrWeb{Code: terrors.CidToHashFiled.Int(), Message: err.Error()}
