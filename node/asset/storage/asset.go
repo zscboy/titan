@@ -233,6 +233,8 @@ func (a *asset) saveUserAsset(ctx context.Context, userID string, root cid.Cid, 
 		return err
 	}
 
+	log.Debugw("car file version", "isV1", isV1, "tempPath", tempAssetPath, "filePath", assetPath, "size", assetSize)
+
 	if isV1 {
 		if err := carv2.WrapV1File(tempAssetPath, assetPath); err != nil {
 			return err

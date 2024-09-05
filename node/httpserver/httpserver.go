@@ -47,6 +47,7 @@ type HttpServer struct {
 	rateLimiter         *types.RateLimiter
 	client              *container.Client
 	v3Progress          *sync.Map
+	// tusd
 }
 
 type HttpServerOptions struct {

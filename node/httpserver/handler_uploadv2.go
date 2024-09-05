@@ -60,6 +60,7 @@ func (hs *HttpServer) uploadv2Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		log.Debugw("upload file error", "error", err.Error())
 		uploadResult(w, -1, fmt.Sprintf("%s, http status code %d", err.Error(), statusCode))
 		return
 	}
@@ -117,15 +118,18 @@ func (hs *HttpServer) handleUploadFileV2(r *http.Request, passNonce string) (cid
 	}
 	defer file.Close()
 
+	log.Debugw("handle upload file", "filename", header.Filename)
 	fr := io.Reader(file)
 
 	assetDir, err := hs.asset.AllocatePathWithSize(header.Size)
 	if err != nil {
+		log.Debugw("Allocate storage error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("can not allocate storage for file %s", err.Error())
 	}
 
 	assetTempDirPath := path.Join(assetDir, uuid.NewString())
 	if err = os.Mkdir(assetTempDirPath, 0755); err != nil {
+		log.Debugw("mkdir error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("mkdir fialed %s", err.Error())
 	}
 	defer os.RemoveAll(assetTempDirPath)
@@ -142,23 +146,27 @@ func (hs *HttpServer) handleUploadFileV2(r *http.Request, passNonce string) (cid
 	assetPath := path.Join(assetTempDirPath, header.Filename)
 	out, err := os.Create(assetPath)
 	if err != nil {
+		log.Debugw("create file error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("create file failed: %s, path: %s", err.Error(), assetPath)
 	}
 	defer out.Close()
 
 	if _, err := io.Copy(out, fr); err != nil {
+		log.Debugw("copy file error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("save file failed: %s, path: %s", err.Error(), assetPath)
 	}
 
 	tempCarFile := path.Join(assetDir, uuid.NewString())
 	rootCID, err := carutil.CreateCar(assetPath, tempCarFile)
 	if err != nil {
+		log.Debugw("create car error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, fmt.Errorf("create car failed: %s, path: %s", err.Error(), tempCarFile)
 	}
 	defer os.RemoveAll(tempCarFile)
 
 	var isExists bool
 	if isExists, err = hs.asset.AssetExists(rootCID); err != nil {
+		log.Debugw("check asset exist error", "error", err.Error())
 		return cid.Cid{}, http.StatusInternalServerError, err
 	} else if isExists {
 		log.Debugf("asset %s already exist", rootCID.String())
@@ -176,16 +184,19 @@ func (hs *HttpServer) handleUploadFileV2(r *http.Request, passNonce string) (cid
 func (hs *HttpServer) saveCarFile(ctx context.Context, tempCarFile string, root cid.Cid) error {
 	f, err := os.Open(tempCarFile)
 	if err != nil {
+		log.Debugw("open car file error", "error", err.Error())
 		return err
 	}
 	defer f.Close()
 
 	fInfo, err := f.Stat()
 	if err != nil {
+		log.DPanicw("get car file size error", "error", err.Error())
 		return err
 	}
 	log.Debugf("car file size %d", fInfo.Size())
 	if err := hs.asset.SaveUserAsset(ctx, uuid.NewString(), root, fInfo.Size(), f); err != nil {
+		log.Debugw("save asset error", "error", err.Error())
 		return err
 	}
 	return nil

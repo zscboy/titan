@@ -25,6 +25,7 @@ const (
 	assetsDir     = "assets"
 	assetSuffix   = ".car"
 	assetsViewDir = "assets-view"
+	tusTempDir    = "tus-temp"
 	sizeOfBucket  = 128
 )
 
@@ -289,7 +290,7 @@ func getPartitions(assetsPaths []string) (map[string]*partition, error) {
 			}
 
 			if path, ok := mountPoints[info.Mountpoint]; ok {
-				return nil, fmt.Errorf("assetsPath %s and %s is in same mount piont %s", path, assetsPath, info.Mountpoint)
+				return nil, fmt.Errorf("assetsPath %+v and %s is in same mount piont %s", path, assetsPath, info.Mountpoint)
 			}
 
 			mountPoints[info.Mountpoint] = &partition{assetsPath: assetsPath, diskPartition: info}

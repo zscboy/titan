@@ -34,7 +34,7 @@ func (hs *HttpServer) serveUnixFS(w http.ResponseWriter, r *http.Request, assetC
 
 	// Handling Unixfs file
 	if f, ok := node.(files.File); ok {
-		log.Debugw("serving unixfs file", "path", contentPath)
+		log.Debugw("serving unixfs file", "path", contentPath, "assetCid", assetCID, "filePass", filePass)
 		statusCode, err := hs.serveFile(w, r, assetCID, f, filePass)
 		return false, statusCode, err
 	}
