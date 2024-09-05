@@ -85,6 +85,8 @@ type AssetAPIStruct struct {
 
 		GetAssetRecords func(p0 context.Context, p1 int, p2 int, p3 []string, p4 dtypes.ServerID) ([]*types.AssetRecord, error) `perm:"web,admin"`
 
+		GetAssetRecordsByDateRange func(p0 context.Context, p1 int, p2 int, p3 time.Time, p4 time.Time) (*types.ListAssetRecordRsp, error) `perm:"web,admin"`
+
 		GetAssetsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) `perm:"web,admin"`
 
 		GetDownloadResultsFromAssets func(p0 context.Context, p1 []string, p2 time.Time, p3 time.Time) ([]*types.AssetDownloadResultRsp, error) `perm:"web,admin"`
@@ -981,6 +983,17 @@ func (s *AssetAPIStruct) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 
 
 func (s *AssetAPIStub) GetAssetRecords(p0 context.Context, p1 int, p2 int, p3 []string, p4 dtypes.ServerID) ([]*types.AssetRecord, error) {
 	return *new([]*types.AssetRecord), ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetAssetRecordsByDateRange(p0 context.Context, p1 int, p2 int, p3 time.Time, p4 time.Time) (*types.ListAssetRecordRsp, error) {
+	if s.Internal.GetAssetRecordsByDateRange == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetAssetRecordsByDateRange(p0, p1, p2, p3, p4)
+}
+
+func (s *AssetAPIStub) GetAssetRecordsByDateRange(p0 context.Context, p1 int, p2 int, p3 time.Time, p4 time.Time) (*types.ListAssetRecordRsp, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *AssetAPIStruct) GetAssetsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) {

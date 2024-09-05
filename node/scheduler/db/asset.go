@@ -506,6 +506,24 @@ func (n *SQLDB) LoadActiveAssetRecords(serverID dtypes.ServerID, limit, offset i
 	return rows, total, err
 }
 
+// LoadAssetRecordsByDateRange retrieves detailed information about nodes, including their type and last seen time.
+func (n *SQLDB) LoadAssetRecordsByDateRange(serverID dtypes.ServerID, limit, offset int, start, end time.Time) (*sqlx.Rows, int64, error) {
+	var total int64
+	cQuery := fmt.Sprintf(`SELECT count(hash) FROM %s  where end_time BETWEEN ? AND ?`, assetRecordTable)
+	err := n.db.Get(&total, cQuery, start, end)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if limit > loadAssetRecordsDefaultLimit || limit == 0 {
+		limit = loadAssetRecordsDefaultLimit
+	}
+
+	sQuery := fmt.Sprintf(`SELECT * FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.end_time BETWEEN ? AND ? order by a.hash asc LIMIT ? OFFSET ?`, assetRecordTable, assetStateTable(serverID))
+	rows, err := n.db.QueryxContext(context.Background(), sQuery, start, end, limit, offset)
+	return rows, total, err
+}
+
 // LoadAllAssetRecords retrieves all asset records for a specified server ID, applying a filter by state with pagination.
 func (n *SQLDB) LoadAllAssetRecords(serverID dtypes.ServerID, limit, offset int, statuses []string) (*sqlx.Rows, error) {
 	sQuery := fmt.Sprintf(`SELECT * FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.state in (?) order by a.hash asc limit ? offset ?`, assetStateTable(serverID), assetRecordTable)

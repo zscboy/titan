@@ -638,3 +638,31 @@ func (s *Scheduler) GetActiveAssetRecords(ctx context.Context, offset int, limit
 
 	return info, nil
 }
+
+// GetAssetRecordsByDateRange retrieves a list of asset records.
+func (s *Scheduler) GetAssetRecordsByDateRange(ctx context.Context, offset int, limit int, start, end time.Time) (*types.ListAssetRecordRsp, error) {
+	info := &types.ListAssetRecordRsp{List: make([]*types.AssetRecord, 0)}
+
+	rows, total, err := s.NodeManager.LoadAssetRecordsByDateRange(s.ServerID, limit, offset, start, end)
+	if err != nil {
+		return nil, xerrors.Errorf("LoadNodeInfos err:%s", err.Error())
+	}
+	defer rows.Close()
+
+	list := make([]*types.AssetRecord, 0)
+	for rows.Next() {
+		cInfo := &types.AssetRecord{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("NodeInfo StructScan err: %s", err.Error())
+			continue
+		}
+
+		list = append(list, cInfo)
+	}
+
+	info.List = list
+	info.Total = total
+
+	return info, nil
+}

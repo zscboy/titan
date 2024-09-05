@@ -85,6 +85,8 @@ type AssetAPI interface {
 	RemoveNodeFailedReplica(ctx context.Context) error //perm:web,admin
 	// GetActiveAssetRecords
 	GetActiveAssetRecords(ctx context.Context, offset int, limit int) (*types.ListAssetRecordRsp, error) //perm:web,admin
+	// GetAssetRecordsByDateRange
+	GetAssetRecordsByDateRange(ctx context.Context, offset int, limit int, start time.Time, end time.Time) (*types.ListAssetRecordRsp, error) //perm:web,admin
 }
 
 // NodeAPI is an interface for node
