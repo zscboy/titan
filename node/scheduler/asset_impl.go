@@ -61,9 +61,14 @@ func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.Asse
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = s.db.LoadReplicasByStatus(hash, types.ReplicaStatusAll)
+	dInfo.ReplicaInfos, err = s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
 	if err != nil {
 		log.Errorf("GetAssetRecordInfo hash:%s, LoadAssetReplicas err:%s", hash, err.Error())
+	}
+
+	dInfo.PullingReplicaInfos, err = s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusPulling, types.ReplicaStatusWaiting})
+	if err != nil {
+		log.Errorf("GetAssetRecordInfo hash:%s, LoadReplicasByStatus err:%s", hash, err.Error())
 	}
 
 	return dInfo, nil
@@ -337,14 +342,14 @@ func (s *Scheduler) GenerateTokenForDownloadSource(ctx context.Context, nodeID s
 func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string, expireTime time.Time) (map[string][]string, error) {
 	urls := make(map[string][]string)
 	for _, assetCID := range assetCIDs {
-		rsp, _, err := s.GetDownloadInfos(assetCID, true)
+		rsp, _, err := s.getDownloadInfos(assetCID, true)
 		if err != nil {
-			log.Errorf("ShareAssets GetDownloadInfos err:%s", err.Error())
+			log.Errorf("ShareAssets %s getDownloadInfos err:%s \n", assetCID, err.Error())
 			return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 		}
 
 		if len(rsp.SourceList) == 0 {
-			log.Errorln("ShareAssets rsp.SourceList == 0")
+			log.Errorf("ShareAssets %s rsp.SourceList == 0 \n", assetCID)
 			return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 		}
 
@@ -355,7 +360,7 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 
 		tk, err := generateAccessToken(payload, "", s)
 		if err != nil {
-			log.Errorf("ShareAssets generateAccessToken err:%s", err.Error())
+			log.Errorf("ShareAssets %s generateAccessToken err:%s \n", assetCID, err.Error())
 			return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 		}
 
@@ -376,13 +381,13 @@ func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []
 
 // ShareEncryptedAsset shares the encrypted file
 func (s *Scheduler) ShareEncryptedAsset(ctx context.Context, userID, assetCID, filePass string, expireTime time.Time) ([]string, error) {
-	rsp, _, err := s.GetDownloadInfos(assetCID, true)
+	rsp, _, err := s.getDownloadInfos(assetCID, true)
 	if err != nil {
-		log.Errorf("ShareAssets GetDownloadInfos err:%s", err.Error())
+		log.Errorf("ShareEncryptedAsset %s getDownloadInfos err:%s \n", assetCID, err.Error())
 		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
 	}
 	if len(rsp.SourceList) == 0 {
-		log.Errorln("ShareAssets rsp.SourceList == 0")
+		log.Errorf("ShareEncryptedAsset %s rsp.SourceList == 0 \n", assetCID)
 		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
 	}
 
@@ -393,7 +398,7 @@ func (s *Scheduler) ShareEncryptedAsset(ctx context.Context, userID, assetCID, f
 
 	tk, err := generateAccessToken(payload, filePass, s)
 	if err != nil {
-		log.Errorf("ShareAssets generateAccessToken err:%s", err.Error())
+		log.Errorf("ShareEncryptedAsset %s generateAccessToken err:%s \n", assetCID, err.Error())
 		return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
 	}
 

@@ -49,11 +49,10 @@ type AssetRecord struct {
 	Source                int64           `db:"source"`
 	Owner                 string          `db:"owner"`
 
-	RetryCount        int64 `db:"retry_count"`
-	ReplenishReplicas int64 `db:"replenish_replicas"`
-	ReplicaInfos      []*ReplicaInfo
-
-	SPCount int64
+	RetryCount          int64 `db:"retry_count"`
+	ReplenishReplicas   int64 `db:"replenish_replicas"`
+	ReplicaInfos        []*ReplicaInfo
+	PullingReplicaInfos []*ReplicaInfo
 }
 
 // ListAssetRecordRsp list asset records

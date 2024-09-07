@@ -299,31 +299,23 @@ var showAssetInfoCmd = &cli.Command{
 		fmt.Printf("--------\nProcesses:\n")
 		succeed := 0
 		pulling := 0
-		failed := 0
 		for _, replica := range info.ReplicaInfos {
-			if replica.Status == types.ReplicaStatusSucceeded {
-				succeed++
+			succeed++
 
-				if replica.IsCandidate {
-					fmt.Printf("%s(%s): %s\t%s/%s\n", replica.NodeID, edgeOrCandidate(replica.IsCandidate), colorState(replica.Status.String()),
-						units.BytesSize(float64(replica.DoneSize)), units.BytesSize(float64(info.TotalSize)))
-				}
-
-				continue
+			if replica.IsCandidate {
+				fmt.Printf("%s(%s): %s\t%s/%s\n", replica.NodeID, edgeOrCandidate(replica.IsCandidate), colorState(replica.Status.String()),
+					units.BytesSize(float64(replica.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 			}
+		}
 
-			if replica.Status == types.ReplicaStatusFailed {
-				failed++
-				continue
-			}
-
+		for _, replica := range info.PullingReplicaInfos {
 			pulling++
 			if replica.IsCandidate {
 				fmt.Printf("%s(%s): %s\t%s/%s\n", replica.NodeID, edgeOrCandidate(replica.IsCandidate), colorState(replica.Status.String()),
 					units.BytesSize(float64(replica.DoneSize)), units.BytesSize(float64(info.TotalSize)))
 			}
 		}
-		fmt.Printf("Succeed: %d ; Pulling: %d ; failed: %d\n", succeed, pulling, failed)
+		fmt.Printf("Succeed: %d ; Pulling: %d ; \n", succeed, pulling)
 
 		return nil
 	},

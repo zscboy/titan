@@ -905,7 +905,7 @@ func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.R
 	return source
 }
 
-func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.AssetSourceDownloadInfoRsp, int64, error) {
+func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.AssetSourceDownloadInfoRsp, int64, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, 0, xerrors.Errorf("GetAssetSourceDownloadInfo %s cid to hash err:%s", cid, err.Error())
@@ -931,6 +931,7 @@ func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.Ass
 
 	for _, rInfo := range replicas {
 		nodeID := rInfo.NodeID
+		// candidate
 		cNode := s.NodeManager.GetCandidateNode(nodeID)
 		if cNode != nil {
 			source := s.getSource(cNode, cid, titanRsa)
@@ -941,6 +942,7 @@ func (s *Scheduler) GetDownloadInfos(cid string, needCandidate bool) (*types.Ass
 			continue
 		}
 
+		// edge
 		if needCandidate {
 			continue
 		}
@@ -996,7 +998,7 @@ func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) 
 	}
 
 	log.Infof("GetAssetSourceDownloadInfo clientID:%s, cid:%s , nodeID:%s", clientID, cid, nodeID)
-	out, totalSize, err := s.GetDownloadInfos(cid, false)
+	out, totalSize, err := s.getDownloadInfos(cid, false)
 	if err != nil {
 		return nil, err
 	}

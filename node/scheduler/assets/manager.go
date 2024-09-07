@@ -321,14 +321,13 @@ func (m *Manager) retrieveNodePullProgresses(isUpload bool) {
 
 		log.Infof("retrieveNodePullProgresses check %s \n", cid)
 
-		replicas, err := m.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusPulling, types.ReplicaStatusWaiting})
+		pList, err := m.LoadNodesOfPullingReplica(hash)
 		if err != nil {
 			log.Errorf("retrieveNodePullProgresses %s LoadReplicas err:%s", hash, err.Error())
 			continue
 		}
 
-		for _, replica := range replicas {
-			nodeID := replica.NodeID
+		for _, nodeID := range pList {
 			list := nodePulls[nodeID]
 			nodePulls[nodeID] = append(list, cid)
 		}
