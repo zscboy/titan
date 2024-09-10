@@ -37,10 +37,10 @@ func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
 }
 
 // SaveReplicaEvent logs a replica event with detailed event information into the database.
-func (n *SQLDB) SaveReplicaEvent(hash, cid, nodeID string, size int64, expiration time.Time, event types.ReplicaEvent, source int64) error {
+func (n *SQLDB) SaveReplicaEvent(hash, cid, nodeID string, size int64, expiration time.Time, event types.ReplicaEvent, source, assetCount int64) error {
 	// update node asset count
 	query := fmt.Sprintf(`UPDATE %s SET asset_count=asset_count+? WHERE node_id=?`, nodeInfoTable)
-	_, err := n.db.Exec(query, 1, nodeID)
+	_, err := n.db.Exec(query, assetCount, nodeID)
 	if err != nil {
 		return err
 	}
@@ -198,6 +198,23 @@ func (n *SQLDB) LoadReplicasByStatus(hash string, statuses []types.ReplicaStatus
 	return out, nil
 }
 
+// LoadReplicaCountByStatus retrieves a count of replica information for a specific hash filtered by status.
+func (n *SQLDB) LoadReplicaCountByStatus(hash string, statuses []types.ReplicaStatus) (int, error) {
+	sQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE hash=? AND status in (?)`, replicaInfoTable)
+	query, args, err := sqlx.In(sQuery, hash, statuses)
+	if err != nil {
+		return 0, err
+	}
+
+	var out int
+	query = n.db.Rebind(query)
+	if err := n.db.Get(&out, query, args...); err != nil {
+		return 0, err
+	}
+
+	return out, nil
+}
+
 // LoadAllHashesOfNode retrieves all hash identifiers for a given node ID where the replica status is 'succeeded'.
 func (n *SQLDB) LoadAllHashesOfNode(nodeID string) ([]string, error) {
 	var out []string
@@ -228,6 +245,34 @@ func (n *SQLDB) LoadReplicasByHash(hash string, limit, offset int) (*types.ListR
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE hash=? AND status=?", replicaInfoTable)
 	var count int
 	err = n.db.Get(&count, countQuery, hash, types.ReplicaStatusSucceeded)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}
+
+// LoadReplicasByNode retrieves a paginated list of replicas for a specific hash where the status is 'succeeded'.
+func (n *SQLDB) LoadReplicasByNode(nodeID string, limit, offset int) (*types.ListReplicaRsp, error) {
+	res := new(types.ListReplicaRsp)
+	var infos []*types.ReplicaInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? AND status=? order by node_id desc LIMIT ? OFFSET ?", replicaInfoTable)
+	if limit > loadReplicaDefaultLimit {
+		limit = loadReplicaDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, nodeID, types.ReplicaStatusSucceeded, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaInfos = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? AND status=?", replicaInfoTable)
+	var count int
+	err = n.db.Get(&count, countQuery, nodeID, types.ReplicaStatusSucceeded)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +323,8 @@ func (n *SQLDB) LoadFailedReplicas() ([]*types.ReplicaInfo, error) {
 	return infos, nil
 }
 
-// LoadAllReplicasByNodeID retrieves all replicas for a specified node ID, filtered by status, with pagination support.
-func (n *SQLDB) LoadAllReplicasByNodeID(nodeID string, limit, offset int, statues []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) {
+// LoadNodeReplicasByNode retrieves all replicas for a specified node ID, filtered by status, with pagination support.
+func (n *SQLDB) LoadNodeReplicasByNode(nodeID string, limit, offset int, statues []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) {
 	res := new(types.ListNodeReplicaRsp)
 	query := fmt.Sprintf("SELECT a.hash,a.start_time,a.status,a.done_size,a.end_time,b.cid,b.total_size FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.node_id=? AND a.status in (?) order by a.start_time desc LIMIT ? OFFSET ?", replicaInfoTable, assetRecordTable)
 	if limit > loadReplicaDefaultLimit {
@@ -402,14 +447,6 @@ func (n *SQLDB) DeleteAssetReplica(hash, nodeID string) error {
 	}
 
 	return tx.Commit()
-}
-
-// DeleteUnfinishedReplicas deletes incomplete replicas for a given hash from the database.
-func (n *SQLDB) DeleteUnfinishedReplicas(hash string) error {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE hash=? AND status!=?`, replicaInfoTable)
-	_, err := n.db.Exec(query, hash, types.ReplicaStatusSucceeded)
-
-	return err
 }
 
 // AssetExists checks if an asset exists in the state table for a specific server ID.
@@ -637,6 +674,81 @@ func (n *SQLDB) LoadReplicaEventsOfNode(nodeID string, limit, offset int) (*type
 	res.Total = count
 
 	return res, nil
+}
+
+// LoadReplicaEventsOfNode retrieves replica events for a specific node ID, excluding the removal events, with pagination support.
+func (n *SQLDB) LoadReplicaEventsByNode(nodeID string, status types.ReplicaEvent, limit, offset int) (*types.ListReplicaEventRsp, error) {
+	res := new(types.ListReplicaEventRsp)
+
+	var infos []*types.ReplicaEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? AND event=? order by end_time desc LIMIT ? OFFSET ? ", replicaEventTable)
+	if limit > loadReplicaEventDefaultLimit {
+		limit = loadReplicaEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, nodeID, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaEvents = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? AND event=?", replicaEventTable)
+	var count int
+	err = n.db.Get(&count, countQuery, nodeID, status)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}
+
+// LoadReplicaEventsByHash retrieves replica events for a specific node ID, excluding the removal events, with pagination support.
+func (n *SQLDB) LoadReplicaEventsByHash(hash string, status types.ReplicaEvent, limit, offset int) (*types.ListReplicaEventRsp, error) {
+	res := new(types.ListReplicaEventRsp)
+
+	var infos []*types.ReplicaEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=? AND event=? order by end_time desc LIMIT ? OFFSET ? ", replicaEventTable)
+	if limit > loadReplicaEventDefaultLimit {
+		limit = loadReplicaEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, hash, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaEvents = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE hash=? AND event=?", replicaEventTable)
+	var count int
+	err = n.db.Get(&count, countQuery, hash, status)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}
+
+// LoadReplicaEventCountByStatus retrieves a count of replica for a specific hash filtered by status.
+func (n *SQLDB) LoadReplicaEventCountByStatus(hash string, statuses []types.ReplicaEvent) (int, error) {
+	sQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE hash=? AND status in (?)`, replicaEventTable)
+	query, args, err := sqlx.In(sQuery, hash, statuses)
+	if err != nil {
+		return 0, err
+	}
+
+	var out int
+	query = n.db.Rebind(query)
+	if err := n.db.Get(&out, query, args...); err != nil {
+		return 0, err
+	}
+
+	return out, nil
 }
 
 // LoadReplicaEvents fetches replica event records within a specified time range, ordered by the end time of the events, with pagination.

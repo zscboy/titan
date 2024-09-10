@@ -917,7 +917,7 @@ func (m *Manager) StopAsset(hashs []string) error {
 
 // updateAssetPullResults updates asset pull results
 func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult) {
-	cids := make([]string, 0)
+	succeededCIDs := make([]string, 0)
 	haveChange := false
 	doneCount := 0
 	downloadTraffic := int64(0)
@@ -973,16 +973,17 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			continue
 		}
 
+		record, err := m.LoadAssetRecord(hash)
+		if err != nil {
+			log.Errorf("updateAssetPullResults %s LoadAssetRecord err:%s", nodeID, err.Error())
+			continue
+		}
+
 		if progress.Status == types.ReplicaStatusSucceeded {
 			haveChange = true
 			doneCount++
 
-			record, err := m.LoadAssetRecord(hash)
-			if err != nil {
-				log.Errorf("updateAssetPullResults %s LoadAssetRecord err:%s", nodeID, err.Error())
-				continue
-			}
-			cids = append(cids, record.CID)
+			succeededCIDs = append(succeededCIDs, record.CID)
 
 			// asset view
 			err = m.addAssetToView(nodeID, progress.CID)
@@ -991,16 +992,19 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				continue
 			}
 
-			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventAdd, record.Source)
+			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventAdd, record.Source, 1)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 				continue
 			}
 
 			downloadTraffic += cInfo.DoneSize
-		}
+		} else if progress.Status == types.ReplicaStatusFailed {
+			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventFailed, record.Source, 1)
+			if err != nil {
+				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
+			}
 
-		if progress.Status == types.ReplicaStatusFailed {
 			doneCount++
 		}
 
@@ -1026,9 +1030,9 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 
 		node := m.nodeMgr.GetNode(nodeID)
 		if node != nil {
-			err := node.AddAssetView(context.Background(), cids)
+			err := node.AddAssetView(context.Background(), succeededCIDs)
 			if err != nil {
-				log.Errorf("updateAssetPullResults %s %v AddAssetView send err:%s", nodeID, cids, err.Error())
+				log.Errorf("updateAssetPullResults %s %v AddAssetView send err:%s", nodeID, succeededCIDs, err.Error())
 			}
 		}
 	}

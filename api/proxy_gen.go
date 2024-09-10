@@ -91,6 +91,10 @@ type AssetAPIStruct struct {
 
 		GetDownloadResultsFromAssets func(p0 context.Context, p1 []string, p2 time.Time, p3 time.Time) ([]*types.AssetDownloadResultRsp, error) `perm:"web,admin"`
 
+		GetFailedReplicaByCID func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+
+		GetFailedReplicaByNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+
 		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetReplicaEventsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
@@ -98,6 +102,10 @@ type AssetAPIStruct struct {
 		GetReplicas func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) `perm:"web,admin"`
 
 		GetReplicasForNode func(p0 context.Context, p1 string, p2 int, p3 int, p4 []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) `perm:"web,admin"`
+
+		GetSucceededReplicaByCID func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) `perm:"web,admin"`
+
+		GetSucceededReplicaByNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) `perm:"web,admin"`
 
 		LoadAWSData func(p0 context.Context, p1 int, p2 int, p3 bool) ([]*types.AWSDataInfo, error) `perm:"web,admin"`
 
@@ -1018,6 +1026,28 @@ func (s *AssetAPIStub) GetDownloadResultsFromAssets(p0 context.Context, p1 []str
 	return *new([]*types.AssetDownloadResultRsp), ErrNotSupported
 }
 
+func (s *AssetAPIStruct) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+	if s.Internal.GetFailedReplicaByCID == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetFailedReplicaByCID(p0, p1, p2, p3)
+}
+
+func (s *AssetAPIStub) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+	if s.Internal.GetFailedReplicaByNode == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetFailedReplicaByNode(p0, p1, p2, p3)
+}
+
+func (s *AssetAPIStub) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+	return nil, ErrNotSupported
+}
+
 func (s *AssetAPIStruct) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
 	if s.Internal.GetReplicaEvents == nil {
 		return nil, ErrNotSupported
@@ -1059,6 +1089,28 @@ func (s *AssetAPIStruct) GetReplicasForNode(p0 context.Context, p1 string, p2 in
 }
 
 func (s *AssetAPIStub) GetReplicasForNode(p0 context.Context, p1 string, p2 int, p3 int, p4 []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetSucceededReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) {
+	if s.Internal.GetSucceededReplicaByCID == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetSucceededReplicaByCID(p0, p1, p2, p3)
+}
+
+func (s *AssetAPIStub) GetSucceededReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetSucceededReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) {
+	if s.Internal.GetSucceededReplicaByNode == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetSucceededReplicaByNode(p0, p1, p2, p3)
+}
+
+func (s *AssetAPIStub) GetSucceededReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) {
 	return nil, ErrNotSupported
 }
 

@@ -53,6 +53,9 @@ type AssetRecord struct {
 	ReplenishReplicas   int64 `db:"replenish_replicas"`
 	ReplicaInfos        []*ReplicaInfo
 	PullingReplicaInfos []*ReplicaInfo
+
+	FailedCount    int
+	SucceededCount int
 }
 
 // ListAssetRecordRsp list asset records
@@ -116,6 +119,8 @@ const (
 	ReplicaEventAdd
 	// MinioEventAdd event
 	MinioEventAdd
+	// ReplicaEventFailed event
+	ReplicaEventFailed
 )
 
 // ReplicaStatus represents the status of a replica pull

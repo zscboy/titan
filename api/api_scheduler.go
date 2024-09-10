@@ -87,6 +87,14 @@ type AssetAPI interface {
 	GetActiveAssetRecords(ctx context.Context, offset int, limit int) (*types.ListAssetRecordRsp, error) //perm:web,admin
 	// GetAssetRecordsByDateRange
 	GetAssetRecordsByDateRange(ctx context.Context, offset int, limit int, start time.Time, end time.Time) (*types.ListAssetRecordRsp, error) //perm:web,admin
+	// GetSucceededReplicaByCID
+	GetSucceededReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaRsp, error) //perm:web,admin
+	// GetFailedReplicaByCID
+	GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	// GetSucceededReplicaByNode
+	GetSucceededReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaRsp, error) //perm:web,admin
+	// GetFailedReplicaByNode
+	GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 }
 
 // NodeAPI is an interface for node

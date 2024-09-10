@@ -808,7 +808,7 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 
 // CleanData performs a cleanup of outdated records across various tables based on predefined intervals.
 func (n *SQLDB) CleanData() {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 5 DAY) `, replicaEventTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData replicaEventTable err:%s", err.Error())
@@ -980,7 +980,7 @@ func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {
 
 // UpdateNodePenalty updates the penalty duration and last seen time for nodes based on their online status.
 func (n *SQLDB) UpdateNodePenalty(nodePns map[string]float64) error {
-	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET offline_duration=offline_duration+1,last_seen=NOW() WHERE node_id=`)
+	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET offline_duration=offline_duration+1,last_seen=NOW() WHERE node_id=?`)
 	if err != nil {
 		return err
 	}
