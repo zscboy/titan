@@ -150,9 +150,21 @@ func DefaultLocatorCfg() *LocatorCfg {
 }
 
 func DefaultL5Cfg() *L5Cfg {
+	tcpAddressMap := EndpointAddressmap{
+		Endpoint:   "b991779a-6e8e-11ef-9ab0-2f538df88a8d",
+		Addressmap: map[string]string{"192.168.0.1:5000": "0.0.0.0:5000"},
+	}
+
+	udpAddressMap := EndpointAddressmap{
+		Endpoint:   "b991779a-6e8e-11ef-9ab0-2f538df88a8d",
+		Addressmap: map[string]string{"192.168.0.1:5000": "0.0.0.0:5000"},
+	}
 	return &L5Cfg{
 		ListenAddress: "0.0.0.0:3000",
 		Timeout:       "3s",
+
+		TCPAddressMaps: []EndpointAddressmap{tcpAddressMap},
+		UDPAddressMaps: []EndpointAddressmap{udpAddressMap},
 	}
 }
 

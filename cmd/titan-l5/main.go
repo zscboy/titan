@@ -268,7 +268,7 @@ var runCmd = &cli.Command{
 		}
 
 		handler := l5Handler(l5API.AuthVerify, l5API, true)
-		handler = l5.NewHandler(handler, schedulerAPI, nodeID, l5API)
+		handler = l5.NewHandler(handler, schedulerAPI, nodeID, l5API, l5Cfg)
 
 		httpSrv := &http.Server{
 			ReadHeaderTimeout: 30 * time.Second,

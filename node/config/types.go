@@ -76,7 +76,7 @@ type EdgeCfg struct {
 	IPFSAPIURL        string
 	// seconds
 	ValidateDuration    int
-	MaxSizeOfUploadFile int
+	MaxSizeOfUploadFile int64
 
 	Puller Puller
 
@@ -94,6 +94,19 @@ type MinioConfig struct {
 	SecretAccessKey string
 }
 
+type ProviderConfig struct {
+	// IngressHostName specifies the ingress hostname associated with the resource
+	IngressHostName string
+	// CertificatePath is the path to the security certificate file
+	IngressCertificatePath string
+	// CertificateKeyPath is the path to the key file for the security certificate
+	IngressCertificateKeyPath string
+	// IngressClassName specifies the class of the ingress resource
+	IngressClassName string
+	// KubeConfigPath specifies the path to the Kubernetes configuration file
+	KubeConfigPath string
+}
+
 // CandidateCfg candidate node config
 type CandidateCfg struct {
 	EdgeCfg
@@ -108,6 +121,7 @@ type CandidateCfg struct {
 	AcmeUrl string
 	// Let the scheduler know that this node does not do tasks
 	IsPrivate bool
+	ProviderConfig
 }
 
 // LocatorCfg locator config
@@ -134,18 +148,6 @@ type LocatorCfg struct {
 	DNSRecords       map[string]string
 	DefaultAreas     []string
 	WebGeoAPI        string
-}
-
-type L5Cfg struct {
-	// host address and port the edge node api will listen on
-	ListenAddress string
-	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
-	Timeout string
-
-	SchedulerURL string
-
-	CertificatePath string
-	PrivateKeyPath  string
 }
 
 // SchedulerCfg scheduler config
@@ -224,4 +226,23 @@ type SchedulerCfg struct {
 	IOSSymbol     string
 	WindowsSymbol string
 	MacosSymbol   string
+}
+
+type EndpointAddressmap struct {
+	Endpoint   string
+	Addressmap map[string]string
+}
+type L5Cfg struct {
+	// host address and port the edge node api will listen on
+	ListenAddress string
+	// used when 'ListenAddress' is unspecified. must be a valid duration recognized by golang's time.ParseDuration function
+	Timeout string
+
+	SchedulerURL string
+
+	CertificatePath string
+	PrivateKeyPath  string
+
+	TCPAddressMaps []EndpointAddressmap
+	UDPAddressMaps []EndpointAddressmap
 }
