@@ -150,7 +150,7 @@ func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, 
 	}
 
 	// check params
-	if nodeType != types.NodeEdge && nodeType != types.NodeL5 {
+	if nodeType != types.NodeEdge && nodeType != types.NodeL5 && nodeType != types.NodeL3 {
 		return nil, xerrors.New("invalid node type")
 	}
 
@@ -580,7 +580,7 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 	nNode := s.NodeManager.GetNode(nodeID)
 	if nNode == nil {
 		if err := s.NodeManager.NodeExists(nodeID); err != nil {
-			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, types.NodeL5, err)
+			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, nType, err)
 		}
 	}
 
@@ -601,10 +601,27 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 	nNode.PublicKey = publicKey
 	nNode.Token = opts.Token
 
+	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+	if err != nil && err != sql.ErrNoRows {
+		return xerrors.Errorf("nodeConnect err load node online duration %s err : %s", nodeID, err.Error())
+	}
+
 	nodeInfo := &types.NodeInfo{
 		Type:            nType,
 		NodeDynamicInfo: types.NodeDynamicInfo{NodeID: nodeID},
 		RemoteAddr:      remoteAddr,
+	}
+
+	if dbInfo != nil {
+		// init node info
+		nodeInfo.PortMapping = dbInfo.PortMapping
+		nodeInfo.OnlineDuration = dbInfo.OnlineDuration
+		nodeInfo.OfflineDuration = dbInfo.OfflineDuration
+		nodeInfo.BandwidthDown = dbInfo.BandwidthDown
+		nodeInfo.BandwidthUp = dbInfo.BandwidthUp
+		nodeInfo.DownloadTraffic = dbInfo.DownloadTraffic
+		nodeInfo.UploadTraffic = dbInfo.UploadTraffic
+		nodeInfo.FirstTime = dbInfo.FirstTime
 	}
 
 	nodeInfo.LastSeen = time.Now()
@@ -669,7 +686,7 @@ func (s *Scheduler) NodeLogin(ctx context.Context, nodeID, sign string) (string,
 		ID: nodeID,
 	}
 
-	if nType == types.NodeEdge {
+	if nType == types.NodeEdge || nType == types.NodeL3 {
 		p.Allow = append(p.Allow, api.RoleEdge)
 	} else if nType == types.NodeCandidate {
 		p.Allow = append(p.Allow, api.RoleCandidate)
