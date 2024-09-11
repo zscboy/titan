@@ -516,6 +516,8 @@ type NodeAPIStruct struct {
 
 		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
 
+		UserAssetDownloadResultV2 func(p0 context.Context, p1 *types.RetrieveEvent) (error) `perm:"candidate"`
+
 		VerifyTokenWithLimitCount func(p0 context.Context, p1 string) (*types.JWTPayload, error) `perm:"edge,candidate"`
 
 	}
@@ -2535,6 +2537,17 @@ func (s *NodeAPIStruct) UserAssetDownloadResult(p0 context.Context, p1 string, p
 }
 
 func (s *NodeAPIStub) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
+	return ErrNotSupported
+}
+
+func (s *NodeAPIStruct) UserAssetDownloadResultV2(p0 context.Context, p1 *types.RetrieveEvent) (error) {
+	if s.Internal.UserAssetDownloadResultV2 == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserAssetDownloadResultV2(p0, p1)
+}
+
+func (s *NodeAPIStub) UserAssetDownloadResultV2(p0 context.Context, p1 *types.RetrieveEvent) (error) {
 	return ErrNotSupported
 }
 

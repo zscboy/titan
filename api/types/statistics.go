@@ -22,6 +22,8 @@ type RetrieveEvent struct {
 	Size        int64       `db:"size"`
 	Status      EventStatus `db:"status"`
 	CreatedTime time.Time   `db:"created_time"`
+
+	PeakBandwidth int64
 }
 
 // ListRetrieveEventRsp list retrieve event

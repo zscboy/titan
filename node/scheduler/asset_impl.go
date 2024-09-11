@@ -525,6 +525,28 @@ func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce stri
 	return tk, nil
 }
 
+func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error {
+	nodeID := handler.GetNodeID(ctx)
+	cNode := s.NodeManager.GetNode(nodeID)
+	if cNode == nil {
+		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", nodeID)
+	}
+
+	succeededCount := 0
+	failedCount := 0
+
+	if info.Status == types.EventStatusSucceed {
+		succeededCount = 1
+	}
+
+	err := s.db.SaveRetrieveEventInfo(info, succeededCount, failedCount)
+	if err != nil {
+		return err
+	}
+
+	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: info.Hash, NodeID: nodeID, TotalTraffic: info.Size, PeakBandwidth: info.PeakBandwidth, UserID: info.ClientID})
+}
+
 // UserAssetDownloadResult download result
 func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error {
 	nodeID := handler.GetNodeID(ctx)
