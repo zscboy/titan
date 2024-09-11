@@ -15,6 +15,8 @@ type AssetPullProgress struct {
 	DoneBlocksCount int
 	Size            int64
 	DoneSize        int64
+
+	ClientID string
 }
 
 // PullResult contains information about the result of a data pull
@@ -234,25 +236,6 @@ type ListNodeReplicaRsp struct {
 type ListNodeAssetRsp struct {
 	Total          int              `json:"total"`
 	NodeAssetInfos []*NodeAssetInfo `json:"asset_infos"`
-}
-
-// ReplicaEventInfo replica event info
-type ReplicaEventInfo struct {
-	NodeID  string       `db:"node_id"`
-	Event   ReplicaEvent `db:"event"`
-	Hash    string       `db:"hash"`
-	EndTime time.Time    `db:"end_time"`
-	Source  int64        `db:"source"`
-
-	Cid        string    `db:"cid"`
-	TotalSize  int64     `db:"total_size"`
-	Expiration time.Time `db:"expiration"`
-}
-
-// ListReplicaEventRsp list replica events
-type ListReplicaEventRsp struct {
-	Total         int                 `json:"total"`
-	ReplicaEvents []*ReplicaEventInfo `json:"replica_events"`
 }
 
 // ListReplicaRsp list asset replicas

@@ -55,14 +55,42 @@ var cNodeInfoTable = `
 	    disk_usage           FLOAT           DEFAULT 0,
     	upload_traffic       BIGINT          DEFAULT 0,
     	download_traffic     BIGINT          DEFAULT 0,		
-    	retrieve_count       INT             DEFAULT 0,	
-    	asset_count          INT             DEFAULT 0,
 		deactivate_time      INT             DEFAULT 0,		
 		free_up_disk_time    DATETIME        DEFAULT '2024-04-20 12:10:15',
 		ws_server_id         VARCHAR(128)    DEFAULT '',
 		force_offline        BOOLEAN         DEFAULT false,
 	    PRIMARY KEY (node_id)
 	) ENGINE=InnoDB COMMENT='node info';`
+
+var cNodeStatisticsTable = `
+    CREATE TABLE if not exists %s (
+	    node_id                  VARCHAR(128)   NOT NULL UNIQUE,
+		retrieve_count           INT            DEFAULT 0,
+		retrieve_succeeded_count INT            DEFAULT 0,
+		retrieve_failed_count    INT            DEFAULT 0,
+		asset_count              INT            DEFAULT 0,
+		asset_succeeded_count    INT            DEFAULT 0,
+		asset_failed_count       INT            DEFAULT 0,
+    	project_count            INT            DEFAULT 0,	
+    	project_succeeded_count  INT            DEFAULT 0,	
+    	project_failed_count     INT            DEFAULT 0,
+		update_time              DATETIME       DEFAULT CURRENT_TIMESTAMP,
+	    PRIMARY KEY (node_id)
+	) ENGINE=InnoDB COMMENT='node statistics';`
+
+var cNodeRetrieveTable = `
+    CREATE TABLE if not exists %s (
+	    node_id       VARCHAR(128)   NOT NULL,
+	    task_id       VARCHAR(128)   DEFAULT '',
+	    client_id     VARCHAR(128)   DEFAULT '',
+		hash          VARCHAR(128)   NOT NULL,
+		speed         INT            DEFAULT 0,
+		size          BIGINT         DEFAULT 0,		
+	    status        TINYINT        DEFAULT 0,
+		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,
+		KEY idx_node_id  (node_id),
+		KEY idx_hash_id  (hash)
+	) ENGINE=InnoDB COMMENT='node retrieve record';`
 
 var cValidationResultsTable = `
     CREATE TABLE if not exists %s (
@@ -180,12 +208,15 @@ var cReplicaEventTable = `
 		node_id       VARCHAR(128) NOT NULL,
 		cid           VARCHAR(128) DEFAULT '',
 		total_size    BIGINT       DEFAULT 0,
-	    end_time      DATETIME     DEFAULT CURRENT_TIMESTAMP,
-		expiration    DATETIME     DEFAULT CURRENT_TIMESTAMP,
+	    created_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		source        TINYINT      DEFAULT 0,
+	    task_id       VARCHAR(128) DEFAULT '',
+	    client_id     VARCHAR(128) DEFAULT '',
+		speed         INT          DEFAULT 0,
 		KEY idx_hash (hash),
 		KEY idx_node_id (node_id),
-		KEY idx_end_time (end_time)
+		KEY idx_client_id (client_id),
+		KEY idx_created_time (created_time)
 	) ENGINE=InnoDB COMMENT='asset replica event';`
 
 var cRetrieveEventTable = `
@@ -382,8 +413,8 @@ CREATE TABLE IF NOT EXISTS %s(
     gpu FLOAT        DEFAULT 0,
     memory FLOAT        DEFAULT 0,
     storage VARCHAR(128),
-    env VARCHAR(1024) DEFAULT NULL,
-    arguments VARCHAR(128) DEFAULT NULL,
+    env TEXT ,
+    arguments TEXT,
     deployment_id VARCHAR(128) NOT NULL,
     error_message VARCHAR(128) DEFAULT NULL,
     replicas INT NOT NULL DEFAULT 0,

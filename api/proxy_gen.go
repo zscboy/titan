@@ -95,8 +95,6 @@ type AssetAPIStruct struct {
 
 		GetFailedReplicaByNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
 
-		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
-
 		GetReplicaEventsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetReplicas func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) `perm:"web,admin"`
@@ -535,6 +533,8 @@ type ProjectAPIStruct struct {
 
 		DeployProject func(p0 context.Context, p1 *types.DeployProjectReq) (error) `perm:"user,web,admin"`
 
+		GetNodeProjects func(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) `perm:"web,admin"`
+
 		GetProjectInfo func(p0 context.Context, p1 string) (*types.ProjectInfo, error) `perm:"user,web,admin"`
 
 		GetProjectInfos func(p0 context.Context, p1 string, p2 int, p3 int) ([]*types.ProjectInfo, error) `perm:"user,web,admin"`
@@ -623,7 +623,7 @@ type SchedulerStruct struct {
 
 		GetNodeUploadInfo func(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) `perm:"user,web,admin"`
 
-		GetRetrieveEventRecords func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) `perm:"web,admin"`
+		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetSchedulerPublicKey func(p0 context.Context) (string, error) `perm:"edge,candidate"`
 
@@ -1045,17 +1045,6 @@ func (s *AssetAPIStruct) GetFailedReplicaByNode(p0 context.Context, p1 string, p
 }
 
 func (s *AssetAPIStub) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *AssetAPIStruct) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
-	if s.Internal.GetReplicaEvents == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetReplicaEvents(p0, p1, p2, p3, p4)
-}
-
-func (s *AssetAPIStub) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -2585,6 +2574,17 @@ func (s *ProjectAPIStub) DeployProject(p0 context.Context, p1 *types.DeployProje
 	return ErrNotSupported
 }
 
+func (s *ProjectAPIStruct) GetNodeProjects(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) {
+	if s.Internal.GetNodeProjects == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetNodeProjects(p0, p1, p2)
+}
+
+func (s *ProjectAPIStub) GetNodeProjects(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) {
+	return nil, ErrNotSupported
+}
+
 func (s *ProjectAPIStruct) GetProjectInfo(p0 context.Context, p1 string) (*types.ProjectInfo, error) {
 	if s.Internal.GetProjectInfo == nil {
 		return nil, ErrNotSupported
@@ -2899,14 +2899,14 @@ func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string, p2 stri
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetRetrieveEventRecords(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) {
-	if s.Internal.GetRetrieveEventRecords == nil {
+func (s *SchedulerStruct) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
+	if s.Internal.GetReplicaEvents == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetRetrieveEventRecords(p0, p1, p2, p3)
+	return s.Internal.GetReplicaEvents(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) GetRetrieveEventRecords(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListRetrieveEventRsp, error) {
+func (s *SchedulerStub) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 

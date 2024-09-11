@@ -47,8 +47,6 @@ type AssetAPI interface {
 	GetReplicasForNode(ctx context.Context, nodeID string, limit, offset int, statuses []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) //perm:web,admin
 	// GetReplicaEventsForNode retrieves a replica event list of node
 	GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
-	// GetReplicaEvents retrieves a replica event list
-	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 	// GetAssetDownloadResults retrieves a asset download list
 	GetAssetDownloadResults(ctx context.Context, hash string, start, end time.Time) (*types.ListAssetDownloadRsp, error) //perm:web,admin
 	// GetDownloadResultsFromAssets
@@ -237,6 +235,8 @@ type ProjectAPI interface {
 	UpdateProject(ctx context.Context, req *types.ProjectReq) error                                    //perm:user,web,admin
 	GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error)                       //perm:user,web,admin
 	GetProjectInfos(ctx context.Context, user string, limit, offset int) ([]*types.ProjectInfo, error) //perm:user,web,admin
+
+	GetNodeProjects(ctx context.Context, limit, offset int) (*types.ListNodeProjectRsp, error) //perm:web,admin
 }
 
 // Scheduler is an interface for scheduler
@@ -261,10 +261,6 @@ type Scheduler interface {
 	GetWorkloadRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListWorkloadRecordRsp, error) //perm:web,admin
 	// GetWorkloadRecord retrieves a list of workload results with pagination using the specified limit, offset, and node
 	GetWorkloadRecord(ctx context.Context, id string) (*types.WorkloadRecord, error) //perm:web,admin
-	// GetWorkloadRecord retrieves result with tokenID
-	// GetWorkloadRecord(ctx context.Context, tokenID string) (*types.WorkloadRecord, error) //perm:web,admin
-	// GetRetrieveEventRecords retrieves a list of retrieve event with pagination using the specified limit, offset, and node
-	GetRetrieveEventRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) //perm:web,admin
 
 	// Server-related methods
 	// GetSchedulerPublicKey retrieves the scheduler's public key in PEM format
@@ -297,4 +293,6 @@ type Scheduler interface {
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
 
 	GetValidators(ctx context.Context) ([]string, error) //perm:web,admin
+
+	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
 }

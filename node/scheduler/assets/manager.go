@@ -830,7 +830,7 @@ func (m *Manager) RestartPullAssets(hashes []types.AssetHash) error {
 
 // RemoveReplica remove a replica for node
 func (m *Manager) RemoveReplica(cid, hash, nodeID string) error {
-	err := m.DeleteAssetReplica(hash, nodeID)
+	err := m.DeleteAssetReplica(hash, nodeID, cid)
 	if err != nil {
 		return xerrors.Errorf("RemoveReplica %s DeleteAssetReplica err: %s", hash, err.Error())
 	}
@@ -992,7 +992,9 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				continue
 			}
 
-			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventAdd, record.Source, 1)
+			err = m.SaveReplicaEvent(&types.ReplicaEventInfo{
+				Hash: cInfo.Hash, Cid: record.CID, NodeID: nodeID, TotalSize: cInfo.DoneSize, Event: types.ReplicaEventAdd, Source: types.AssetSource(record.Source), ClientID: progress.ClientID,
+			}, 1, 0)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 				continue
@@ -1000,7 +1002,9 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 
 			downloadTraffic += cInfo.DoneSize
 		} else if progress.Status == types.ReplicaStatusFailed {
-			err = m.SaveReplicaEvent(cInfo.Hash, record.CID, nodeID, cInfo.DoneSize, record.Expiration, types.ReplicaEventFailed, record.Source, 1)
+			err = m.SaveReplicaEvent(&types.ReplicaEventInfo{
+				Hash: cInfo.Hash, Cid: record.CID, NodeID: nodeID, TotalSize: cInfo.DoneSize, Event: types.ReplicaEventFailed, Source: types.AssetSource(record.Source), ClientID: progress.ClientID,
+			}, 0, 1)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 			}

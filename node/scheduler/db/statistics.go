@@ -1,0 +1,180 @@
+package db
+
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/jmoiron/sqlx"
+)
+
+// SaveRetrieveEventInfo records a retrieval event and updates the associated node information in the database.
+func (n *SQLDB) SaveRetrieveEventInfo(info *types.RetrieveEvent, succeededCount, failedCount int) error {
+	// update node info
+	query := fmt.Sprintf(
+		`INSERT INTO %s (node_id, retrieve_count, retrieve_succeeded_count, retrieve_failed_count) VALUES (?, ?, ?, ?) 
+				ON DUPLICATE KEY UPDATE retrieve_count=retrieve_count+? ,retrieve_succeeded_count=retrieve_succeeded_count+?, retrieve_failed_count=retrieve_failed_count+?, update_time=NOW()`, nodeStatisticsTable)
+	_, err := n.db.Exec(query, info.NodeID, 1, succeededCount, failedCount, 1, succeededCount, failedCount)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(
+		`INSERT INTO %s (node_id, task_id, client_id, hash, size, speed, status ) 
+				VALUES (:node_id, :task_id, :client_id, :hash, :size, :speed, :status )`, nodeRetrieveTable)
+	_, err = n.db.NamedExec(query, info)
+
+	return err
+}
+
+// SaveReplicaEvent logs a replica event with detailed event information into the database.
+func (n *SQLDB) SaveReplicaEvent(info *types.ReplicaEventInfo, succeededCount, failedCount int) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = tx.Rollback()
+		if err != nil && err != sql.ErrTxDone {
+			log.Errorf("DeleteAssetReplica Rollback err:%s", err.Error())
+		}
+	}()
+
+	// update node asset count
+	query := fmt.Sprintf(
+		`INSERT INTO %s (node_id, asset_count, asset_succeeded_count, asset_failed_count) VALUES (?, ?, ?, ?) 
+				ON DUPLICATE KEY UPDATE asset_count=asset_count+? ,asset_succeeded_count=asset_succeeded_count+?, asset_failed_count=asset_failed_count+?, update_time=NOW()`, nodeStatisticsTable)
+	_, err = tx.Exec(query, info.NodeID, 1, succeededCount, failedCount, 1, succeededCount, failedCount)
+	if err != nil {
+		return err
+	}
+
+	// replica event
+	err = n.saveReplicaEvent(tx, info)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (n *SQLDB) saveReplicaEvent(tx *sqlx.Tx, info *types.ReplicaEventInfo) error {
+	qry := fmt.Sprintf(`INSERT INTO %s (node_id, event, hash, source, task_id, client_id, speed, cid, total_size) 
+		        VALUES (:node_id, :event, :hash, :source, :task_id, :client_id, :speed, :cid, :total_size)`, replicaEventTable)
+	_, err := tx.NamedExec(qry, info)
+
+	return err
+}
+
+func (n *SQLDB) LoadNodeStatisticsInfo(nodeID string) (types.NodeStatisticsInfo, error) {
+	sInfo := types.NodeStatisticsInfo{}
+	query := fmt.Sprintf(`SELECT asset_count,asset_succeeded_count,asset_failed_count,retrieve_count,retrieve_succeeded_count,retrieve_failed_count FROM %s WHERE node_id=?`, nodeStatisticsTable)
+	err := n.db.Get(&sInfo, query, nodeID)
+
+	return sInfo, err
+}
+
+// LoadReplicaEventCountByStatus retrieves a count of replica for a specific hash filtered by status.
+func (n *SQLDB) LoadReplicaEventCountByStatus(hash string, statuses []types.ReplicaEvent) (int, error) {
+	sQuery := fmt.Sprintf(`SELECT count(*) FROM %s WHERE hash=? AND event in (?)`, replicaEventTable)
+	query, args, err := sqlx.In(sQuery, hash, statuses)
+	if err != nil {
+		return 0, err
+	}
+
+	var out int
+	query = n.db.Rebind(query)
+	if err := n.db.Get(&out, query, args...); err != nil {
+		return 0, err
+	}
+
+	return out, nil
+}
+
+// LoadReplicaEventsByNode retrieves replica events for a specific node ID, excluding the removal events, with pagination support.
+func (n *SQLDB) LoadReplicaEventsByNode(nodeID string, status types.ReplicaEvent, limit, offset int) (*types.ListReplicaEventRsp, error) {
+	res := new(types.ListReplicaEventRsp)
+
+	var infos []*types.ReplicaEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? AND event=? order by created_time desc LIMIT ? OFFSET ? ", replicaEventTable)
+	if limit > loadReplicaEventDefaultLimit {
+		limit = loadReplicaEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, nodeID, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaEvents = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? AND event=?", replicaEventTable)
+	var count int
+	err = n.db.Get(&count, countQuery, nodeID, status)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}
+
+// LoadReplicaEventsOfNode retrieves replica events for a specific node ID, excluding the removal events, with pagination support.
+func (n *SQLDB) LoadReplicaEventsOfNode(nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) {
+	res := new(types.ListReplicaEventRsp)
+
+	var infos []*types.ReplicaEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? AND event!=? order by created_time desc LIMIT ? OFFSET ? ", replicaEventTable)
+	if limit > loadReplicaEventDefaultLimit {
+		limit = loadReplicaEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, nodeID, types.ReplicaEventRemove, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaEvents = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? AND event!=?", replicaEventTable)
+	var count int
+	err = n.db.Get(&count, countQuery, nodeID, types.ReplicaEventRemove)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}
+
+// LoadReplicaEventsByHash retrieves replica events for a specific node ID, excluding the removal events, with pagination support.
+func (n *SQLDB) LoadReplicaEventsByHash(hash string, status types.ReplicaEvent, limit, offset int) (*types.ListReplicaEventRsp, error) {
+	res := new(types.ListReplicaEventRsp)
+
+	var infos []*types.ReplicaEventInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE hash=? AND event=? order by created_time desc LIMIT ? OFFSET ? ", replicaEventTable)
+	if limit > loadReplicaEventDefaultLimit {
+		limit = loadReplicaEventDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, hash, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.ReplicaEvents = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE hash=? AND event=?", replicaEventTable)
+	var count int
+	err = n.db.Get(&count, countQuery, hash, status)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
+}

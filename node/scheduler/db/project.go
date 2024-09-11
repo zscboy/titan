@@ -179,7 +179,17 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 		if err != nil {
 			return err
 		}
+	} else if info.Status == types.ProjectReplicaStatusError {
+		// replica event
+		query = fmt.Sprintf(
+			`INSERT INTO %s (id, event, node_id) 
+				VALUES (?, ?, ?)`, projectEventTable)
+		_, err = n.db.Exec(query, info.Id, types.ProjectEventFailed, info.NodeID)
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 

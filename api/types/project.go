@@ -118,7 +118,19 @@ const (
 	ProjectEventRemove ProjectEvent = iota
 	ProjectEventAdd
 	ProjectEventNodeOffline
-
-	ProjectEventStatusChange
 	ProjectEventExpiration
+	ProjectEventFailed
 )
+
+// NodeProject
+type NodeProject struct {
+	NodeID         string
+	SucceededCount int64
+	FailedCount    int64
+}
+
+// ListNodeProjectRsp list replica events
+type ListNodeProjectRsp struct {
+	Total int            `json:"total"`
+	List  []*NodeProject `json:"list"`
+}

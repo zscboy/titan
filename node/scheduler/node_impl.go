@@ -725,6 +725,11 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			continue
 		}
 
+		sInfo, err := s.NodeManager.LoadNodeStatisticsInfo(nodeInfo.NodeID)
+		if err == nil {
+			nodeInfo.NodeStatisticsInfo = sInfo
+		}
+
 		n := s.NodeManager.GetNode(nodeInfo.NodeID)
 		if n != nil {
 			nodeInfo.Status = types.NodeServicing

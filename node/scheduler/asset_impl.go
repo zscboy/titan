@@ -276,14 +276,9 @@ func (s *Scheduler) GetReplicaEventsForNode(ctx context.Context, nodeID string, 
 	return info, nil
 }
 
-// GetReplicaEvents retrieves a replica event list
 func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) {
-	info, err := s.db.LoadReplicaEvents(start, end, limit, offset)
-	if err != nil {
-		return nil, xerrors.Errorf("LoadReplicaEvents err:%s", err.Error())
-	}
-
-	return info, nil
+	res := new(types.ListReplicaEventRsp)
+	return res, nil
 }
 
 // CreateAsset creates an asset with car CID, car name, and car size.
@@ -442,7 +437,9 @@ func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.Minio
 
 	log.Debugf("MinioUploadFileEvent nodeID:%s, assetCID:", nodeID, event.AssetCID)
 
-	return s.db.SaveReplicaEvent(hash, event.AssetCID, nodeID, event.Size, event.Expiration, types.MinioEventAdd, int64(types.AssetSourceMinio), 1)
+	return s.db.SaveReplicaEvent(&types.ReplicaEventInfo{
+		Hash: hash, Cid: event.AssetCID, NodeID: nodeID, TotalSize: event.Size, Event: types.MinioEventAdd, Source: types.AssetSourceMinio,
+	}, 1, 0)
 }
 
 func (s *Scheduler) AddAWSData(ctx context.Context, list []types.AWSDataInfo) error {
@@ -714,7 +711,7 @@ func (s *Scheduler) GetFailedReplicaByCID(ctx context.Context, cid string, limit
 
 // GetSucceededReplicaByNode
 func (s *Scheduler) GetSucceededReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaRsp, error) {
-	info, err := s.db.LoadReplicasByNode(nodeID, limit, offset)
+	info, err := s.db.LoadSucceededReplicasByNode(nodeID, limit, offset)
 	if err != nil {
 		return nil, xerrors.Errorf("GetReplicasForNode err:%s", err.Error())
 	}

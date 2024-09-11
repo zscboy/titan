@@ -28,6 +28,15 @@ type NodeDynamicInfo struct {
 	UploadTraffic      int64     `db:"upload_traffic"`
 }
 
+type NodeStatisticsInfo struct {
+	AssetCount             int64 `db:"asset_count"`
+	AssetSucceededCount    int64 `db:"asset_succeeded_count"`
+	AssetFailedCount       int64 `db:"asset_failed_count"`
+	RetrieveCount          int64 `db:"retrieve_count"`
+	RetrieveSucceededCount int64 `db:"retrieve_succeeded_count"`
+	RetrieveFailedCount    int64 `db:"retrieve_failed_count"`
+}
+
 // NodeInfo contains information about a node.
 type NodeInfo struct {
 	IsTestNode      bool
@@ -45,8 +54,6 @@ type NodeInfo struct {
 	IncomeIncr      float64 // Base points increase every half hour (30 minute)
 	AreaID          string
 	Mx              float64 // Node online coefficient
-	AssetCount      int64   `db:"asset_count"`
-	RetrieveCount   int64   `db:"retrieve_count"`
 
 	FirstTime      time.Time       `db:"first_login_time"`
 	NetFlowUp      int64           `json:"netflow_up" db:"netflow_up" gorm:"column:netflow_up;"`
@@ -70,6 +77,7 @@ type NodeInfo struct {
 	ForceOffline   bool            `db:"force_offline"`
 
 	NodeDynamicInfo
+	NodeStatisticsInfo
 }
 
 type NodeMigrateInfo struct {
@@ -545,24 +553,6 @@ func (d *ActivationDetail) Unmarshal(code string) error {
 	}
 
 	return nil
-}
-
-// RetrieveEvent retrieve event
-type RetrieveEvent struct {
-	TokenID     string  `db:"token_id"`
-	NodeID      string  `db:"node_id"`
-	ClientID    string  `db:"client_id"`
-	CID         string  `db:"cid"`
-	Size        int64   `db:"size"`
-	CreatedTime int64   `db:"created_time"`
-	EndTime     int64   `db:"end_time"`
-	Profit      float64 `db:"profit"`
-}
-
-// ListRetrieveEventRsp list retrieve event
-type ListRetrieveEventRsp struct {
-	Total              int              `json:"total"`
-	RetrieveEventInfos []*RetrieveEvent `json:"retrieve_event_infos"`
 }
 
 // ProfitType represents the type of profit

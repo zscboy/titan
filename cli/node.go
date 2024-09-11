@@ -194,7 +194,9 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("Profit"),
 			tablewriter.Col("OnlineDuration"),
 			tablewriter.Col("OfflineDuration"),
-			tablewriter.Col("Geo"),
+			// tablewriter.Col("Geo"),
+			tablewriter.Col("AssetCount"),
+			tablewriter.Col("RetrieveCount"),
 			// tablewriter.Col("Ver"),
 		)
 
@@ -210,7 +212,9 @@ var listNodeCmd = &cli.Command{
 				"Profit":          fmt.Sprintf("%.4f", info.Profit),
 				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
 				"OfflineDuration": fmt.Sprintf("%d", info.OfflineDuration),
-				"Geo":             fmt.Sprintf("%s", info.AreaID),
+				// "Geo":             fmt.Sprintf("%s", info.AreaID),
+				"AssetCount":    fmt.Sprintf("%d", info.AssetCount),
+				"RetrieveCount": fmt.Sprintf("%d", info.RetrieveCount),
 				// "Test":            info.IsTestNode,
 				// "Ver":             info.SystemVersion,
 			}
@@ -437,7 +441,8 @@ var showNodeInfoCmd = &cli.Command{
 		fmt.Printf("Geo: %s \n", info.AreaID)
 		fmt.Printf("netflow upload: %s \n", units.BytesSize(float64(info.NetFlowUp)))
 		fmt.Printf("netflow download: %s \n", units.BytesSize(float64(info.NetFlowDown)))
-		fmt.Printf("MX: %.2f \n", info.Mx)
+		fmt.Printf("AssetCount: %d \n", info.AssetCount)
+		fmt.Printf("RetrieveCount: %d \n", info.RetrieveCount)
 
 		return nil
 	},

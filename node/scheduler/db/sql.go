@@ -26,6 +26,9 @@ func NewSQLDB(db *sqlx.DB) (*SQLDB, error) {
 }
 
 const (
+	// remove table
+	retrieveEventTable = "retrieve_event"
+
 	// Database table names.
 	nodeRegisterTable  = "node_register_info"
 	nodeInfoTable      = "node_info"
@@ -41,7 +44,6 @@ const (
 	projectEventTable     = "project_event"
 	validationResultTable = "validation_result"
 	replicaEventTable     = "replica_event"
-	retrieveEventTable    = "retrieve_event"
 
 	edgeUpdateTable      = "edge_update_info"
 	validatorsTable      = "validators"
@@ -57,6 +59,9 @@ const (
 	propertiesTable = "properties"
 	servicesTable   = "services"
 	domainsTable    = "domains"
+
+	nodeStatisticsTable = "node_statistics"
+	nodeRetrieveTable   = "node_retrieve"
 
 	// Default limits for loading table entries.
 	loadNodeInfosDefaultLimit           = 1000
@@ -84,7 +89,7 @@ func projectStateTable(serverID dtypes.ServerID) string {
 
 // InitTables initializes data tables.
 func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
-	doExec(d, serverID)
+	// doExec(d, serverID)
 
 	// init table
 	tx, err := d.db.Beginx()
@@ -97,6 +102,8 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 		if err != nil && err != sql.ErrTxDone {
 			log.Errorf("InitTables Rollback err:%s", err.Error())
 		}
+
+		// doExec2(d)
 	}()
 
 	// Execute table creation statements
@@ -129,6 +136,9 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
 	tx.MustExec(fmt.Sprintf(cAssetDownloadTable, assetDownloadTable))
 
+	tx.MustExec(fmt.Sprintf(cNodeStatisticsTable, nodeStatisticsTable))
+	tx.MustExec(fmt.Sprintf(cNodeRetrieveTable, nodeRetrieveTable))
+
 	return tx.Commit()
 }
 
@@ -137,18 +147,43 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 
 	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD owner VARCHAR(128) DEFAULT ''", assetRecordTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
-
 	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD user_id         VARCHAR(128)  DEFAULT ''", assetDownloadTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
-	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN cpu_cores ;", projectInfoTable))
-	// if err != nil {
-	// 	log.Errorf("InitTables doExec err:%s", err.Error())
-	// }
+	_, err = d.db.Exec(fmt.Sprintf("DROP TABLE %s ", replicaEventTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+}
+
+func doExec2(d *SQLDB) {
+	_, err := d.db.Exec(`INSERT INTO node_statistics (node_id, asset_count, retrieve_count)
+SELECT node_id, asset_count, retrieve_count FROM node_info
+ON DUPLICATE KEY UPDATE
+    asset_count = VALUES(asset_count),
+    retrieve_count = VALUES(retrieve_count);`)
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+		return
+	}
+
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN asset_count ;", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN retrieve_count ;", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }

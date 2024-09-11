@@ -343,6 +343,13 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 		return nil, err
 	}
 
+	sInfo, err := n.LoadNodeStatisticsInfo(nodeID)
+	if err != nil {
+		log.Errorf("LoadNodeInfo load statistics info error:%s \n", err.Error())
+	}
+
+	out.NodeStatisticsInfo = sInfo
+
 	return &out, nil
 }
 
@@ -565,65 +572,6 @@ func (n *SQLDB) RemoveInvalidValidationResult(sIDs []int) error {
 	return err
 }
 
-// SaveRetrieveEventInfo records a retrieval event and updates the associated node information in the database.
-func (n *SQLDB) SaveRetrieveEventInfo(cInfo *types.RetrieveEvent) error {
-	// update node info
-	query := fmt.Sprintf(`UPDATE %s SET retrieve_count=retrieve_count+? WHERE node_id=?`, nodeInfoTable)
-	_, err := n.db.Exec(query, 1, cInfo.NodeID)
-	if err != nil {
-		return err
-	}
-
-	query = fmt.Sprintf(
-		`INSERT INTO %s (token_id, node_id, client_id, cid, size, created_time, end_time, profit ) 
-				VALUES (:token_id, :node_id, :client_id, :cid, :size, :created_time, :end_time, :profit )`, retrieveEventTable)
-	_, err = n.db.NamedExec(query, cInfo)
-
-	return err
-}
-
-// LoadRetrieveEvent retrieves a specific retrieval event by its token ID.
-func (n *SQLDB) LoadRetrieveEvent(tokenID string) (*types.RetrieveEvent, error) {
-	query := fmt.Sprintf(`SELECT * FROM %s WHERE token_id=?`, retrieveEventTable)
-	var record types.RetrieveEvent
-	err := n.db.Get(&record, query, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &record, nil
-}
-
-// LoadRetrieveEventRecords fetches a paginated list of retrieval events for a specific node, ordered by creation time.
-func (n *SQLDB) LoadRetrieveEventRecords(nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) {
-	res := new(types.ListRetrieveEventRsp)
-
-	var infos []*types.RetrieveEvent
-	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? order by created_time desc LIMIT ? OFFSET ? ", retrieveEventTable)
-
-	if limit > loadRetrieveDefaultLimit {
-		limit = loadRetrieveDefaultLimit
-	}
-
-	err := n.db.Select(&infos, query, nodeID, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	res.RetrieveEventInfos = infos
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? ", retrieveEventTable)
-	var count int
-	err = n.db.Get(&count, countQuery, nodeID)
-	if err != nil {
-		return nil, err
-	}
-
-	res.Total = count
-
-	return res, nil
-}
-
 // processes and commits a batch of node profit details within a transaction.
 func (n *SQLDB) processNodeProfitBatch(batch []*types.ProfitDetails) error {
 	tx, err := n.db.Beginx()
@@ -808,7 +756,7 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 
 // CleanData performs a cleanup of outdated records across various tables based on predefined intervals.
 func (n *SQLDB) CleanData() {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE end_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, replicaEventTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData replicaEventTable err:%s", err.Error())
@@ -851,10 +799,16 @@ func (n *SQLDB) CleanData() {
 		log.Warnf("CleanData assetDownloadTable err:%s", err.Error())
 	}
 
-	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 7 DAY) `, projectEventTable)
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, projectEventTable)
 	_, err = n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData projectEventTable err:%s", err.Error())
+	}
+
+	query = fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, nodeRetrieveTable)
+	_, err = n.db.Exec(query)
+	if err != nil {
+		log.Warnf("CleanData nodeRetrieveTable err:%s", err.Error())
 	}
 }
 
@@ -1021,10 +975,17 @@ func (n *SQLDB) MigrateNodeDetails(info *types.NodeMigrateInfo) error {
 
 	query = fmt.Sprintf(
 		`INSERT INTO %s (node_id, online_duration, offline_duration, disk_usage, last_seen, profit, available_disk_space, titan_disk_usage, penalty_profit, port_mapping,
-			    download_traffic, upload_traffic, asset_count, retrieve_count, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid,first_login_time) 
+			    download_traffic, upload_traffic, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid,first_login_time) 
 				VALUES (:node_id, :online_duration, :offline_duration, :disk_usage, :last_seen, :profit, :available_disk_space, :titan_disk_usage, :penalty_profit, :port_mapping,
-				:download_traffic, :upload_traffic, :asset_count, :retrieve_count, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid, :first_login_time)`, nodeInfoTable)
+				:download_traffic, :upload_traffic, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid, :first_login_time)`, nodeInfoTable)
 	_, err = tx.NamedExec(query, info.NodeInfo)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf(
+		`INSERT INTO %s (node_id, retrieve_count, retrieve_succeeded_count, retrieve_failed_count, asset_count, asset_succeeded_count, asset_failed_count) VALUES (?, ?, ?, ?, ?, ?, ?) `, nodeStatisticsTable)
+	_, err = tx.Exec(query, nodeID, info.NodeInfo.RetrieveCount, info.NodeInfo.RetrieveSucceededCount, info.NodeInfo.RetrieveFailedCount, info.NodeInfo.AssetCount, info.NodeInfo.AssetSucceededCount, info.NodeInfo.AssetFailedCount)
 	if err != nil {
 		return err
 	}

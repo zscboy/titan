@@ -577,17 +577,12 @@ func (s *Scheduler) SubmitWorkloadReport(ctx context.Context, workload *types.Wo
 
 // GetWorkloadRecords retrieves a list of workload results.
 func (s *Scheduler) GetWorkloadRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListWorkloadRecordRsp, error) {
-	return s.NodeManager.LoadWorkloadRecords(nodeID, limit, offset)
+	return s.db.LoadWorkloadRecords(nodeID, limit, offset)
 }
 
 // GetWorkloadRecord retrieves a list of workload results.
 func (s *Scheduler) GetWorkloadRecord(ctx context.Context, id string) (*types.WorkloadRecord, error) {
-	return s.NodeManager.LoadWorkloadRecordOfID(id)
-}
-
-// GetRetrieveEventRecords retrieves a list of retrieve events
-func (s *Scheduler) GetRetrieveEventRecords(ctx context.Context, nodeID string, limit, offset int) (*types.ListRetrieveEventRsp, error) {
-	return s.NodeManager.LoadRetrieveEventRecords(nodeID, limit, offset)
+	return s.db.LoadWorkloadRecordOfID(id)
 }
 
 // UpdateNetFlows update node net flow total,up,down usage

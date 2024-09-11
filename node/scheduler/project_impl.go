@@ -116,3 +116,9 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 
 	return infos, nil
 }
+
+func (s *Scheduler) GetNodeProjects(ctx context.Context, limit, offset int) (*types.ListNodeProjectRsp, error) {
+	// out := &types.ListNodeProjectRsp{}
+
+	return nil, nil
+}
