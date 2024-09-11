@@ -124,7 +124,7 @@ func newTunnelWithRelays(ctx context.Context, relays []string, opts *TunnelOptio
 		trafficStat: &TrafficStat{lock: sync.Mutex{}, startTime: time.Now()},
 	}
 
-	go t.handleTrafficStat()
+	// go t.handleTrafficStat()
 	go t.startService()
 
 	return t, nil
