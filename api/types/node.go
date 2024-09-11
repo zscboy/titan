@@ -134,6 +134,7 @@ const (
 	NodeLocator
 	NodeUpdater
 	NodeL5
+	NodeL3
 )
 
 func (n NodeType) String() string {
@@ -150,6 +151,8 @@ func (n NodeType) String() string {
 		return "locator"
 	case NodeL5:
 		return "l5"
+	case NodeL3:
+		return "l3"
 	}
 
 	return ""

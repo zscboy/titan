@@ -81,6 +81,7 @@ func (m *Manager) handleSeedSync(ctx statemachine.Context, info AssetPullingInfo
 		Status:      types.ReplicaStatusWaiting,
 		Hash:        info.Hash.String(),
 		IsCandidate: true,
+		TotalSize:   info.Size,
 	})
 	if err != nil {
 		return ctx.Send(SelectFailed{error: xerrors.Errorf("node SaveReplicaStatus error; %s", err.Error())})
@@ -140,6 +141,7 @@ func (m *Manager) handleSeedSelect(ctx statemachine.Context, info AssetPullingIn
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        info.Hash.String(),
 			IsCandidate: true,
+			TotalSize:   info.Size,
 		})
 		if err != nil {
 			log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())
@@ -186,6 +188,7 @@ func (m *Manager) handleUploadInit(ctx statemachine.Context, info AssetPullingIn
 			Status:      types.ReplicaStatusWaiting,
 			Hash:        info.Hash.String(),
 			IsCandidate: true,
+			TotalSize:   info.Size,
 		})
 		if err != nil {
 			log.Errorf("%s SaveReplicaStatus err:%s", nodeID, err.Error())
@@ -272,6 +275,7 @@ func (m *Manager) handleCandidatesSelect(ctx statemachine.Context, info AssetPul
 				Status:      types.ReplicaStatusWaiting,
 				Hash:        info.Hash.String(),
 				IsCandidate: true,
+				TotalSize:   info.Size,
 			})
 			if err != nil {
 				log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())
@@ -382,6 +386,7 @@ func (m *Manager) handleEdgesSelect(ctx statemachine.Context, info AssetPullingI
 				Status:      types.ReplicaStatusWaiting,
 				Hash:        info.Hash.String(),
 				IsCandidate: false,
+				TotalSize:   info.Size,
 			})
 			if err != nil {
 				log.Errorf("%s SaveReplicaStatus err:%s", cNode.NodeID, err.Error())

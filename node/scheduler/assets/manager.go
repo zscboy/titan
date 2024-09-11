@@ -953,6 +953,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			DoneSize: progress.DoneSize,
 			Hash:     hash,
 			NodeID:   nodeID,
+			ClientID: progress.ClientID,
 		}
 
 		err = m.UpdateReplicaInfo(cInfo)
@@ -1271,23 +1272,6 @@ func (m *Manager) initCfg() {
 
 	m.assetPullTaskLimit = cfg.AssetPullTaskLimit
 	m.candidateReplicaCount = seedReplicaCount + cfg.CandidateReplicas
-}
-
-// saveReplicaInformation stores replica information for nodes
-func (m *Manager) saveReplicaInformation(nodes map[string]*node.Node, hash string, isCandidate bool) error {
-	// save replica info
-	replicaInfos := make([]*types.ReplicaInfo, 0)
-
-	for _, node := range nodes {
-		replicaInfos = append(replicaInfos, &types.ReplicaInfo{
-			NodeID:      node.NodeID,
-			Status:      types.ReplicaStatusWaiting,
-			Hash:        hash,
-			IsCandidate: isCandidate,
-		})
-	}
-
-	return m.SaveReplicasStatus(replicaInfos)
 }
 
 // getDownloadSources gets download sources for a given CID

@@ -68,6 +68,8 @@ func (m *Manager) SetNodeOffline(node *Node) {
 		m.deleteEdgeNode(node)
 	} else if node.Type == types.NodeL5 {
 		m.deleteL5Node(node)
+	} else if node.Type == types.NodeL3 {
+		m.deleteL3Node(node)
 	}
 
 	log.Infof("node offline %s, %s", node.NodeID, node.ExternalIP)

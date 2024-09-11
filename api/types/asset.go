@@ -83,6 +83,10 @@ type ReplicaInfo struct {
 	EndTime     time.Time     `db:"end_time"`
 	DoneSize    int64         `db:"done_size"`
 	StartTime   time.Time     `db:"start_time"`
+
+	TotalSize int64  `db:"total_size"`
+	ClientID  string `db:"client_id"`
+	Speed     int64  `db:"speed"`
 }
 
 // PullAssetReq represents a request to pull an asset to Titan

@@ -537,14 +537,14 @@ func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.R
 
 	if info.Status == types.EventStatusSucceed {
 		succeededCount = 1
+
+		err := s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: info.Hash, NodeID: nodeID, TotalTraffic: info.Size, PeakBandwidth: info.PeakBandwidth, UserID: info.ClientID})
+		if err != nil {
+			return err
+		}
 	}
 
-	err := s.db.SaveRetrieveEventInfo(info, succeededCount, failedCount)
-	if err != nil {
-		return err
-	}
-
-	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: info.Hash, NodeID: nodeID, TotalTraffic: info.Size, PeakBandwidth: info.PeakBandwidth, UserID: info.ClientID})
+	return s.db.SaveRetrieveEventInfo(info, succeededCount, failedCount)
 }
 
 // UserAssetDownloadResult download result

@@ -563,18 +563,25 @@ func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions)
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
+func (s *Scheduler) L3Connect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.lnNodeConnected(ctx, opts, types.NodeL3)
+}
+
 // L5Connect l5 node login to the scheduler
 func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) error {
+	return s.lnNodeConnected(ctx, opts, types.NodeL5)
+}
+
+func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOptions, nType types.NodeType) error {
 	// return s.nodeConnect(ctx, opts, types.NodeEdge)
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	nodeID := handler.GetNodeID(ctx)
 
-	l5 := s.NodeManager.GetNode(nodeID)
-	if l5 == nil {
+	nNode := s.NodeManager.GetNode(nodeID)
+	if nNode == nil {
 		if err := s.NodeManager.NodeExists(nodeID); err != nil {
 			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, types.NodeL5, err)
 		}
-		l5 = node.New()
 	}
 
 	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
@@ -587,28 +594,32 @@ func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) e
 		return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
 
-	l5.PublicKey = publicKey
-	l5.Token = opts.Token
+	if nNode == nil {
+		nNode = node.New()
+	}
+
+	nNode.PublicKey = publicKey
+	nNode.Token = opts.Token
 
 	nodeInfo := &types.NodeInfo{
-		Type:            types.NodeL5,
+		Type:            nType,
 		NodeDynamicInfo: types.NodeDynamicInfo{NodeID: nodeID},
 		RemoteAddr:      remoteAddr,
 	}
 
 	nodeInfo.LastSeen = time.Now()
-	l5.InitInfo(nodeInfo)
+	nNode.InitInfo(nodeInfo)
 
-	err = l5.ConnectRPC(s.Transport, remoteAddr, types.NodeL5)
+	err = nNode.ConnectRPC(s.Transport, remoteAddr, nType)
 	if err != nil {
 		return err
 	}
 
-	l5Version, err := l5.API.Version(context.Background())
+	nodeVersion, err := nNode.API.Version(context.Background())
 	if err != nil {
-		log.Errorf("get l5 version failed %s", err.Error())
+		log.Errorf("get node version failed %s", err.Error())
 	} else {
-		log.Infof("L5 %s connected, version %s remoteAddr %s", nodeID, l5Version.String(), remoteAddr)
+		log.Infof("node %s connected, version %s remoteAddr %s", nodeID, nodeVersion.String(), remoteAddr)
 	}
 
 	err = s.saveNodeInfo(nodeInfo)
@@ -617,7 +628,7 @@ func (s *Scheduler) L5Connect(ctx context.Context, opts *types.ConnectOptions) e
 	}
 
 	// node
-	return s.NodeManager.NodeOnline(l5, nodeInfo)
+	return s.NodeManager.NodeOnline(nNode, nodeInfo)
 }
 
 // GetExternalAddress retrieves the external address of the caller.

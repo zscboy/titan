@@ -18,8 +18,8 @@ import (
 // It sets the end time and updates the status and done size of the replica specified by hash and node_id.
 // It returns an error if no rows were affected (i.e., if the replica is already finished or does not exist).
 func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
-	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
-	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=?, client_id=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
+	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ClientID, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 	if err != nil {
 		return err
 	}
@@ -56,23 +56,12 @@ func (n *SQLDB) UpdateReplicasStatusToFailed(hash string) error {
 	return err
 }
 
-// SaveReplicasStatus inserts or updates the status of multiple replicas in the database.
-func (n *SQLDB) SaveReplicasStatus(infos []*types.ReplicaInfo) error {
-	query := fmt.Sprintf(
-		`INSERT INTO %s (hash, node_id, status, is_candidate, start_time)
-			VALUES (:hash, :node_id, :status, :is_candidate, NOW())
-			ON DUPLICATE KEY UPDATE status=:status, start_time=NOW()`, replicaInfoTable)
-
-	_, err := n.db.NamedExec(query, infos)
-	return err
-}
-
 // SaveReplicaStatus inserts or updates the status of a single replica in the database.
 func (n *SQLDB) SaveReplicaStatus(info *types.ReplicaInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (hash, node_id, status, is_candidate, start_time)
-				VALUES (:hash, :node_id, :status, :is_candidate, NOW())
-				ON DUPLICATE KEY UPDATE status=:status, start_time=NOW()`, replicaInfoTable)
+		`INSERT INTO %s (hash, node_id, status, is_candidate, start_time, total_size)
+				VALUES (:hash, :node_id, :status, :is_candidate, NOW(), total_size)
+				ON DUPLICATE KEY UPDATE status=:status, start_time=NOW(), total_size=:total_size`, replicaInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err

@@ -65,6 +65,25 @@ func (m *Manager) GetAllEdgeNode() []*Node {
 	return nodes
 }
 
+// GetAllL3Node load all edge node
+func (m *Manager) GetAllL3Node() []*Node {
+	nodes := make([]*Node, 0)
+
+	m.l3Nodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
+
+		if node.IsAbnormal() {
+			return true
+		}
+
+		nodes = append(nodes, node)
+
+		return true
+	})
+
+	return nodes
+}
+
 // GetAllCandidateNodes  Get all valid candidate nodes
 func (m *Manager) GetAllCandidateNodes() ([]string, []*Node) {
 	var ids []string
@@ -115,6 +134,11 @@ func (m *Manager) GetNode(nodeID string) *Node {
 		return l5
 	}
 
+	l3 := m.GetL3Node(nodeID)
+	if l3 != nil {
+		return l3
+	}
+
 	return nil
 }
 
@@ -154,6 +178,18 @@ func (m *Manager) GetL5Node(nodeID string) *Node {
 	return nil
 }
 
+// GetL3Node retrieves a l3 node with the given node ID
+func (m *Manager) GetL3Node(nodeID string) *Node {
+	nodeI, exist := m.l3Nodes.Load(nodeID)
+	if exist && nodeI != nil {
+		node := nodeI.(*Node)
+
+		return node
+	}
+
+	return nil
+}
+
 // GetOnlineNodeCount returns online node count of the given type
 func (m *Manager) GetOnlineNodeCount(nodeType types.NodeType) int {
 	i := 0
@@ -177,6 +213,8 @@ func (m *Manager) NodeOnline(node *Node, info *types.NodeInfo) error {
 		m.storeCandidateNode(node)
 	case types.NodeL5:
 		m.storeL5Node(node)
+	case types.NodeL3:
+		m.storeL3Node(node)
 	}
 
 	// m.UpdateNodeDiskUsage(info.NodeID, info.DiskUsage)

@@ -470,6 +470,8 @@ type NodeAPIStruct struct {
 
 		GetTunserverURLFromUser func(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) `perm:"admin,web,locator"`
 
+		L3Connect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"edge"`
+
 		L5Connect func(p0 context.Context, p1 *types.ConnectOptions) (error) `perm:"l5"`
 
 		MigrateNodeIn func(p0 context.Context, p1 *types.NodeMigrateInfo) (error) `perm:"web,admin"`
@@ -2285,6 +2287,17 @@ func (s *NodeAPIStruct) GetTunserverURLFromUser(p0 context.Context, p1 *types.Tu
 
 func (s *NodeAPIStub) GetTunserverURLFromUser(p0 context.Context, p1 *types.TunserverReq) (*types.TunserverRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *NodeAPIStruct) L3Connect(p0 context.Context, p1 *types.ConnectOptions) (error) {
+	if s.Internal.L3Connect == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.L3Connect(p0, p1)
+}
+
+func (s *NodeAPIStub) L3Connect(p0 context.Context, p1 *types.ConnectOptions) (error) {
+	return ErrNotSupported
 }
 
 func (s *NodeAPIStruct) L5Connect(p0 context.Context, p1 *types.ConnectOptions) (error) {

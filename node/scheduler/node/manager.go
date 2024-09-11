@@ -41,12 +41,14 @@ type Manager struct {
 	edgeNodes      sync.Map
 	candidateNodes sync.Map
 	l5Nodes        sync.Map
-	Edges          int // online edge node count
-	Candidates     int // online candidate node count
-	weightMgr      *weightManager
-	config         dtypes.GetSchedulerConfigFunc
-	notify         *pubsub.PubSub
-	etcdcli        *etcdcli.Client
+	l3Nodes        sync.Map
+
+	Edges      int // online edge node count
+	Candidates int // online candidate node count
+	weightMgr  *weightManager
+	config     dtypes.GetSchedulerConfigFunc
+	notify     *pubsub.PubSub
+	etcdcli    *etcdcli.Client
 	*db.SQLDB
 	*rsa.PrivateKey // scheduler privateKey
 	dtypes.ServerID // scheduler server id
@@ -180,6 +182,18 @@ func (m *Manager) storeL5Node(node *Node) {
 	}
 }
 
+func (m *Manager) storeL3Node(node *Node) {
+	if node == nil {
+		return
+	}
+
+	nodeID := node.NodeID
+	_, loaded := m.l3Nodes.LoadOrStore(nodeID, node)
+	if loaded {
+		return
+	}
+}
+
 // deleteEdgeNode removes an edge node from the manager's list of edge nodes
 func (m *Manager) deleteEdgeNode(node *Node) {
 	m.RepayNodeWeight(node)
@@ -209,7 +223,15 @@ func (m *Manager) deleteCandidateNode(node *Node) {
 // deleteL5Node removes a l5 node from the manager's list of l5 nodes
 func (m *Manager) deleteL5Node(node *Node) {
 	nodeID := node.NodeID
-	_, loaded := m.candidateNodes.LoadAndDelete(nodeID)
+	_, loaded := m.l5Nodes.LoadAndDelete(nodeID)
+	if !loaded {
+		return
+	}
+}
+
+func (m *Manager) deleteL3Node(node *Node) {
+	nodeID := node.NodeID
+	_, loaded := m.l3Nodes.LoadAndDelete(nodeID)
 	if !loaded {
 		return
 	}
@@ -250,6 +272,7 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 	if isCompensate {
 		minute = 10
 	}
+
 	eList := m.GetAllEdgeNode()
 	for _, node := range eList {
 		incr, dInfo := m.GetEdgeBaseProfitDetails(node, minute)
@@ -277,6 +300,21 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 		node.OnlineDuration += minute
 
 		nodes = append(nodes, &node.NodeDynamicInfo)
+	}
+
+	l3List := m.GetAllL3Node()
+	for _, node := range l3List {
+		incr, dInfo := m.GetEdgeBaseProfitDetails(node, minute)
+		if dInfo != nil {
+			detailsList = append(detailsList, dInfo)
+		}
+
+		node.OnlineDuration += minute
+		// add node mc
+		node.IncomeIncr = incr
+
+		nodes = append(nodes, &node.NodeDynamicInfo)
+
 	}
 
 	// for _, info := range nodes {

@@ -139,6 +139,8 @@ type NodeAPI interface {
 	CandidateConnect(ctx context.Context, opts *types.ConnectOptions) error //perm:candidate
 	// L5Connect l5 node login to the scheduler
 	L5Connect(ctx context.Context, opts *types.ConnectOptions) error //perm:l5
+	// L3Connect l3 node login to the scheduler
+	L3Connect(ctx context.Context, opts *types.ConnectOptions) error //perm:edge
 	// GetExternalAddress retrieves the external address of the caller.
 	GetExternalAddress(ctx context.Context) (string, error) //perm:default
 	// NodeLogin generates an authentication token for a node with the specified node ID and signature

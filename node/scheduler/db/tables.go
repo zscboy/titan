@@ -19,6 +19,9 @@ var cReplicaInfoTable = `
 		is_candidate  BOOLEAN,
 		end_time      DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		start_time    DATETIME     DEFAULT CURRENT_TIMESTAMP,
+		total_size    BIGINT       DEFAULT 0,
+		client_id     VARCHAR(128) DEFAULT '',
+		speed         INT          DEFAULT 0,
 		PRIMARY KEY (hash,node_id),
 		KEY idx_node_id (node_id),
 		KEY idx_hash (hash)

@@ -198,7 +198,7 @@ func (n *Node) ConnectRPC(transport *quic.Transport, addr string, nodeType types
 	headers := http.Header{}
 	headers.Add("Authorization", "Bearer "+n.Token)
 
-	if nodeType == types.NodeEdge {
+	if nodeType == types.NodeEdge || nodeType == types.NodeL3 {
 		// Connect to node
 		edgeAPI, closer, err := client.NewEdge(context.Background(), rpcURL, headers, jsonrpc.WithHTTPClient(httpClient))
 		if err != nil {
