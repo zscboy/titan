@@ -171,20 +171,12 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 	}
 
 	if info.Status == types.ProjectReplicaStatusStarted {
-		// replica event
-		query = fmt.Sprintf(
-			`INSERT INTO %s (id, event, node_id) 
-			VALUES (?, ?, ?)`, projectEventTable)
-		_, err = n.db.Exec(query, info.Id, types.ProjectEventAdd, info.NodeID)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventAdd}, 1, 0)
 		if err != nil {
 			return err
 		}
 	} else if info.Status == types.ProjectReplicaStatusError {
-		// replica event
-		query = fmt.Sprintf(
-			`INSERT INTO %s (id, event, node_id) 
-				VALUES (?, ?, ?)`, projectEventTable)
-		_, err = n.db.Exec(query, info.Id, types.ProjectEventFailed, info.NodeID)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventFailed}, 0, 1)
 		if err != nil {
 			return err
 		}

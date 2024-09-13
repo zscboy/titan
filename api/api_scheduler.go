@@ -46,7 +46,7 @@ type AssetAPI interface {
 	// GetReplicasForNode retrieves a replica list of node
 	GetReplicasForNode(ctx context.Context, nodeID string, limit, offset int, statuses []types.ReplicaStatus) (*types.ListNodeReplicaRsp, error) //perm:web,admin
 	// GetReplicaEventsForNode retrieves a replica event list of node
-	GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) //perm:web,admin
 	// GetAssetDownloadResults retrieves a asset download list
 	GetAssetDownloadResults(ctx context.Context, hash string, start, end time.Time) (*types.ListAssetDownloadRsp, error) //perm:web,admin
 	// GetDownloadResultsFromAssets
@@ -88,11 +88,11 @@ type AssetAPI interface {
 	// GetSucceededReplicaByCID
 	GetSucceededReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaRsp, error) //perm:web,admin
 	// GetFailedReplicaByCID
-	GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) //perm:web,admin
 	// GetSucceededReplicaByNode
 	GetSucceededReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaRsp, error) //perm:web,admin
 	// GetFailedReplicaByNode
-	GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) //perm:web,admin
 }
 
 // NodeAPI is an interface for node
@@ -297,5 +297,5 @@ type Scheduler interface {
 
 	GetValidators(ctx context.Context) ([]string, error) //perm:web,admin
 
-	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) //perm:web,admin
+	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetReplicaEventRsp, error) //perm:web,admin
 }

@@ -267,7 +267,7 @@ func (s *Scheduler) GetReplicasForNode(ctx context.Context, nodeID string, limit
 }
 
 // GetReplicaEventsForNode retrieves a replica event list of node
-func (s *Scheduler) GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) {
+func (s *Scheduler) GetReplicaEventsForNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	info, err := s.db.LoadReplicaEventsOfNode(nodeID, limit, offset)
 	if err != nil {
 		return nil, xerrors.Errorf("LoadReplicaEvents err:%s", err.Error())
@@ -276,8 +276,8 @@ func (s *Scheduler) GetReplicaEventsForNode(ctx context.Context, nodeID string, 
 	return info, nil
 }
 
-func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListReplicaEventRsp, error) {
-	res := new(types.ListReplicaEventRsp)
+func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
+	res := new(types.ListAssetReplicaEventRsp)
 	return res, nil
 }
 
@@ -437,7 +437,7 @@ func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.Minio
 
 	log.Debugf("MinioUploadFileEvent nodeID:%s, assetCID:", nodeID, event.AssetCID)
 
-	return s.db.SaveReplicaEvent(&types.ReplicaEventInfo{
+	return s.db.SaveReplicaEvent(&types.AssetReplicaEventInfo{
 		Hash: hash, Cid: event.AssetCID, NodeID: nodeID, TotalSize: event.Size, Event: types.MinioEventAdd, Source: types.AssetSourceMinio,
 	}, 1, 0)
 }
@@ -717,7 +717,7 @@ func (s *Scheduler) GetSucceededReplicaByCID(ctx context.Context, cid string, li
 }
 
 // GetFailedReplicaByCID
-func (s *Scheduler) GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaEventRsp, error) {
+func (s *Scheduler) GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return nil, xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
@@ -742,7 +742,7 @@ func (s *Scheduler) GetSucceededReplicaByNode(ctx context.Context, nodeID string
 }
 
 // GetFailedReplicaByNode
-func (s *Scheduler) GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaEventRsp, error) {
+func (s *Scheduler) GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	info, err := s.db.LoadReplicaEventsByNode(nodeID, types.ReplicaEventFailed, limit, offset)
 	if err != nil {
 		return nil, xerrors.Errorf("LoadReplicaEvents err:%s", err.Error())

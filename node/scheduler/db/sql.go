@@ -152,6 +152,7 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
 
+	// --------------------------------------
 	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD owner VARCHAR(128) DEFAULT ''", assetRecordTable))
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
@@ -164,16 +165,19 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD total_size    BIGINT       DEFAULT 0", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s speed         INT          DEFAULT 0", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD client_id     VARCHAR(128) DEFAULT ''", replicaInfoTable))
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD total_size    BIGINT       DEFAULT 0", replicaInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s speed         INT          DEFAULT 0", replicaInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
+	// _, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD client_id     VARCHAR(128) DEFAULT ''", replicaInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD done_size     BIGINT       DEFAULT 0", replicaEventTable))
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}

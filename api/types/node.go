@@ -35,6 +35,9 @@ type NodeStatisticsInfo struct {
 	RetrieveCount          int64 `db:"retrieve_count"`
 	RetrieveSucceededCount int64 `db:"retrieve_succeeded_count"`
 	RetrieveFailedCount    int64 `db:"retrieve_failed_count"`
+	ProjectCount           int64 `db:"project_count"`
+	ProjectSucceededCount  int64 `db:"project_succeeded_count"`
+	ProjectFailedCount     int64 `db:"project_failed_count"`
 }
 
 // NodeInfo contains information about a node.

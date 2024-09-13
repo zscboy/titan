@@ -379,7 +379,7 @@ func (n *SQLDB) DeleteAssetReplica(hash, nodeID, cid string) error {
 	}
 
 	// replica event
-	err = n.saveReplicaEvent(tx, &types.ReplicaEventInfo{Hash: hash, Event: types.ReplicaEventRemove, NodeID: nodeID, Cid: cid})
+	err = n.saveReplicaEvent(tx, &types.AssetReplicaEventInfo{Hash: hash, Event: types.ReplicaEventRemove, NodeID: nodeID, Cid: cid})
 	if err != nil {
 		return err
 	}
@@ -566,7 +566,7 @@ func (n *SQLDB) SaveAssetRecord(rInfo *types.AssetRecord) error {
 	query := fmt.Sprintf(
 		`INSERT INTO %s (hash, scheduler_sid, cid, edge_replicas, candidate_replicas, expiration, bandwidth, total_size, created_time, note, source, owner) 
 		        VALUES (:hash, :scheduler_sid, :cid, :edge_replicas, :candidate_replicas, :expiration, :bandwidth, :total_size, :created_time, :note, :source, :owner)
-				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, edge_replicas=:edge_replicas, created_time=:created_time,
+				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, edge_replicas=:edge_replicas, created_time=:created_time, cid=:cid,
 				candidate_replicas=:candidate_replicas, expiration=:expiration, bandwidth=:bandwidth, total_size=:total_size`, assetRecordTable)
 	_, err = tx.NamedExec(query, rInfo)
 	if err != nil {

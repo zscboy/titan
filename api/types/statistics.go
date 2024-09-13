@@ -32,8 +32,8 @@ type ListRetrieveEventRsp struct {
 	List  []*RetrieveEvent `json:"list"`
 }
 
-// ReplicaEventInfo replica event info
-type ReplicaEventInfo struct {
+// AssetReplicaEventInfo replica event info
+type AssetReplicaEventInfo struct {
 	NodeID      string       `db:"node_id"`
 	Event       ReplicaEvent `db:"event"`
 	Hash        string       `db:"hash"`
@@ -45,10 +45,25 @@ type ReplicaEventInfo struct {
 
 	Cid       string `db:"cid"`
 	TotalSize int64  `db:"total_size"`
+	DoneSize  int64  `db:"done_size"`
 }
 
-// ListReplicaEventRsp list replica events
-type ListReplicaEventRsp struct {
-	Total         int                 `json:"total"`
-	ReplicaEvents []*ReplicaEventInfo `json:"replica_events"`
+// ListAssetReplicaEventRsp list replica events
+type ListAssetReplicaEventRsp struct {
+	Total int                      `json:"total"`
+	List  []*AssetReplicaEventInfo `json:"list"`
+}
+
+// ProjectReplicaEventInfo replica event info
+type ProjectReplicaEventInfo struct {
+	NodeID      string       `db:"node_id"`
+	Event       ProjectEvent `db:"event"`
+	ID          string       `db:"id"`
+	CreatedTime time.Time    `db:"created_time"`
+}
+
+// ListProjectReplicaEventRsp list replica events
+type ListProjectReplicaEventRsp struct {
+	Total int                        `json:"total"`
+	List  []*ProjectReplicaEventInfo `json:"list"`
 }

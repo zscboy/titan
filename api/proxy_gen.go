@@ -91,11 +91,11 @@ type AssetAPIStruct struct {
 
 		GetDownloadResultsFromAssets func(p0 context.Context, p1 []string, p2 time.Time, p3 time.Time) ([]*types.AssetDownloadResultRsp, error) `perm:"web,admin"`
 
-		GetFailedReplicaByCID func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+		GetFailedReplicaByCID func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) `perm:"web,admin"`
 
-		GetFailedReplicaByNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+		GetFailedReplicaByNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) `perm:"web,admin"`
 
-		GetReplicaEventsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+		GetReplicaEventsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetReplicas func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaRsp, error) `perm:"web,admin"`
 
@@ -627,7 +627,7 @@ type SchedulerStruct struct {
 
 		GetNodeUploadInfo func(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) `perm:"user,web,admin"`
 
-		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) `perm:"web,admin"`
+		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetSchedulerPublicKey func(p0 context.Context) (string, error) `perm:"edge,candidate"`
 
@@ -1030,36 +1030,36 @@ func (s *AssetAPIStub) GetDownloadResultsFromAssets(p0 context.Context, p1 []str
 	return *new([]*types.AssetDownloadResultRsp), ErrNotSupported
 }
 
-func (s *AssetAPIStruct) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStruct) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	if s.Internal.GetFailedReplicaByCID == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetFailedReplicaByCID(p0, p1, p2, p3)
 }
 
-func (s *AssetAPIStub) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStub) GetFailedReplicaByCID(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *AssetAPIStruct) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStruct) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	if s.Internal.GetFailedReplicaByNode == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetFailedReplicaByNode(p0, p1, p2, p3)
 }
 
-func (s *AssetAPIStub) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStub) GetFailedReplicaByNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *AssetAPIStruct) GetReplicaEventsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStruct) GetReplicaEventsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	if s.Internal.GetReplicaEventsForNode == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetReplicaEventsForNode(p0, p1, p2, p3)
 }
 
-func (s *AssetAPIStub) GetReplicaEventsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListReplicaEventRsp, error) {
+func (s *AssetAPIStub) GetReplicaEventsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListAssetReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 
@@ -2925,14 +2925,14 @@ func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string, p2 stri
 	return nil, ErrNotSupported
 }
 
-func (s *SchedulerStruct) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
+func (s *SchedulerStruct) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetReplicaEventRsp, error) {
 	if s.Internal.GetReplicaEvents == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetReplicaEvents(p0, p1, p2, p3, p4)
 }
 
-func (s *SchedulerStub) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListReplicaEventRsp, error) {
+func (s *SchedulerStub) GetReplicaEvents(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetReplicaEventRsp, error) {
 	return nil, ErrNotSupported
 }
 

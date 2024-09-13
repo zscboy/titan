@@ -584,6 +584,11 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 		}
 	}
 
+	externalIP, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		return xerrors.Errorf("nodeConnect err SplitHostPort err:%s", err.Error())
+	}
+
 	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
@@ -601,15 +606,32 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 	nNode.PublicKey = publicKey
 	nNode.Token = opts.Token
 
+	err = nNode.ConnectRPC(s.Transport, remoteAddr, nType)
+	if err != nil {
+		return err
+	}
+
+	// init node info
+	nodeInfo, err := nNode.API.GetNodeInfo(context.Background())
+	if err != nil {
+		return xerrors.Errorf("%s nodeConnect err NodeInfo err:%s", nodeID, err.Error())
+	}
+
+	ver := api.NewVerFromString(nodeInfo.SystemVersion)
+	nodeInfo.Version = int64(ver)
+
+	nodeInfo.NodeID = nodeID
+	nodeInfo.Type = nType
+	nodeInfo.RemoteAddr = remoteAddr
+	nodeInfo.SchedulerID = s.ServerID
+	nodeInfo.ExternalIP = externalIP
+	nodeInfo.BandwidthUp = units.KiB
+	nodeInfo.NATType = types.NatTypeUnknown.String()
+	nodeInfo.LastSeen = time.Now()
+
 	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return xerrors.Errorf("nodeConnect err load node online duration %s err : %s", nodeID, err.Error())
-	}
-
-	nodeInfo := &types.NodeInfo{
-		Type:            nType,
-		NodeDynamicInfo: types.NodeDynamicInfo{NodeID: nodeID},
-		RemoteAddr:      remoteAddr,
 	}
 
 	if dbInfo != nil {
@@ -624,28 +646,17 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 		nodeInfo.FirstTime = dbInfo.FirstTime
 	}
 
-	nodeInfo.LastSeen = time.Now()
-	nNode.InitInfo(nodeInfo)
+	nNode.InitInfo(&nodeInfo)
 
-	err = nNode.ConnectRPC(s.Transport, remoteAddr, nType)
-	if err != nil {
-		return err
-	}
+	log.Infof("ln node %s connected, version %s remoteAddr %s", nodeID, ver, remoteAddr)
 
-	nodeVersion, err := nNode.API.Version(context.Background())
-	if err != nil {
-		log.Errorf("get node version failed %s", err.Error())
-	} else {
-		log.Infof("node %s connected, version %s remoteAddr %s", nodeID, nodeVersion.String(), remoteAddr)
-	}
-
-	err = s.saveNodeInfo(nodeInfo)
+	err = s.saveNodeInfo(&nodeInfo)
 	if err != nil {
 		return err
 	}
 
 	// node
-	return s.NodeManager.NodeOnline(nNode, nodeInfo)
+	return s.NodeManager.NodeOnline(nNode, &nodeInfo)
 }
 
 // GetExternalAddress retrieves the external address of the caller.

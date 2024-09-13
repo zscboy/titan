@@ -211,6 +211,7 @@ var cReplicaEventTable = `
 		node_id       VARCHAR(128) NOT NULL,
 		cid           VARCHAR(128) DEFAULT '',
 		total_size    BIGINT       DEFAULT 0,
+		done_size     BIGINT       DEFAULT 0,
 	    created_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		source        TINYINT      DEFAULT 0,
 	    task_id       VARCHAR(128) DEFAULT '',

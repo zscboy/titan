@@ -49,6 +49,12 @@ func (m *Manager) nodesKeepalive() {
 			nodes = append(nodes, node.NodeID)
 		}
 	}
+	l3List := m.GetAllL3Node()
+	for _, node := range l3List {
+		if m.checkNodeStatus(node, t) {
+			nodes = append(nodes, node.NodeID)
+		}
+	}
 
 	if len(nodes) > 0 {
 		err := m.UpdateOnlineCount(nodes, 12, date)

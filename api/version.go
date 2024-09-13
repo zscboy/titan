@@ -92,7 +92,7 @@ func VersionForType(nodeType types.NodeType) (Version, error) {
 		return SchedulerAPIVersion0, nil
 	case types.NodeCandidate:
 		return CandidateAPIVersion0, nil
-	case types.NodeEdge:
+	case types.NodeEdge, types.NodeL3:
 		return EdgeAPIVersion0, nil
 	case types.NodeLocator:
 		return LocationAPIVersion0, nil
