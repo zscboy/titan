@@ -15,7 +15,6 @@ const (
 // RetrieveEvent retrieve event
 type RetrieveEvent struct {
 	NodeID      string      `db:"node_id"`
-	TaskID      string      `db:"task_id"`
 	ClientID    string      `db:"client_id"`
 	Hash        string      `db:"hash"`
 	Speed       int64       `db:"speed"`
@@ -39,7 +38,6 @@ type AssetReplicaEventInfo struct {
 	Hash        string       `db:"hash"`
 	CreatedTime time.Time    `db:"created_time"`
 	Source      AssetSource  `db:"source"`
-	TaskID      string       `db:"task_id"`
 	ClientID    string       `db:"client_id"`
 	Speed       int64        `db:"speed"`
 

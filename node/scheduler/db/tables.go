@@ -84,7 +84,6 @@ var cNodeStatisticsTable = `
 var cNodeRetrieveTable = `
     CREATE TABLE if not exists %s (
 	    node_id       VARCHAR(128)   NOT NULL,
-	    task_id       VARCHAR(128)   DEFAULT '',
 	    client_id     VARCHAR(128)   DEFAULT '',
 		hash          VARCHAR(128)   NOT NULL,
 		speed         INT            DEFAULT 0,
@@ -214,7 +213,6 @@ var cReplicaEventTable = `
 		done_size     BIGINT       DEFAULT 0,
 	    created_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
 		source        TINYINT      DEFAULT 0,
-	    task_id       VARCHAR(128) DEFAULT '',
 	    client_id     VARCHAR(128) DEFAULT '',
 		speed         INT          DEFAULT 0,
 		KEY idx_hash (hash),
