@@ -26,7 +26,7 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 
 	cw := cbg.NewCborWriter(w)
 
-	if _, err := cw.Write([]byte{173}); err != nil {
+	if _, err := cw.Write([]byte{174}); err != nil {
 		return err
 	}
 
@@ -51,6 +51,28 @@ func (t *ProjectInfo) MarshalCBOR(w io.Writer) error {
 	}
 	if _, err := io.WriteString(w, string(t.Name)); err != nil {
 		return err
+	}
+
+	// t.Type (int64) (int64)
+	if len("Type") > cbg.MaxLength {
+		return xerrors.Errorf("Value in field \"Type\" was too long")
+	}
+
+	if err := cw.WriteMajorTypeHeader(cbg.MajTextString, uint64(len("Type"))); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, string("Type")); err != nil {
+		return err
+	}
+
+	if t.Type >= 0 {
+		if err := cw.WriteMajorTypeHeader(cbg.MajUnsignedInt, uint64(t.Type)); err != nil {
+			return err
+		}
+	} else {
+		if err := cw.WriteMajorTypeHeader(cbg.MajNegativeInt, uint64(-t.Type-1)); err != nil {
+			return err
+		}
 	}
 
 	// t.UUID (projects.ProjectID) (string)
@@ -385,6 +407,32 @@ func (t *ProjectInfo) UnmarshalCBOR(r io.Reader) (err error) {
 				}
 
 				t.Name = string(sval)
+			}
+			// t.Type (int64) (int64)
+		case "Type":
+			{
+				maj, extra, err := cr.ReadHeader()
+				var extraI int64
+				if err != nil {
+					return err
+				}
+				switch maj {
+				case cbg.MajUnsignedInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 positive overflow")
+					}
+				case cbg.MajNegativeInt:
+					extraI = int64(extra)
+					if extraI < 0 {
+						return fmt.Errorf("int64 negative overflow")
+					}
+					extraI = -1 - extraI
+				default:
+					return fmt.Errorf("wrong type for int64 field: %d", maj)
+				}
+
+				t.Type = int64(extraI)
 			}
 			// t.UUID (projects.ProjectID) (string)
 		case "UUID":

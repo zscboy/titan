@@ -49,6 +49,7 @@ type ProjectInfo struct {
 	BundleURL string
 	Replicas  int64
 
+	Type int64
 	// CPUCores int64
 	// Memory   int64
 	// AreaID   string
@@ -113,6 +114,7 @@ func projectInfoFrom(info *types.ProjectInfo) *ProjectInfo {
 		RetryCount:        info.RetryCount,
 		ReplenishReplicas: info.ReplenishReplicas,
 		Requirement:       pr,
+		Type:              int64(info.Type),
 		// CPUCores:          info.CPUCores,
 		// Memory:            int64(info.Memory),
 		// AreaID:            info.AreaID,

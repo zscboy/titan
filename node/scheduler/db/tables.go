@@ -300,6 +300,7 @@ var cProjectInfosTable = `
 		name          VARCHAR(128)   DEFAULT '',	
 		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,		
 		replicas      INT            DEFAULT 0,
+		type          TINYINT        DEFAULT 0,
 		scheduler_sid VARCHAR(128)   NOT NULL,   
 		expiration    DATETIME       DEFAULT CURRENT_TIMESTAMP,	
 		requirement   BLOB ,
@@ -311,14 +312,21 @@ var cProjectInfosTable = `
 
 var cProjectReplicasTable = `
     CREATE TABLE if not exists %s (
-		id            VARCHAR(128)  NOT NULL,
-		node_id       VARCHAR(128)  NOT NULL,	
-		status        TINYINT       DEFAULT 0,		
-		created_time  DATETIME      DEFAULT CURRENT_TIMESTAMP,
-		end_time      DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		id                 VARCHAR(128)  NOT NULL,
+		node_id            VARCHAR(128)  NOT NULL,	
+		status             TINYINT       DEFAULT 0,		
+		created_time       DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		end_time           DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    	upload_traffic     BIGINT        DEFAULT 0,
+    	download_traffic   BIGINT        DEFAULT 0,	
+		type               TINYINT       DEFAULT 0,
+		time               INT           DEFAULT 0,
+		max_timeout        INT           DEFAULT 0,
+		min_timeout        INT           DEFAULT 0,
 		PRIMARY KEY (id,node_id),
 	    KEY idx_time (created_time),
 		KEY idx_node_id (node_id),
+		KEY idx_type (type),
 		KEY idx_id (id)
     ) ENGINE=InnoDB COMMENT='project replicas';`
 

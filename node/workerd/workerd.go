@@ -461,21 +461,20 @@ func (w *Workerd) RestartProjects(ctx context.Context) {
 
 	for _, project := range projects {
 		w.mu.Lock()
-		_, ok := w.projects[project.Id]
+		_, ok := w.projects[project.ID]
 		if !ok {
-			w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
+			w.projects[project.ID] = &types.Project{ID: project.ID, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
 		}
-		w.projects[project.Id].BundleURL = project.BundleURL
+		w.projects[project.ID].BundleURL = project.BundleURL
 		w.mu.Unlock()
 
 		switch project.Status {
 		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusOffline:
-			if running, _ := w.queryProject(ctx, project.Id); !running {
-				w.startCh <- project.Id
+			if running, _ := w.queryProject(ctx, project.ID); !running {
+				w.startCh <- project.ID
 			}
 		}
 	}
-
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
@@ -530,7 +529,6 @@ func (w *Workerd) checkConnectivity(ctx context.Context, projects []*types.Proje
 			if err != nil {
 				log.Errorf("failed to destory project %s, %v", project.ID, err)
 			}
-
 		}(p)
 	}
 	wg.Wait()
@@ -574,19 +572,19 @@ func (w *Workerd) sync(ctx context.Context, projects []*types.Project) {
 	activeProjects := make(map[string]struct{})
 
 	for _, project := range projectsResponse {
-		activeProjects[project.Id] = struct{}{}
+		activeProjects[project.ID] = struct{}{}
 
-		if _, exists := localProjects[project.Id]; exists {
+		if _, exists := localProjects[project.ID]; exists {
 			continue
 		}
 
 		w.mu.Lock()
-		w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
+		w.projects[project.ID] = &types.Project{ID: project.ID, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
 		w.mu.Unlock()
 
-		localProjects[project.Id] = struct{}{}
+		localProjects[project.ID] = struct{}{}
 
-		w.startCh <- project.Id
+		w.startCh <- project.ID
 	}
 
 	for _, project := range projects {

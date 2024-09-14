@@ -535,7 +535,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	if req.BandwidthDownSize > 0 {
 		pInfo := s.NodeManager.GetDownloadProfitDetails(node, req.BandwidthDownSize, req.ProjectID)
 		if pInfo != nil {
-			pInfo.Profit = 0 // TODO test
+			// pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfitDetails([]*types.ProfitDetails{pInfo})
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
@@ -546,7 +546,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	if req.BandwidthUpSize > 0 {
 		pInfo := s.NodeManager.GetUploadProfitDetails(node, req.BandwidthUpSize, req.ProjectID)
 		if pInfo != nil {
-			pInfo.Profit = 0 // TODO test
+			// pInfo.Profit = 0 // TODO test
 			err := s.db.AddNodeProfitDetails([]*types.ProfitDetails{pInfo})
 			if err != nil {
 				log.Errorf("SubmitProjectReport AddNodeProfit %s,%d, %.4f err:%s", pInfo.NodeID, pInfo.PType, pInfo.Profit, err.Error())
@@ -554,7 +554,23 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 		}
 	}
 
-	return nil
+	// update replica info
+	if rInfo.MaxTimeout < req.MaxTimeout {
+		rInfo.MaxTimeout = req.MaxTimeout
+	}
+
+	if rInfo.MinTimeout > req.MinTimeout {
+		rInfo.MinTimeout = req.MinTimeout
+	}
+
+	rInfo.UploadTraffic += int64(req.BandwidthUpSize)
+	rInfo.DownTraffic += int64(req.BandwidthDownSize)
+
+	duration := req.StartTime.Sub(req.EndTime)
+	seconds := duration.Seconds()
+	rInfo.Time += int64(seconds)
+
+	return s.db.UpdateProjectReplicasInfo(rInfo)
 }
 
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {

@@ -433,6 +433,8 @@ type ProjectRecordReq struct {
 	BandwidthDownSize float64
 	StartTime         time.Time
 	EndTime           time.Time
+	MaxTimeout        int64
+	MinTimeout        int64
 }
 
 type WorkloadEvent int

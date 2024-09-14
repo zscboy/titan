@@ -537,11 +537,11 @@ type ProjectAPIStruct struct {
 
 		DeployProject func(p0 context.Context, p1 *types.DeployProjectReq) (error) `perm:"user,web,admin"`
 
-		GetNodeProjects func(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) `perm:"web,admin"`
-
 		GetProjectInfo func(p0 context.Context, p1 string) (*types.ProjectInfo, error) `perm:"user,web,admin"`
 
 		GetProjectInfos func(p0 context.Context, p1 string, p2 int, p3 int) ([]*types.ProjectInfo, error) `perm:"user,web,admin"`
+
+		GetProjectOverviewByNode func(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) `perm:"web,admin"`
 
 		GetProjectsForNode func(p0 context.Context, p1 string) ([]*types.ProjectReplicas, error) `perm:"edge,candidate,web,locator"`
 
@@ -2600,17 +2600,6 @@ func (s *ProjectAPIStub) DeployProject(p0 context.Context, p1 *types.DeployProje
 	return ErrNotSupported
 }
 
-func (s *ProjectAPIStruct) GetNodeProjects(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) {
-	if s.Internal.GetNodeProjects == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetNodeProjects(p0, p1, p2)
-}
-
-func (s *ProjectAPIStub) GetNodeProjects(p0 context.Context, p1 int, p2 int) (*types.ListNodeProjectRsp, error) {
-	return nil, ErrNotSupported
-}
-
 func (s *ProjectAPIStruct) GetProjectInfo(p0 context.Context, p1 string) (*types.ProjectInfo, error) {
 	if s.Internal.GetProjectInfo == nil {
 		return nil, ErrNotSupported
@@ -2631,6 +2620,17 @@ func (s *ProjectAPIStruct) GetProjectInfos(p0 context.Context, p1 string, p2 int
 
 func (s *ProjectAPIStub) GetProjectInfos(p0 context.Context, p1 string, p2 int, p3 int) ([]*types.ProjectInfo, error) {
 	return *new([]*types.ProjectInfo), ErrNotSupported
+}
+
+func (s *ProjectAPIStruct) GetProjectOverviewByNode(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) {
+	if s.Internal.GetProjectOverviewByNode == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetProjectOverviewByNode(p0, p1, p2)
+}
+
+func (s *ProjectAPIStub) GetProjectOverviewByNode(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) {
+	return nil, ErrNotSupported
 }
 
 func (s *ProjectAPIStruct) GetProjectsForNode(p0 context.Context, p1 string) ([]*types.ProjectReplicas, error) {

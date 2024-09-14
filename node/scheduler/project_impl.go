@@ -117,8 +117,32 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 	return infos, nil
 }
 
-func (s *Scheduler) GetNodeProjects(ctx context.Context, limit, offset int) (*types.ListNodeProjectRsp, error) {
-	// out := &types.ListNodeProjectRsp{}
+func (s *Scheduler) GetProjectOverviewByNode(ctx context.Context, limit, offset int) (*types.ListProjectOverviewRsp, error) {
+	if offset < 0 {
+		offset = 0
+	}
 
-	return nil, nil
+	list, err := s.db.LoadProjectOverviews()
+	if err != nil {
+		return nil, err
+	}
+
+	size := len(list)
+
+	out := &types.ListProjectOverviewRsp{
+		Total: size,
+	}
+
+	if offset >= size {
+		return out, nil
+	}
+
+	end := offset + limit
+	if end >= size {
+		end = size
+	}
+
+	out.List = list[offset:end]
+
+	return out, nil
 }

@@ -25,8 +25,8 @@ func (n *SQLDB) SaveProjectInfo(info *types.ProjectInfo) error {
 	}()
 
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, name, bundle_url, user_id, replicas, scheduler_sid, requirement, expiration)
-				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid, :requirement, :expiration)				
+		`INSERT INTO %s (id, name, bundle_url, user_id, replicas, scheduler_sid, requirement, expiration, type)
+				VALUES (:id, :name, :bundle_url, :user_id, :replicas, :scheduler_sid, :requirement, :expiration, :type)				
 				ON DUPLICATE KEY UPDATE scheduler_sid=:scheduler_sid, replicas=:replicas, user_id=:user_id,
 				bundle_url=:bundle_url, expiration=:expiration, name=:name`, projectInfoTable)
 
@@ -158,11 +158,20 @@ func (n *SQLDB) LoadProjectInfos(serverID dtypes.ServerID, userID string, limit,
 	return infos, nil
 }
 
+// UpdateProjectReplicasInfo
+func (n *SQLDB) UpdateProjectReplicasInfo(info *types.ProjectReplicas) error {
+	query := fmt.Sprintf(
+		`UPDATE %s SET time=?,max_timeout=?,min_timeout=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
+	_, err := n.db.Exec(query, info.Time, info.MaxTimeout, info.MinTimeout, info.UploadTraffic, info.DownTraffic, info.ID, info.NodeID)
+
+	return err
+}
+
 // SaveProjectReplicasInfo inserts or updates project replica information.
 func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (id, node_id, status, created_time, end_time)
-		VALUES (:id, :node_id, :status, NOW(), NOW())
+		`INSERT INTO %s (id, node_id, status, created_time, end_time, type )
+		VALUES (:id, :node_id, :status, NOW(), NOW(), :type)
 		ON DUPLICATE KEY UPDATE status=:status, end_time=NOW()`, projectReplicasTable)
 
 	_, err := n.db.NamedExec(query, info)
@@ -171,12 +180,12 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 	}
 
 	if info.Status == types.ProjectReplicaStatusStarted {
-		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventAdd}, 1, 0)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.ID, NodeID: info.NodeID, Event: types.ProjectEventAdd}, 1, 0)
 		if err != nil {
 			return err
 		}
 	} else if info.Status == types.ProjectReplicaStatusError {
-		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventFailed}, 0, 1)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.ID, NodeID: info.NodeID, Event: types.ProjectEventFailed}, 0, 1)
 		if err != nil {
 			return err
 		}
@@ -269,23 +278,6 @@ func (n *SQLDB) UpdateProjectReplicaStatusFromNode(nodeID string, uuids []string
 	return nil
 }
 
-// UpdateProjectReplicaStatusToFailed updates the status of project replicas to 'Failed' across multiple nodes.
-func (n *SQLDB) UpdateProjectReplicaStatusToFailed(id string, nodes []string) error {
-	stmt, err := n.db.Preparex(`UPDATE ` + projectReplicasTable + ` SET status=?,end_time=NOW() WHERE id=? AND node_id=?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	for _, nodeID := range nodes {
-		if _, err := stmt.Exec(types.ProjectReplicaStatusError, id, nodeID); err != nil {
-			log.Errorf("UpdateProjectReplicaStatusToFailed %s err:%s", nodeID, err.Error())
-		}
-	}
-
-	return nil
-}
-
 // UpdateProjectStateInfo updates project state information in the database.
 func (n *SQLDB) UpdateProjectStateInfo(id, state string, retryCount, replenishReplicas int64, serverID dtypes.ServerID) error {
 	tx, err := n.db.Beginx()
@@ -332,6 +324,21 @@ func (n *SQLDB) LoadNodesOfStartingReplica(id string) ([]string, error) {
 	}
 
 	return nodes, nil
+}
+
+func (n *SQLDB) LoadProjectOverviews() ([]*types.ProjectOverview, error) {
+	var out []*types.ProjectOverview
+	query := fmt.Sprintf(`SELECT node_id, SUM(upload_traffic) AS sum_upload_traffic,
+	SUM(download_traffic) AS sum_download_traffic,
+	SUM(time) AS sum_time,
+	AVG(max_timeout) AS avg_max_timeout,
+	AVG(min_timeout) AS avg_min_timeout FROM %s WHERE type=0 GROUP BY node_id`, projectReplicasTable)
+	err := n.db.Select(&out, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 // UpdateProjectReplicasStatusToFailed updates the status of unfinished project replicas to 'Failed'.

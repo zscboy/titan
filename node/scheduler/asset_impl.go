@@ -542,6 +542,8 @@ func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.R
 		if err != nil {
 			return err
 		}
+	} else {
+		failedCount = 1
 	}
 
 	return s.db.SaveRetrieveEventInfo(info, succeededCount, failedCount)

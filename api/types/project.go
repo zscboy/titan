@@ -16,6 +16,12 @@ type Project struct {
 	Msg string
 }
 
+type ProjectType int64
+
+const (
+	ProjectTypeTunnel ProjectType = iota
+)
+
 type ProjectReplicaStatus int
 
 const (
@@ -58,6 +64,7 @@ type DeployProjectReq struct {
 	UserID     string
 	Replicas   int64
 	Expiration time.Time
+	Type       ProjectType
 
 	Requirement ProjectRequirement
 }
@@ -82,6 +89,7 @@ type ProjectInfo struct {
 	Expiration  time.Time       `db:"expiration"`
 	CreatedTime time.Time       `db:"created_time"`
 	UserID      string          `db:"user_id"`
+	Type        ProjectType     `db:"type"`
 
 	RequirementByte []byte `db:"requirement"`
 	Requirement     ProjectRequirement
@@ -92,11 +100,17 @@ type ProjectInfo struct {
 }
 
 type ProjectReplicas struct {
-	Id          string               `db:"id"`
-	Status      ProjectReplicaStatus `db:"status"`
-	NodeID      string               `db:"node_id"`
-	CreatedTime time.Time            `db:"created_time"`
-	EndTime     time.Time            `db:"end_time"`
+	ID            string               `db:"id"`
+	Status        ProjectReplicaStatus `db:"status"`
+	NodeID        string               `db:"node_id"`
+	CreatedTime   time.Time            `db:"created_time"`
+	EndTime       time.Time            `db:"end_time"`
+	Type          ProjectType          `db:"type"`
+	UploadTraffic int64                `db:"upload_traffic"`
+	DownTraffic   int64                `db:"download_traffic"`
+	Time          int64                `db:"time"`
+	MaxTimeout    int64                `db:"max_timeout"`
+	MinTimeout    int64                `db:"min_timeout"`
 
 	WsURL     string
 	BundleURL string
@@ -122,15 +136,18 @@ const (
 	ProjectEventFailed
 )
 
-// NodeProject
-type NodeProject struct {
-	NodeID         string
-	SucceededCount int64
-	FailedCount    int64
+// ProjectOverview
+type ProjectOverview struct {
+	NodeID          string `db:"node_id"`
+	UploadTraffic   int64  `db:"sum_upload_traffic"`
+	DownloadTraffic int64  `db:"sum_download_traffic"`
+	Time            int64  `db:"sum_time"`
+	MaxTimeout      int64  `db:"avg_max_timeout"`
+	MinTimeout      int64  `db:"avg_min_timeout"`
 }
 
-// ListNodeProjectRsp list replica events
-type ListNodeProjectRsp struct {
-	Total int            `json:"total"`
-	List  []*NodeProject `json:"list"`
+// ListProjectOverviewRsp list replica events
+type ListProjectOverviewRsp struct {
+	Total int                `json:"total"`
+	List  []*ProjectOverview `json:"list"`
 }

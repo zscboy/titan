@@ -181,6 +181,35 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD type          TINYINT        DEFAULT 0", projectInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD upload_traffic     BIGINT        DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD download_traffic   BIGINT        DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD type          TINYINT        DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD time               INT           DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD max_timeout        INT           DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD min_timeout        INT           DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }
 
 func doExec2(d *SQLDB) {

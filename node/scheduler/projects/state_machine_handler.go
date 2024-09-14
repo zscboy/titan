@@ -66,9 +66,10 @@ func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) e
 			}
 
 			err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-				Id:     info.UUID.String(),
+				ID:     info.UUID.String(),
 				NodeID: node.NodeID,
 				Status: status,
+				Type:   types.ProjectType(info.Type),
 			})
 			if err != nil {
 				log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
@@ -99,9 +100,10 @@ func (m *Manager) handleNodeSelect(ctx statemachine.Context, info ProjectInfo) e
 			}
 
 			err = m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-				Id:     info.UUID.String(),
+				ID:     info.UUID.String(),
 				NodeID: node.NodeID,
 				Status: status,
+				Type:   types.ProjectType(info.Type),
 			})
 			if err != nil {
 				log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
@@ -144,9 +146,10 @@ func (m *Manager) handleUpdate(ctx statemachine.Context, info ProjectInfo) error
 		}
 
 		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-			Id:     info.UUID.String(),
+			ID:     info.UUID.String(),
 			NodeID: node.NodeID,
 			Status: status,
+			Type:   types.ProjectType(info.Type),
 		})
 		if err != nil {
 			log.Errorf("DeployProject SaveWorkerdDetailsInfo %s err:%s", node.NodeID, err.Error())
@@ -229,9 +232,9 @@ func (m *Manager) handleRemove(ctx statemachine.Context, info ProjectInfo) error
 
 	for _, replica := range list {
 		// request nodes
-		err = m.removeReplica(replica.Id, replica.NodeID, types.ProjectEvent(info.Event))
+		err = m.removeReplica(replica.ID, replica.NodeID, types.ProjectEvent(info.Event))
 		if err != nil {
-			log.Errorf("handleRemove %s , %s removeReplica err:%s", replica.Id, replica.NodeID, err.Error())
+			log.Errorf("handleRemove %s , %s removeReplica err:%s", replica.ID, replica.NodeID, err.Error())
 		}
 	}
 

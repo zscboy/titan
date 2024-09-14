@@ -26,7 +26,7 @@ func (m *Manager) UpdateStatus(nodeID string, list []*types.Project) error {
 		}
 
 		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-			Id:     info.ID,
+			ID:     info.ID,
 			NodeID: nodeID,
 			Status: info.Status,
 		})
@@ -74,6 +74,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 		UserID:          req.UserID,
 		Replicas:        req.Replicas,
 		RequirementByte: buffer.Bytes(),
+		Type:            req.Type,
 	}
 
 	err = m.SaveProjectInfo(info)
