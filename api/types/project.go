@@ -151,3 +151,9 @@ type ListProjectOverviewRsp struct {
 	Total int                `json:"total"`
 	List  []*ProjectOverview `json:"list"`
 }
+
+// ListProjectReplicaRsp list replica info
+type ListProjectReplicaRsp struct {
+	Total int                `json:"total"`
+	List  []*ProjectReplicas `json:"list"`
+}

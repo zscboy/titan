@@ -311,7 +311,7 @@ func (m *Manager) startCheckServicingProjectTimer() {
 }
 
 func (m *Manager) CheckProjectReplicasFromNode(nodeID string) {
-	list, err := m.LoadProjectReplicasForNode(nodeID)
+	list, err := m.LoadAllProjectReplicasForNode(nodeID)
 	if err != nil {
 		log.Errorf("checkProjectReplicasFromNode projects :%s", err.Error())
 		return

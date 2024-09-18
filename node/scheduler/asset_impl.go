@@ -61,14 +61,17 @@ func (s *Scheduler) GetAssetRecord(ctx context.Context, cid string) (*types.Asse
 		return nil, err
 	}
 
-	dInfo.ReplicaInfos, err = s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
-	if err != nil {
-		log.Errorf("GetAssetRecordInfo hash:%s, LoadAssetReplicas err:%s", hash, err.Error())
-	}
-
-	dInfo.PullingReplicaInfos, err = s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusPulling, types.ReplicaStatusWaiting})
+	list, err := s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusPulling, types.ReplicaStatusWaiting, types.ReplicaStatusSucceeded})
 	if err != nil {
 		log.Errorf("GetAssetRecordInfo hash:%s, LoadReplicasByStatus err:%s", hash, err.Error())
+	} else {
+		for _, info := range list {
+			if info.Status == types.ReplicaStatusSucceeded {
+				dInfo.ReplicaInfos = append(dInfo.ReplicaInfos, info)
+			} else {
+				dInfo.PullingReplicaInfos = append(dInfo.PullingReplicaInfos, info)
+			}
+		}
 	}
 
 	return dInfo, nil

@@ -543,6 +543,8 @@ type ProjectAPIStruct struct {
 
 		GetProjectOverviewByNode func(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) `perm:"web,admin"`
 
+		GetProjectReplicasForNode func(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) `perm:"web,admin"`
+
 		GetProjectsForNode func(p0 context.Context, p1 string) ([]*types.ProjectReplicas, error) `perm:"edge,candidate,web,locator"`
 
 		RedeployFailedProjects func(p0 context.Context, p1 []string) (error) `perm:"admin"`
@@ -2630,6 +2632,17 @@ func (s *ProjectAPIStruct) GetProjectOverviewByNode(p0 context.Context, p1 int, 
 }
 
 func (s *ProjectAPIStub) GetProjectOverviewByNode(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *ProjectAPIStruct) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) {
+	if s.Internal.GetProjectReplicasForNode == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetProjectReplicasForNode(p0, p1)
+}
+
+func (s *ProjectAPIStub) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) {
 	return nil, ErrNotSupported
 }
 

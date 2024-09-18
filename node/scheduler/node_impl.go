@@ -1766,6 +1766,11 @@ func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.Tuns
 	return &types.TunserverRsp{URL: node.WsURL(), NodeID: nodeID}, nil
 }
 
+// GetProjectReplicasForNode
+func (s *Scheduler) GetProjectReplicasForNode(ctx context.Context, req *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) {
+	return s.db.LoadProjectReplicasForNode(req.NodeID, req.Limit, req.Offset)
+}
+
 // GetProjectsForNode
 func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*types.ProjectReplicas, error) {
 	nID := handler.GetNodeID(ctx)
@@ -1773,7 +1778,7 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 		nodeID = nID
 	}
 
-	list, err := s.db.LoadProjectReplicasForNode(nodeID)
+	list, err := s.db.LoadAllProjectReplicasForNode(nodeID)
 	if err != nil {
 		return nil, err
 	}

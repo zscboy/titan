@@ -646,3 +646,9 @@ type KeepaliveRsp struct {
 	ErrCode   int
 	ErrMsg    string
 }
+
+type NodeInfoReq struct {
+	NodeID string
+	Limit  int
+	Offset int
+}

@@ -212,12 +212,40 @@ func (n *SQLDB) LoadProjectReplicaInfo(id, nodeID string) (*types.ProjectReplica
 	return &out, err
 }
 
-// LoadProjectReplicasForNode loads project replica information based on a node ID.
-func (n *SQLDB) LoadProjectReplicasForNode(nodeID string) ([]*types.ProjectReplicas, error) {
+// LoadAllProjectReplicasForNode loads project replica information based on a node ID.
+func (n *SQLDB) LoadAllProjectReplicasForNode(nodeID string) ([]*types.ProjectReplicas, error) {
 	var out []*types.ProjectReplicas
 	sQuery := fmt.Sprintf(`SELECT * FROM %s WHERE node_id=? `, projectReplicasTable)
 	err := n.db.Select(&out, sQuery, nodeID)
 	return out, err
+}
+
+// LoadProjectReplicasForNode loads project replica information based on a node ID.
+func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int) (*types.ListProjectReplicaRsp, error) {
+	res := new(types.ListProjectReplicaRsp)
+	var infos []*types.ProjectReplicas
+	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? order by node_id desc LIMIT ? OFFSET ?", projectReplicasTable)
+	if limit > loadReplicaDefaultLimit {
+		limit = loadReplicaDefaultLimit
+	}
+
+	err := n.db.Select(&infos, query, nodeID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	res.List = infos
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? ", projectReplicasTable)
+	var count int
+	err = n.db.Get(&count, countQuery, nodeID, types.ReplicaStatusSucceeded)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Total = count
+
+	return res, nil
 }
 
 // DeleteProjectReplica deletes a project replica from the database.
@@ -331,8 +359,8 @@ func (n *SQLDB) LoadProjectOverviews() ([]*types.ProjectOverview, error) {
 	query := fmt.Sprintf(`SELECT node_id, SUM(upload_traffic) AS sum_upload_traffic,
 	SUM(download_traffic) AS sum_download_traffic,
 	SUM(time) AS sum_time,
-	AVG(max_timeout) AS avg_max_timeout,
-	AVG(min_timeout) AS avg_min_timeout FROM %s WHERE type=0 GROUP BY node_id`, projectReplicasTable)
+	FLOOR(AVG(max_timeout)) AS avg_max_timeout,
+	FLOOR(AVG(min_timeout)) AS avg_min_timeout FROM %s WHERE type=0 GROUP BY node_id`, projectReplicasTable)
 	err := n.db.Select(&out, query)
 	if err != nil {
 		return nil, err
