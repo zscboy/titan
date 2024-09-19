@@ -321,6 +321,7 @@ var cProjectReplicasTable = `
 		time               INT           DEFAULT 0,
 		max_timeout        INT           DEFAULT 0,
 		min_timeout        INT           DEFAULT 0,
+		avg_timeout        INT           DEFAULT 0,
 		PRIMARY KEY (id,node_id),
 	    KEY idx_time (created_time),
 		KEY idx_node_id (node_id),

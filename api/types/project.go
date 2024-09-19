@@ -111,6 +111,7 @@ type ProjectReplicas struct {
 	Time          int64                `db:"time"`
 	MaxTimeout    int64                `db:"max_timeout"`
 	MinTimeout    int64                `db:"min_timeout"`
+	AvgTimeout    int64                `db:"avg_timeout"`
 
 	WsURL     string
 	BundleURL string
@@ -142,8 +143,7 @@ type ProjectOverview struct {
 	UploadTraffic   int64  `db:"sum_upload_traffic"`
 	DownloadTraffic int64  `db:"sum_download_traffic"`
 	Time            int64  `db:"sum_time"`
-	MaxTimeout      int64  `db:"avg_max_timeout"`
-	MinTimeout      int64  `db:"avg_min_timeout"`
+	AvgTimeout      int64  `db:"avg_timeout"`
 }
 
 // ListProjectOverviewRsp list replica events

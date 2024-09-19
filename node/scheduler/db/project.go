@@ -388,8 +388,7 @@ func (n *SQLDB) LoadProjectOverviews() ([]*types.ProjectOverview, error) {
 	query := fmt.Sprintf(`SELECT node_id, SUM(upload_traffic) AS sum_upload_traffic,
 	SUM(download_traffic) AS sum_download_traffic,
 	SUM(time) AS sum_time,
-	FLOOR(AVG(max_timeout)) AS avg_max_timeout,
-	FLOOR(AVG(min_timeout)) AS avg_min_timeout FROM %s WHERE type=0 GROUP BY node_id`, projectReplicasTable)
+	FLOOR(AVG(avg_timeout)) AS avg_timeout FROM %s WHERE type=0 GROUP BY node_id`, projectReplicasTable)
 	err := n.db.Select(&out, query)
 	if err != nil {
 		return nil, err

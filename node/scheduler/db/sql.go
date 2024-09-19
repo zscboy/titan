@@ -205,6 +205,10 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	if err != nil {
 		log.Errorf("InitTables doExec err:%s", err.Error())
 	}
+	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD avg_timeout        INT           DEFAULT 0", projectReplicasTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }
 
 func doExec2(d *SQLDB) {
