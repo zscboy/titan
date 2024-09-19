@@ -7,6 +7,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -221,28 +222,56 @@ func (n *SQLDB) LoadAllProjectReplicasForNode(nodeID string) ([]*types.ProjectRe
 }
 
 // LoadProjectReplicasForNode loads project replica information based on a node ID.
-func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int) (*types.ListProjectReplicaRsp, error) {
+func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int, uuid string) (*types.ListProjectReplicaRsp, error) {
 	res := new(types.ListProjectReplicaRsp)
 	var infos []*types.ProjectReplicas
-	query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? order by node_id desc LIMIT ? OFFSET ?", projectReplicasTable)
-	if limit > loadReplicaDefaultLimit {
-		limit = loadReplicaDefaultLimit
+	var count int
+
+	// query := fmt.Sprintf("SELECT * FROM %s WHERE node_id=? order by node_id desc LIMIT ? OFFSET ?", projectReplicasTable)
+	// if limit > loadReplicaDefaultLimit {
+	// 	limit = loadReplicaDefaultLimit
+	// }
+
+	// err := n.db.Select(&infos, query, nodeID, limit, offset)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// res.List = infos
+
+	// countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? ", projectReplicasTable)
+	// err = n.db.Get(&count, countQuery, nodeID)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	sq := squirrel.Select("*").From(projectReplicasTable).Where(squirrel.Eq{"node_id": nodeID})
+	sq2 := squirrel.Select("COUNT(*)").From(projectReplicasTable).Where(squirrel.Eq{"node_id": nodeID})
+	if len(uuid) > 0 {
+		sq = sq.Where(squirrel.Eq{"id": uuid})
+		sq2 = sq2.Where(squirrel.Eq{"id": uuid})
+	}
+	query, args, err := sq.Limit(uint64(limit)).Offset(uint64(offset)).ToSql()
+	if err != nil {
+		return nil, err
 	}
 
-	err := n.db.Select(&infos, query, nodeID, limit, offset)
+	err = n.db.Select(&infos, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	query2, args2, err := sq2.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	err = n.db.Get(&count, query2, args2...)
 	if err != nil {
 		return nil, err
 	}
 
 	res.List = infos
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE node_id=? ", projectReplicasTable)
-	var count int
-	err = n.db.Get(&count, countQuery, nodeID, types.ReplicaStatusSucceeded)
-	if err != nil {
-		return nil, err
-	}
-
 	res.Total = count
 
 	return res, nil

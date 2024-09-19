@@ -655,6 +655,7 @@ var assetViewCmd = &cli.Command{
 			Name:  "bucket",
 			Usage: "get asset view from node",
 		},
+		nodeIDFlag,
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.Args().Len() < 1 {
@@ -669,7 +670,8 @@ var assetViewCmd = &cli.Command{
 		}
 		defer closer()
 
-		nodeID := cctx.Args().First()
+		// nodeID := cctx.Args().First()
+		nodeID := cctx.String("node-id")
 		isSync := cctx.Bool("sync")
 		if isSync {
 			return schedulerAPI.PerformSyncData(ctx, nodeID)

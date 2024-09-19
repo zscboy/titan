@@ -117,9 +117,9 @@ func (s *Scheduler) GetProjectInfos(ctx context.Context, userID string, limit, o
 	return infos, nil
 }
 
-func (s *Scheduler) GetProjectOverviewByNode(ctx context.Context, limit, offset int) (*types.ListProjectOverviewRsp, error) {
-	if offset < 0 {
-		offset = 0
+func (s *Scheduler) GetProjectOverviewByNode(ctx context.Context, req *types.NodeProjectReq) (*types.ListProjectOverviewRsp, error) {
+	if req.Offset < 0 {
+		req.Offset = 0
 	}
 
 	list, err := s.db.LoadProjectOverviews()
@@ -127,22 +127,33 @@ func (s *Scheduler) GetProjectOverviewByNode(ctx context.Context, limit, offset 
 		return nil, err
 	}
 
-	size := len(list)
+	if req.NodeID != "" {
+		eList := make([]*types.ProjectOverview, 0)
 
+		for _, info := range list {
+			if info.NodeID == req.NodeID {
+				eList = append(eList, info)
+			}
+		}
+
+		list = eList
+	}
+
+	size := len(list)
 	out := &types.ListProjectOverviewRsp{
 		Total: size,
 	}
 
-	if offset >= size {
+	if req.Offset >= size {
 		return out, nil
 	}
 
-	end := offset + limit
+	end := req.Offset + req.Limit
 	if end >= size {
 		end = size
 	}
 
-	out.List = list[offset:end]
+	out.List = list[req.Offset:end]
 
 	return out, nil
 }

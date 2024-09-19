@@ -58,9 +58,10 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 		}
 	}
 
-	var randomElement *types.AssetRecord
-	tList := make([]*types.AssetRecord, 0)
+	count := 10
+
 	if isStorage {
+		tList := make([]*types.AssetRecord, 0)
 		for _, info := range list {
 			if info.Source == int64(AssetSourceStorage) {
 				tList = append(tList, info)
@@ -70,25 +71,26 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 		if len(tList) > 0 {
 			list = tList
 		}
-
-		sort.Slice(list, func(i, j int) bool {
-			return list[i].NeedEdgeReplica < list[j].NeedEdgeReplica
-		})
-
-		randomElement = list[0]
-	} else {
-		index := rand.Intn(len(list))
-		randomElement = list[index]
 	}
 
-	if len(list) == 0 {
+	if len(list) < count {
+		count = len(list)
+	}
+
+	rand.Shuffle(len(list), func(i, j int) {
+		list[i], list[j] = list[j], list[i]
+	})
+
+	randomElements := list[:count]
+	if len(randomElements) == 0 {
 		return false
 	}
 
-	err = m.RestartPullAssets([]types.AssetHash{types.AssetHash(randomElement.Hash)})
-	if err != nil {
-		log.Errorf("autoRestartAssetReplicas RestartPullAssets err:%s", err.Error())
-		return false
+	for _, randomElement := range randomElements {
+		err = m.RestartPullAssets([]types.AssetHash{types.AssetHash(randomElement.Hash)})
+		if err != nil {
+			log.Errorf("autoRestartAssetReplicas RestartPullAssets err:%s", err.Error())
+		}
 	}
 
 	return true
@@ -173,7 +175,9 @@ func (m *Manager) fillDiskTasks() {
 
 	log.Infof("awsTask, edge count : %d ,pullCount : %d limitCount : %d", m.nodeMgr.Edges, len(pullList), limitCount)
 
-	m.autoRestartAssetReplicas(true)
+	if m.autoRestartAssetReplicas(true) {
+		return
+	}
 
 	if m.pullAssetFromAWSs() {
 		return

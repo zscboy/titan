@@ -541,9 +541,9 @@ type ProjectAPIStruct struct {
 
 		GetProjectInfos func(p0 context.Context, p1 string, p2 int, p3 int) ([]*types.ProjectInfo, error) `perm:"user,web,admin"`
 
-		GetProjectOverviewByNode func(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) `perm:"web,admin"`
+		GetProjectOverviewByNode func(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectOverviewRsp, error) `perm:"web,admin"`
 
-		GetProjectReplicasForNode func(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) `perm:"web,admin"`
+		GetProjectReplicasForNode func(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) `perm:"web,admin"`
 
 		GetProjectsForNode func(p0 context.Context, p1 string) ([]*types.ProjectReplicas, error) `perm:"edge,candidate,web,locator"`
 
@@ -2624,25 +2624,25 @@ func (s *ProjectAPIStub) GetProjectInfos(p0 context.Context, p1 string, p2 int, 
 	return *new([]*types.ProjectInfo), ErrNotSupported
 }
 
-func (s *ProjectAPIStruct) GetProjectOverviewByNode(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) {
+func (s *ProjectAPIStruct) GetProjectOverviewByNode(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectOverviewRsp, error) {
 	if s.Internal.GetProjectOverviewByNode == nil {
 		return nil, ErrNotSupported
 	}
-	return s.Internal.GetProjectOverviewByNode(p0, p1, p2)
+	return s.Internal.GetProjectOverviewByNode(p0, p1)
 }
 
-func (s *ProjectAPIStub) GetProjectOverviewByNode(p0 context.Context, p1 int, p2 int) (*types.ListProjectOverviewRsp, error) {
+func (s *ProjectAPIStub) GetProjectOverviewByNode(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectOverviewRsp, error) {
 	return nil, ErrNotSupported
 }
 
-func (s *ProjectAPIStruct) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) {
+func (s *ProjectAPIStruct) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) {
 	if s.Internal.GetProjectReplicasForNode == nil {
 		return nil, ErrNotSupported
 	}
 	return s.Internal.GetProjectReplicasForNode(p0, p1)
 }
 
-func (s *ProjectAPIStub) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) {
+func (s *ProjectAPIStub) GetProjectReplicasForNode(p0 context.Context, p1 *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) {
 	return nil, ErrNotSupported
 }
 

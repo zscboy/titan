@@ -89,7 +89,7 @@ func projectStateTable(serverID dtypes.ServerID) string {
 
 // InitTables initializes data tables.
 func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
-	doExec(d, serverID)
+	// doExec(d, serverID)
 
 	// init table
 	tx, err := d.db.Beginx()

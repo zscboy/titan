@@ -28,8 +28,6 @@ var SchedulerCMDs = []*cli.Command{
 	loadWorkloadCmd,
 	reNatCmd,
 	showValidatorCmd,
-
-	testCmd,
 }
 
 var (
@@ -164,35 +162,6 @@ var showValidatorCmd = &cli.Command{
 
 		for _, nodeID := range list {
 			fmt.Println(nodeID)
-		}
-
-		return nil
-	},
-}
-
-var testCmd = &cli.Command{
-	Name:  "test",
-	Usage: "",
-
-	Before: func(cctx *cli.Context) error {
-		return nil
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := ReqContext(cctx)
-
-		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-		if err != nil {
-			return err
-		}
-		defer closer()
-
-		rsp, err := schedulerAPI.GetFailedReplicaByCID(ctx, "bafkreidlpmhea4wlhlkc7toqfiw2v4c2v2ynbwdo2xxkn67ef735jgni5i", 100, 0)
-		if err != nil {
-			return err
-		}
-
-		for _, info := range rsp.List {
-			fmt.Println(info.NodeID)
 		}
 
 		return nil

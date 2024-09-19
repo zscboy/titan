@@ -239,8 +239,8 @@ type ProjectAPI interface {
 	GetProjectInfo(ctx context.Context, uuid string) (*types.ProjectInfo, error)                       //perm:user,web,admin
 	GetProjectInfos(ctx context.Context, user string, limit, offset int) ([]*types.ProjectInfo, error) //perm:user,web,admin
 
-	GetProjectOverviewByNode(ctx context.Context, limit, offset int) (*types.ListProjectOverviewRsp, error)      //perm:web,admin
-	GetProjectReplicasForNode(ctx context.Context, req *types.NodeInfoReq) (*types.ListProjectReplicaRsp, error) //perm:web,admin
+	GetProjectOverviewByNode(ctx context.Context, req *types.NodeProjectReq) (*types.ListProjectOverviewRsp, error) //perm:web,admin
+	GetProjectReplicasForNode(ctx context.Context, req *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) //perm:web,admin
 }
 
 // Scheduler is an interface for scheduler

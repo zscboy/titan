@@ -13,7 +13,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-var (
+const (
 	// minRetryTime defines the minimum time duration between retries
 	minRetryTime = 1 * time.Minute
 
