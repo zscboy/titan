@@ -222,7 +222,7 @@ func (n *SQLDB) LoadAllProjectReplicasForNode(nodeID string) ([]*types.ProjectRe
 }
 
 // LoadProjectReplicasForNode loads project replica information based on a node ID.
-func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int, uuid string, status types.ProjectReplicaStatus) (*types.ListProjectReplicaRsp, error) {
+func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int, uuid string, statuses []types.ProjectReplicaStatus) (*types.ListProjectReplicaRsp, error) {
 	res := new(types.ListProjectReplicaRsp)
 	var infos []*types.ProjectReplicas
 	var count int
@@ -233,9 +233,9 @@ func (n *SQLDB) LoadProjectReplicasForNode(nodeID string, limit, offset int, uui
 		sq = sq.Where(squirrel.Eq{"id": uuid})
 		sq2 = sq2.Where(squirrel.Eq{"id": uuid})
 	}
-	if status > 0 {
-		sq = sq.Where(squirrel.Eq{"status": status})
-		sq2 = sq2.Where(squirrel.Eq{"status": status})
+	if len(statuses) > 0 {
+		sq = sq.Where(squirrel.Eq{"status": statuses})
+		sq2 = sq2.Where(squirrel.Eq{"status": statuses})
 	}
 
 	query, args, err := sq.Limit(uint64(limit)).Offset(uint64(offset)).ToSql()

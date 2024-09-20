@@ -163,5 +163,5 @@ type NodeProjectReq struct {
 	Limit     int
 	Offset    int
 	ProjectID string
-	Status    ProjectReplicaStatus
+	Statuses  []ProjectReplicaStatus
 }

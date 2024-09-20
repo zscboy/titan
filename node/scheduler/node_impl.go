@@ -1771,7 +1771,7 @@ func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.Tuns
 
 // GetProjectReplicasForNode
 func (s *Scheduler) GetProjectReplicasForNode(ctx context.Context, req *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) {
-	return s.db.LoadProjectReplicasForNode(req.NodeID, req.Limit, req.Offset, req.ProjectID, req.Status)
+	return s.db.LoadProjectReplicasForNode(req.NodeID, req.Limit, req.Offset, req.ProjectID, req.Statuses)
 }
 
 // GetProjectsForNode
