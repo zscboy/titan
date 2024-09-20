@@ -16,8 +16,6 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 )
@@ -82,10 +80,7 @@ func SchedulerHandler(a api.Scheduler, permission bool, opts ...jsonrpc.ServerOp
 
 	serveRPC("/rpc/v0", fnapi)
 
-	metricHandler := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
-
 	// debugging
-	m.Handle("/metrics", metricHandler)
 	m.Handle("/debug/metrics", metrics.Exporter())
 	m.Handle("/debug/pprof-set/mutex", handleFractionOpt("MutexProfileFraction", func(x int) {
 		runtime.SetMutexProfileFraction(x)

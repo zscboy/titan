@@ -36,8 +36,38 @@ func NewDataSync(nodeManager *node.Manager) *DataSync {
 	}
 
 	go dataSync.startSyncLoop()
+	go dataSync.startCheckNodeTimer()
 
 	return dataSync
+}
+
+func (ds *DataSync) startCheckNodeTimer() {
+	now := time.Now()
+
+	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 1, 0, 0, now.Location())
+	if now.After(nextTime) {
+		nextTime = nextTime.Add(syncInterval)
+	}
+
+	duration := nextTime.Sub(now)
+
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	for {
+		<-timer.C
+
+		ds.notifyCandidateSyncAsset()
+
+		timer.Reset(syncInterval)
+	}
+}
+
+func (ds *DataSync) notifyCandidateSyncAsset() {
+	_, cList := ds.nodeManager.GetAllCandidateNodes()
+	for _, node := range cList {
+		ds.AddNodeToList(node.NodeID)
+	}
 }
 
 // AddNodeToList adds a nodeID to the nodeList.

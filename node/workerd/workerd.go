@@ -461,17 +461,17 @@ func (w *Workerd) RestartProjects(ctx context.Context) {
 
 	for _, project := range projects {
 		w.mu.Lock()
-		_, ok := w.projects[project.ID]
+		_, ok := w.projects[project.Id]
 		if !ok {
-			w.projects[project.ID] = &types.Project{ID: project.ID, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
+			w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
 		}
-		w.projects[project.ID].BundleURL = project.BundleURL
+		w.projects[project.Id].BundleURL = project.BundleURL
 		w.mu.Unlock()
 
 		switch project.Status {
 		case types.ProjectReplicaStatusStarted, types.ProjectReplicaStatusStarting, types.ProjectReplicaStatusOffline:
-			if running, _ := w.queryProject(ctx, project.ID); !running {
-				w.startCh <- project.ID
+			if running, _ := w.queryProject(ctx, project.Id); !running {
+				w.startCh <- project.Id
 			}
 		}
 	}
@@ -572,19 +572,19 @@ func (w *Workerd) sync(ctx context.Context, projects []*types.Project) {
 	activeProjects := make(map[string]struct{})
 
 	for _, project := range projectsResponse {
-		activeProjects[project.ID] = struct{}{}
+		activeProjects[project.Id] = struct{}{}
 
-		if _, exists := localProjects[project.ID]; exists {
+		if _, exists := localProjects[project.Id]; exists {
 			continue
 		}
 
 		w.mu.Lock()
-		w.projects[project.ID] = &types.Project{ID: project.ID, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
+		w.projects[project.Id] = &types.Project{ID: project.Id, Status: types.ProjectReplicaStatusStarting, BundleURL: project.BundleURL}
 		w.mu.Unlock()
 
-		localProjects[project.ID] = struct{}{}
+		localProjects[project.Id] = struct{}{}
 
-		w.startCh <- project.ID
+		w.startCh <- project.Id
 	}
 
 	for _, project := range projects {

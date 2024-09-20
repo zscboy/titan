@@ -89,7 +89,7 @@ func projectStateTable(serverID dtypes.ServerID) string {
 
 // InitTables initializes data tables.
 func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
-	// doExec(d, serverID)
+	doExec(d, serverID)
 
 	// init table
 	tx, err := d.db.Beginx()
@@ -102,8 +102,6 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 		if err != nil && err != sql.ErrTxDone {
 			log.Errorf("InitTables Rollback err:%s", err.Error())
 		}
-
-		// doExec2(d)
 	}()
 
 	// Execute table creation statements
@@ -151,84 +149,4 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-
-	// --------------------------------------
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD owner VARCHAR(128) DEFAULT ''", assetRecordTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD user_id         VARCHAR(128)  DEFAULT ''", assetDownloadTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("DROP TABLE %s ", replicaEventTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD total_size    BIGINT       DEFAULT 0", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s speed         INT          DEFAULT 0", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD client_id     VARCHAR(128) DEFAULT ''", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD type          TINYINT        DEFAULT 0", projectInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD upload_traffic     BIGINT        DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD download_traffic   BIGINT        DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD type          TINYINT        DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD time               INT           DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD max_timeout        INT           DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD min_timeout        INT           DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD avg_timeout        INT           DEFAULT 0", projectReplicasTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-}
-
-func doExec2(d *SQLDB) {
-	_, err := d.db.Exec(`INSERT INTO node_statistics (node_id, asset_count, retrieve_count)
-SELECT node_id, asset_count, retrieve_count FROM node_info
-ON DUPLICATE KEY UPDATE
-    asset_count = VALUES(asset_count),
-    retrieve_count = VALUES(retrieve_count);`)
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-		return
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN asset_count ;", nodeInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s DROP COLUMN retrieve_count ;", nodeInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
 }

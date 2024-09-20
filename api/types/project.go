@@ -100,7 +100,7 @@ type ProjectInfo struct {
 }
 
 type ProjectReplicas struct {
-	ID            string               `db:"id"`
+	Id            string               `db:"id"`
 	Status        ProjectReplicaStatus `db:"status"`
 	NodeID        string               `db:"node_id"`
 	CreatedTime   time.Time            `db:"created_time"`

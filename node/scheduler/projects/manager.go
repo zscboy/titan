@@ -216,7 +216,7 @@ func (m *Manager) updateProjectDeployResults(nodeID string, result []*types.Proj
 		}
 
 		err := m.SaveProjectReplicasInfo(&types.ProjectReplicas{
-			ID:     progress.ID,
+			Id:     progress.ID,
 			NodeID: nodeID,
 			Status: progress.Status,
 		})
@@ -329,7 +329,7 @@ func (m *Manager) CheckProjectReplicasFromNode(nodeID string) {
 			continue
 		}
 
-		nodeProjects = append(nodeProjects, info.ID)
+		nodeProjects = append(nodeProjects, info.Id)
 	}
 
 	if len(nodeProjects) == 0 {
@@ -401,7 +401,7 @@ func (m *Manager) checkProjectReplicas(limit, offset int) int {
 			if details.Status != types.ProjectReplicaStatusStarted && details.Status != types.ProjectReplicaStatusOffline {
 				continue
 			}
-			nodeProjects[details.NodeID] = append(nodeProjects[details.NodeID], details.ID)
+			nodeProjects[details.NodeID] = append(nodeProjects[details.NodeID], details.Id)
 		}
 	}
 

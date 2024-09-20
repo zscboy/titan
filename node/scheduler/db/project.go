@@ -162,8 +162,8 @@ func (n *SQLDB) LoadProjectInfos(serverID dtypes.ServerID, userID string, limit,
 // UpdateProjectReplicasInfo
 func (n *SQLDB) UpdateProjectReplicasInfo(info *types.ProjectReplicas) error {
 	query := fmt.Sprintf(
-		`UPDATE %s SET time=?,max_timeout=?,min_timeout=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
-	_, err := n.db.Exec(query, info.Time, info.MaxTimeout, info.MinTimeout, info.UploadTraffic, info.DownTraffic, info.ID, info.NodeID)
+		`UPDATE %s SET time=?,max_timeout=?,min_timeout=?,avg_timeout=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
+	_, err := n.db.Exec(query, info.Time, info.MaxTimeout, info.MinTimeout, info.AvgTimeout, info.UploadTraffic, info.DownTraffic, info.Id, info.NodeID)
 
 	return err
 }
@@ -181,12 +181,12 @@ func (n *SQLDB) SaveProjectReplicasInfo(info *types.ProjectReplicas) error {
 	}
 
 	if info.Status == types.ProjectReplicaStatusStarted {
-		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.ID, NodeID: info.NodeID, Event: types.ProjectEventAdd}, 1, 0)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventAdd}, 1, 0)
 		if err != nil {
 			return err
 		}
 	} else if info.Status == types.ProjectReplicaStatusError {
-		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.ID, NodeID: info.NodeID, Event: types.ProjectEventFailed}, 0, 1)
+		err = n.SaveProjectEvent(&types.ProjectReplicaEventInfo{ID: info.Id, NodeID: info.NodeID, Event: types.ProjectEventFailed}, 0, 1)
 		if err != nil {
 			return err
 		}

@@ -1784,7 +1784,7 @@ func (s *Scheduler) GetProjectsForNode(ctx context.Context, nodeID string) ([]*t
 	}
 
 	for _, info := range list {
-		pInfo, err := s.db.LoadProjectInfo(info.ID)
+		pInfo, err := s.db.LoadProjectInfo(info.Id)
 		if err != nil {
 			continue
 		}
