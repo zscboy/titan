@@ -345,7 +345,7 @@ func (n *SQLDB) LoadNodeInfo(nodeID string) (*types.NodeInfo, error) {
 
 	sInfo, err := n.LoadNodeStatisticsInfo(nodeID)
 	if err != nil {
-		log.Errorf("LoadNodeInfo load statistics info error:%s \n", err.Error())
+		log.Warnf("LoadNodeInfo %s load statistics info error:%s \n", nodeID, err.Error())
 	}
 
 	out.NodeStatisticsInfo = sInfo

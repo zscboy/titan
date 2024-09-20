@@ -646,10 +646,3 @@ type KeepaliveRsp struct {
 	ErrCode   int
 	ErrMsg    string
 }
-
-type NodeProjectReq struct {
-	NodeID    string
-	Limit     int
-	Offset    int
-	ProjectID string
-}

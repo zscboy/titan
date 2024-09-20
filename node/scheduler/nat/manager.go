@@ -134,8 +134,13 @@ func (m *Manager) getEdgeList() []*retryNode {
 	m.retryEdgeLock.Lock()
 	defer m.retryEdgeLock.Unlock()
 
-	eList := m.retryEdgeList
-	m.retryEdgeList = make([]*retryNode, 0)
+	end := 100
+	if len(m.retryEdgeList) < end {
+		end = len(m.retryEdgeList)
+	}
+
+	eList := m.retryEdgeList[:end]
+	m.retryEdgeList = m.retryEdgeList[end:]
 
 	return eList
 }

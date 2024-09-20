@@ -195,8 +195,7 @@ var listNodeCmd = &cli.Command{
 			tablewriter.Col("OnlineDuration"),
 			tablewriter.Col("OfflineDuration"),
 			// tablewriter.Col("Geo"),
-			tablewriter.Col("AssetCount"),
-			tablewriter.Col("RetrieveCount"),
+			tablewriter.Col("Type"),
 			// tablewriter.Col("Ver"),
 		)
 
@@ -213,8 +212,7 @@ var listNodeCmd = &cli.Command{
 				"OnlineDuration":  fmt.Sprintf("%d", info.OnlineDuration),
 				"OfflineDuration": fmt.Sprintf("%d", info.OfflineDuration),
 				// "Geo":             fmt.Sprintf("%s", info.AreaID),
-				"AssetCount":    fmt.Sprintf("%d", info.AssetCount),
-				"RetrieveCount": fmt.Sprintf("%d", info.RetrieveCount),
+				"Type": info.Type.String(),
 				// "Test":            info.IsTestNode,
 				// "Ver":             info.SystemVersion,
 			}

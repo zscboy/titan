@@ -157,3 +157,11 @@ type ListProjectReplicaRsp struct {
 	Total int                `json:"total"`
 	List  []*ProjectReplicas `json:"list"`
 }
+
+type NodeProjectReq struct {
+	NodeID    string
+	Limit     int
+	Offset    int
+	ProjectID string
+	Status    ProjectReplicaStatus
+}

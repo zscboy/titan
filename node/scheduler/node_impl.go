@@ -955,11 +955,6 @@ func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.Ass
 		return nil, 0, xerrors.Errorf("GetAssetSourceDownloadInfo %s cid to hash err:%s", cid, err.Error())
 	}
 
-	replicas, err := s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
-	if err != nil {
-		return nil, 0, err
-	}
-
 	aInfo, err := s.db.LoadAssetRecord(hash)
 	if err != nil {
 		return nil, 0, err
@@ -970,6 +965,20 @@ func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.Ass
 		out.AWSBucket = aInfo.Note
 	}
 
+	replicas, err := s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+	if err != nil {
+		return out, 0, err
+	}
+
+	if len(replicas) == 0 {
+		return out, 0, nil
+	}
+
+	// Shuffle array
+	for i := len(replicas) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		replicas[i], replicas[j] = replicas[j], replicas[i]
+	}
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	sources := make([]*types.SourceDownloadInfo, 0)
 
@@ -1010,12 +1019,6 @@ func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.Ass
 
 	if len(sources) == 0 {
 		return out, 0, nil
-	}
-
-	// Shuffle array
-	for i := len(sources) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		sources[i], sources[j] = sources[j], sources[i]
 	}
 
 	out.SourceList = sources
@@ -1768,7 +1771,7 @@ func (s *Scheduler) GetTunserverURLFromUser(ctx context.Context, req *types.Tuns
 
 // GetProjectReplicasForNode
 func (s *Scheduler) GetProjectReplicasForNode(ctx context.Context, req *types.NodeProjectReq) (*types.ListProjectReplicaRsp, error) {
-	return s.db.LoadProjectReplicasForNode(req.NodeID, req.Limit, req.Offset, req.ProjectID)
+	return s.db.LoadProjectReplicasForNode(req.NodeID, req.Limit, req.Offset, req.ProjectID, req.Status)
 }
 
 // GetProjectsForNode
