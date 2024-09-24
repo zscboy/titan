@@ -109,9 +109,9 @@ type ProjectReplicas struct {
 	UploadTraffic int64                `db:"upload_traffic"`
 	DownTraffic   int64                `db:"download_traffic"`
 	Time          int64                `db:"time"`
-	MaxTimeout    int64                `db:"max_timeout"`
-	MinTimeout    int64                `db:"min_timeout"`
-	AvgTimeout    int64                `db:"avg_timeout"`
+	MaxDelay      int64                `db:"max_delay"`
+	MinDelay      int64                `db:"min_delay"`
+	AvgDelay      int64                `db:"avg_delay"`
 
 	WsURL     string
 	BundleURL string

@@ -282,8 +282,6 @@ func (m *SQLDB) GetAllProviders(ctx context.Context, option *types.GetProviderOp
 		countSQL += strings.Join(condition, ` AND `)
 	}
 
-	fmt.Println("===<", countSQL)
-
 	var total int64
 	if err := m.db.GetContext(ctx, &total, countSQL); err != nil {
 		return 0, nil, err

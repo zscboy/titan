@@ -563,6 +563,7 @@ func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions)
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
+// L3Connect l3 node login to the scheduler
 func (s *Scheduler) L3Connect(ctx context.Context, opts *types.ConnectOptions) error {
 	return s.lnNodeConnected(ctx, opts, types.NodeL3)
 }
@@ -579,9 +580,15 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 
 	nNode := s.NodeManager.GetNode(nodeID)
 	if nNode == nil {
-		if err := s.NodeManager.NodeExists(nodeID); err != nil {
+		if err := s.db.NodeExists(nodeID); err != nil {
 			return xerrors.Errorf("node: %s, type: %d, error: %w", nodeID, nType, err)
 		}
+	}
+
+	// TODO temporary codes
+	err := s.db.UpdateNodeType(nodeID, nType)
+	if err != nil {
+		return xerrors.Errorf("UpdateNodeType %s err : %s", nodeID, err.Error())
 	}
 
 	externalIP, _, err := net.SplitHostPort(remoteAddr)
@@ -589,7 +596,7 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 		return xerrors.Errorf("nodeConnect err SplitHostPort err:%s", err.Error())
 	}
 
-	pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
+	pStr, err := s.db.LoadNodePublicKey(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return xerrors.Errorf("load node port %s err : %s", nodeID, err.Error())
 	}
@@ -629,7 +636,7 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 	nodeInfo.NATType = types.NatTypeUnknown.String()
 	nodeInfo.LastSeen = time.Now()
 
-	dbInfo, err := s.NodeManager.LoadNodeInfo(nodeID)
+	dbInfo, err := s.db.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {
 		return xerrors.Errorf("nodeConnect err load node online duration %s err : %s", nodeID, err.Error())
 	}
@@ -1404,7 +1411,6 @@ func (s *Scheduler) GetNodeOnlineState(ctx context.Context) (bool, error) {
 // GetAssetView get the asset view of node
 func (s *Scheduler) GetAssetView(ctx context.Context, nodeID string, isFromNode bool) (*types.AssetView, error) {
 	if isFromNode {
-		fmt.Println("from node")
 		node := s.NodeManager.GetNode(nodeID)
 		if node == nil {
 			return nil, fmt.Errorf("node %s offline or not exist", nodeID)
@@ -1439,7 +1445,6 @@ func (s *Scheduler) GetAssetView(ctx context.Context, nodeID string, isFromNode 
 // GetAssetInBucket get the assets of the bucket
 func (s *Scheduler) GetAssetsInBucket(ctx context.Context, nodeID string, bucketID int, isFromNode bool) ([]string, error) {
 	if isFromNode {
-		fmt.Println("from node")
 		node := s.NodeManager.GetNode(nodeID)
 		if node == nil {
 			return nil, fmt.Errorf("node %s offline or not exist", nodeID)

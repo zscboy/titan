@@ -149,4 +149,17 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
+
+	_, err := d.db.Exec("ALTER TABLE project_replicas CHANGE max_timeout max_delay          INT           DEFAULT 0")
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec("ALTER TABLE project_replicas CHANGE min_timeout min_delay          INT           DEFAULT 0")
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
+	_, err = d.db.Exec("ALTER TABLE project_replicas CHANGE avg_timeout avg_delay          INT           DEFAULT 0")
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }

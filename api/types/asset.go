@@ -17,6 +17,7 @@ type AssetPullProgress struct {
 	DoneSize        int64
 
 	ClientID string
+	Speed    int64
 }
 
 // PullResult contains information about the result of a data pull

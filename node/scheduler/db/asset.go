@@ -18,8 +18,8 @@ import (
 // It sets the end time and updates the status and done size of the replica specified by hash and node_id.
 // It returns an error if no rows were affected (i.e., if the replica is already finished or does not exist).
 func (n *SQLDB) UpdateReplicaInfo(cInfo *types.ReplicaInfo) error {
-	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=?, client_id=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
-	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ClientID, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
+	query := fmt.Sprintf(`UPDATE %s SET end_time=NOW(), status=?, done_size=?, client_id=?, speed=? WHERE hash=? AND node_id=? AND (status=? or status=?)`, replicaInfoTable)
+	result, err := n.db.Exec(query, cInfo.Status, cInfo.DoneSize, cInfo.ClientID, cInfo.Speed, cInfo.Hash, cInfo.NodeID, types.ReplicaStatusPulling, types.ReplicaStatusWaiting)
 	if err != nil {
 		return err
 	}

@@ -954,6 +954,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			Hash:     hash,
 			NodeID:   nodeID,
 			ClientID: progress.ClientID,
+			Speed:    progress.Speed,
 		}
 
 		err = m.UpdateReplicaInfo(cInfo)

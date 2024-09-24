@@ -555,13 +555,14 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	}
 
 	// update replica info
-	if rInfo.MaxTimeout < req.MaxTimeout {
-		rInfo.MaxTimeout = req.MaxTimeout
+	if rInfo.MaxDelay < req.MaxDelay {
+		rInfo.MaxDelay = req.MaxDelay
 	}
 
-	if rInfo.MinTimeout > req.MinTimeout {
-		rInfo.MinTimeout = req.MinTimeout
+	if rInfo.MinDelay > req.MinDelay {
+		rInfo.MinDelay = req.MinDelay
 	}
+	rInfo.AvgDelay = req.AvgDelay
 
 	rInfo.UploadTraffic += int64(req.BandwidthUpSize)
 	rInfo.DownTraffic += int64(req.BandwidthDownSize)
@@ -573,6 +574,7 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	return s.db.UpdateProjectReplicasInfo(rInfo)
 }
 
+// SubmitWorkloadReportV2
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {
 	// from sdk or web or client
 	return s.WorkloadManager.PushResult(workload, "")

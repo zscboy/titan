@@ -162,8 +162,8 @@ func (n *SQLDB) LoadProjectInfos(serverID dtypes.ServerID, userID string, limit,
 // UpdateProjectReplicasInfo
 func (n *SQLDB) UpdateProjectReplicasInfo(info *types.ProjectReplicas) error {
 	query := fmt.Sprintf(
-		`UPDATE %s SET time=?,max_timeout=?,min_timeout=?,avg_timeout=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
-	_, err := n.db.Exec(query, info.Time, info.MaxTimeout, info.MinTimeout, info.AvgTimeout, info.UploadTraffic, info.DownTraffic, info.Id, info.NodeID)
+		`UPDATE %s SET time=?,max_delay=?,min_delay=?,avg_delay=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
+	_, err := n.db.Exec(query, info.Time, info.MaxDelay, info.MinDelay, info.AvgDelay, info.UploadTraffic, info.DownTraffic, info.Id, info.NodeID)
 
 	return err
 }

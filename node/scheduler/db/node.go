@@ -193,6 +193,14 @@ func (n *SQLDB) SaveNodePublicKey(pKey, nodeID string) error {
 	return err
 }
 
+// UpdateNodeType updates the node type  with a node.
+func (n *SQLDB) UpdateNodeType(nodeID string, t types.NodeType) error {
+	query := fmt.Sprintf(`UPDATE %s SET node_type=? WHERE node_id=? `, nodeRegisterTable)
+	_, err := n.db.Exec(query, t, nodeID)
+
+	return err
+}
+
 // SaveMigrateKey updates the migration key associated with a node.
 func (n *SQLDB) SaveMigrateKey(pKey, nodeID string) error {
 	query := fmt.Sprintf(`UPDATE %s SET migrate_key=? WHERE node_id=? `, nodeRegisterTable)
