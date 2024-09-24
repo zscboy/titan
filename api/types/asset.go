@@ -320,4 +320,5 @@ type AssetDownloadResultRsp struct {
 	Hash          string `db:"hash"`
 	TotalTraffic  int64  `db:"total_traffic"`
 	PeakBandwidth int64  `db:"peak_bandwidth"`
+	UserID        string `db:"user_id"`
 }

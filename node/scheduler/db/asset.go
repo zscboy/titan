@@ -670,12 +670,12 @@ func (n *SQLDB) SaveAssetDownloadResult(info *types.AssetDownloadResult) error {
 func (n *SQLDB) LoadDownloadResultsFromAsset(ctx context.Context, hashes []string, start, end time.Time) ([]*types.AssetDownloadResultRsp, error) {
 	var list []*types.AssetDownloadResultRsp
 
-	sq := squirrel.Select("hash,COALESCE(SUM(total_traffic), 0) AS total_traffic,COALESCE(MAX(peak_bandwidth), 0) AS peak_bandwidth").
+	sq := squirrel.Select("user_id,hash,COALESCE(SUM(total_traffic), 0) AS total_traffic,COALESCE(MAX(peak_bandwidth), 0) AS peak_bandwidth").
 		From(assetDownloadTable).Where("created_time BETWEEN ? AND ?", start, end)
 	if len(hashes) > 0 {
 		sq = sq.Where(squirrel.Eq{"hash": hashes})
 	}
-	query, args, err := sq.GroupBy("hash").ToSql()
+	query, args, err := sq.GroupBy("hash", "user_id").ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("generate sql of get DownloadResultsFromAssets error:%w", err)
 	}
