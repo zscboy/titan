@@ -21,6 +21,13 @@ type CreateAssetReq struct {
 	ReplicaCount  int64
 	ExpirationDay int
 	Owner         string
+	TraceID       string
+}
+
+type GetUploadInfoReq struct {
+	UserID  string
+	URLMode bool
+	TraceID string
 }
 
 type UploadInfo struct {
@@ -39,6 +46,7 @@ type AuthUserUploadDownloadAsset struct {
 	AssetCID   string
 	AssetSize  int64
 	Expiration time.Time
+	TraceID    string
 }
 
 type UploadProgress struct {

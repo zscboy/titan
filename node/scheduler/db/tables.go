@@ -215,9 +215,11 @@ var cReplicaEventTable = `
 		source        TINYINT      DEFAULT 0,
 	    client_id     VARCHAR(128) DEFAULT '',
 		speed         INT          DEFAULT 0,
+		trace_id      VARCHAR(128) DEFAULT '', 
 		KEY idx_hash (hash),
 		KEY idx_node_id (node_id),
 		KEY idx_client_id (client_id),
+		KEY idx_trace_id (trace_id),
 		KEY idx_created_time (created_time)
 	) ENGINE=InnoDB COMMENT='asset replica event';`
 
@@ -354,7 +356,7 @@ var cAssetDownloadTable = `
 		hash            VARCHAR(128)  NOT NULL,
 		created_time    DATETIME      DEFAULT CURRENT_TIMESTAMP,
  		total_traffic   BIGINT        DEFAULT 0,
-		peak_bandwidth 	INT           DEFAULT 0,
+		peak_bandwidth 	BIGINT        DEFAULT 0,
 		user_id         VARCHAR(128)  DEFAULT '',
  		KEY idx_hash_id (hash),
  		KEY idx_node_id (node_id)

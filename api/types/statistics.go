@@ -44,6 +44,7 @@ type AssetReplicaEventInfo struct {
 	Cid       string `db:"cid"`
 	TotalSize int64  `db:"total_size"`
 	DoneSize  int64  `db:"done_size"`
+	TraceID   string `db:"trace_id"`
 }
 
 // ListAssetReplicaEventRsp list replica events

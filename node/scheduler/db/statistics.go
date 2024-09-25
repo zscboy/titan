@@ -60,8 +60,8 @@ func (n *SQLDB) SaveReplicaEvent(info *types.AssetReplicaEventInfo, succeededCou
 }
 
 func (n *SQLDB) saveReplicaEvent(tx *sqlx.Tx, info *types.AssetReplicaEventInfo) error {
-	qry := fmt.Sprintf(`INSERT INTO %s (node_id, event, hash, source, client_id, speed, cid, total_size, done_size) 
-		        VALUES (:node_id, :event, :hash, :source, :client_id, :speed, :cid, :total_size, :done_size)`, replicaEventTable)
+	qry := fmt.Sprintf(`INSERT INTO %s (node_id, event, hash, source, client_id, speed, cid, total_size, done_size, trace_id) 
+		        VALUES (:node_id, :event, :hash, :source, :client_id, :speed, :cid, :total_size, :done_size, :trace_id)`, replicaEventTable)
 	_, err := tx.NamedExec(qry, info)
 
 	return err

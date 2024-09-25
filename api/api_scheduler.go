@@ -292,6 +292,7 @@ type Scheduler interface {
 
 	// GetNodeUploadInfo
 	GetNodeUploadInfo(ctx context.Context, userID string, pass string, urlMode bool) (*types.UploadInfo, error) //perm:user,web,admin
+	GetNodeUploadInfoV2(ctx context.Context, info *types.GetUploadInfoReq) (*types.UploadInfo, error)           //perm:user,web,admin
 
 	// AssignTunserverURL Deprecated
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge

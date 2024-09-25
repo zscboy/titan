@@ -39,6 +39,8 @@ type JWTPayload struct {
 	AccessControlList []UserAccessControl
 	// Password for encrypt and decrypt the upload file
 	FilePassNonce string
+
+	TraceID string
 }
 
 // StorageStats storage stats of user

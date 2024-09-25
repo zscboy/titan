@@ -568,12 +568,27 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth, UserID: userID})
 }
 
+func (s *Scheduler) GetNodeUploadInfoV2(ctx context.Context, info *types.GetUploadInfoReq) (*types.UploadInfo, error) {
+	userID := info.UserID
+
+	uID := handler.GetUserID(ctx)
+	if len(uID) > 0 {
+		userID = uID
+	}
+
+	return s.getUploadInfo(userID, info.URLMode, info.TraceID)
+}
+
 func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string, urlMode bool) (*types.UploadInfo, error) {
 	uID := handler.GetUserID(ctx)
 	if len(uID) > 0 {
 		userID = uID
 	}
 
+	return s.getUploadInfo(userID, urlMode, "")
+}
+
+func (s *Scheduler) getUploadInfo(userID string, urlMode bool, traceID string) (*types.UploadInfo, error) {
 	_, nodes := s.NodeManager.GetResourceCandidateNodes()
 
 	cNodes := make([]*node.Node, 0)
@@ -596,7 +611,7 @@ func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNo
 	}
 
 	// TODO remove FilePassNonce in order to avoid L1-updates
-	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID} //  FilePassNonce: passNonce
+	payload := &types.JWTPayload{Allow: []auth.Permission{api.RoleUser}, ID: userID, TraceID: traceID} //  FilePassNonce: passNonce
 
 	var suffix string = "/uploadv2"
 	if urlMode {

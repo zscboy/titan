@@ -611,6 +611,7 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 		AssetCID:   req.AssetCID,
 		AssetSize:  req.AssetSize,
 		Expiration: time.Now().Add(time.Hour * 24),
+		TraceID:    req.TraceID,
 	}
 
 	ret := &types.UploadInfo{
@@ -981,6 +982,17 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			continue
 		}
 
+		event := &types.AssetReplicaEventInfo{
+			Hash:      cInfo.Hash,
+			Cid:       record.CID,
+			NodeID:    nodeID,
+			TotalSize: cInfo.DoneSize,
+			Source:    types.AssetSource(record.Source),
+			ClientID:  progress.ClientID,
+			DoneSize:  progress.DoneSize,
+			TraceID:   progress.TraceID,
+		}
+
 		if progress.Status == types.ReplicaStatusSucceeded {
 			haveChange = true
 			doneCount++
@@ -994,9 +1006,9 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 				continue
 			}
 
-			err = m.SaveReplicaEvent(&types.AssetReplicaEventInfo{
-				Hash: cInfo.Hash, Cid: record.CID, NodeID: nodeID, TotalSize: cInfo.DoneSize, Event: types.ReplicaEventAdd, Source: types.AssetSource(record.Source), ClientID: progress.ClientID, DoneSize: progress.DoneSize,
-			}, 1, 0)
+			event.Event = types.ReplicaEventAdd
+
+			err = m.SaveReplicaEvent(event, 1, 0)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 				continue
@@ -1004,9 +1016,9 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 
 			downloadTraffic += cInfo.DoneSize
 		} else if progress.Status == types.ReplicaStatusFailed {
-			err = m.SaveReplicaEvent(&types.AssetReplicaEventInfo{
-				Hash: cInfo.Hash, Cid: record.CID, NodeID: nodeID, TotalSize: cInfo.DoneSize, Event: types.ReplicaEventFailed, Source: types.AssetSource(record.Source), ClientID: progress.ClientID, DoneSize: progress.DoneSize,
-			}, 0, 1)
+			event.Event = types.ReplicaEventFailed
+
+			err = m.SaveReplicaEvent(event, 0, 1)
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s SaveReplicaEvent err:%s", nodeID, err.Error())
 			}

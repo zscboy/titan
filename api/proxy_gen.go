@@ -629,6 +629,8 @@ type SchedulerStruct struct {
 
 		GetNodeUploadInfo func(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) `perm:"user,web,admin"`
 
+		GetNodeUploadInfoV2 func(p0 context.Context, p1 *types.GetUploadInfoReq) (*types.UploadInfo, error) `perm:"user,web,admin"`
+
 		GetReplicaEvents func(p0 context.Context, p1 time.Time, p2 time.Time, p3 int, p4 int) (*types.ListAssetReplicaEventRsp, error) `perm:"web,admin"`
 
 		GetSchedulerPublicKey func(p0 context.Context) (string, error) `perm:"edge,candidate"`
@@ -2935,6 +2937,17 @@ func (s *SchedulerStruct) GetNodeUploadInfo(p0 context.Context, p1 string, p2 st
 }
 
 func (s *SchedulerStub) GetNodeUploadInfo(p0 context.Context, p1 string, p2 string, p3 bool) (*types.UploadInfo, error) {
+	return nil, ErrNotSupported
+}
+
+func (s *SchedulerStruct) GetNodeUploadInfoV2(p0 context.Context, p1 *types.GetUploadInfoReq) (*types.UploadInfo, error) {
+	if s.Internal.GetNodeUploadInfoV2 == nil {
+		return nil, ErrNotSupported
+	}
+	return s.Internal.GetNodeUploadInfoV2(p0, p1)
+}
+
+func (s *SchedulerStub) GetNodeUploadInfoV2(p0 context.Context, p1 *types.GetUploadInfoReq) (*types.UploadInfo, error) {
 	return nil, ErrNotSupported
 }
 

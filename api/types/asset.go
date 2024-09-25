@@ -18,6 +18,8 @@ type AssetPullProgress struct {
 
 	ClientID string
 	Speed    int64
+
+	TraceID string
 }
 
 // PullResult contains information about the result of a data pull
