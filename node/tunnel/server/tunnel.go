@@ -14,19 +14,9 @@ import (
 
 type CMD int
 
-const (
-	cMDPing = 1
-	cMDPong = 2
-)
-
 type DataCount struct {
 	FromReq int64
 	FromTun int64
-}
-
-type waitConn struct {
-	create   chan bool
-	complete chan bool
 }
 
 type TunnelOptions struct {
@@ -84,9 +74,9 @@ func newTunnel(ctx context.Context, ts *Tunserver, relays []string, opts *Tunnel
 	}
 
 	if len(relays) > 0 {
-		return newTunnelWithRelays(context.Background(), relays, opts)
+		return newTunnelWithRelays(ctx, relays, opts)
 	}
-	return newTunnelWithTargetNode(context.Background(), ts, opts)
+	return newTunnelWithTargetNode(ctx, ts, opts)
 }
 
 func newTunnelWithRelays(ctx context.Context, relays []string, opts *TunnelOptions) (*Tunnel, error) {
