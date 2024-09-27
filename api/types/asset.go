@@ -324,3 +324,11 @@ type AssetDownloadResultRsp struct {
 	PeakBandwidth int64  `db:"peak_bandwidth"`
 	UserID        string `db:"user_id"`
 }
+
+type ShareAssetReq struct {
+	TraceID    string
+	UserID     string
+	AssetCID   string
+	FilePass   string
+	ExpireTime time.Time
+}

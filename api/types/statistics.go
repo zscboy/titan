@@ -14,6 +14,7 @@ const (
 
 // RetrieveEvent retrieve event
 type RetrieveEvent struct {
+	TraceID     string      `db:"trace_id"`
 	NodeID      string      `db:"node_id"`
 	ClientID    string      `db:"client_id"`
 	Hash        string      `db:"hash"`
@@ -45,6 +46,7 @@ type AssetReplicaEventInfo struct {
 	TotalSize int64  `db:"total_size"`
 	DoneSize  int64  `db:"done_size"`
 	TraceID   string `db:"trace_id"`
+	Msg       string `db:"msg"`
 }
 
 // ListAssetReplicaEventRsp list replica events

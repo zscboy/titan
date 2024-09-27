@@ -125,6 +125,8 @@ type AssetAPIStruct struct {
 
 		ResetAssetReplicaCount func(p0 context.Context, p1 string, p2 int) (error) `perm:"web,admin"`
 
+		ShareAssetV2 func(p0 context.Context, p1 *types.ShareAssetReq) ([]string, error) `perm:"web,admin,user"`
+
 		ShareAssets func(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) `perm:"web,admin,user"`
 
 		ShareEncryptedAsset func(p0 context.Context, p1 string, p2 string, p3 string, p4 time.Time) ([]string, error) `perm:"web,admin,user"`
@@ -1219,6 +1221,17 @@ func (s *AssetAPIStruct) ResetAssetReplicaCount(p0 context.Context, p1 string, p
 
 func (s *AssetAPIStub) ResetAssetReplicaCount(p0 context.Context, p1 string, p2 int) (error) {
 	return ErrNotSupported
+}
+
+func (s *AssetAPIStruct) ShareAssetV2(p0 context.Context, p1 *types.ShareAssetReq) ([]string, error) {
+	if s.Internal.ShareAssetV2 == nil {
+		return *new([]string), ErrNotSupported
+	}
+	return s.Internal.ShareAssetV2(p0, p1)
+}
+
+func (s *AssetAPIStub) ShareAssetV2(p0 context.Context, p1 *types.ShareAssetReq) ([]string, error) {
+	return *new([]string), ErrNotSupported
 }
 
 func (s *AssetAPIStruct) ShareAssets(p0 context.Context, p1 string, p2 []string, p3 time.Time) (map[string][]string, error) {

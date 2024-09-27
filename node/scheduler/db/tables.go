@@ -83,15 +83,18 @@ var cNodeStatisticsTable = `
 
 var cNodeRetrieveTable = `
     CREATE TABLE if not exists %s (
-	    node_id       VARCHAR(128)   NOT NULL,
+	    trace_id      VARCHAR(128)   DEFAULT '',
+ 	    node_id       VARCHAR(128)   NOT NULL,
 	    client_id     VARCHAR(128)   DEFAULT '',
 		hash          VARCHAR(128)   NOT NULL,
 		speed         INT            DEFAULT 0,
 		size          BIGINT         DEFAULT 0,		
 	    status        TINYINT        DEFAULT 0,
 		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,
-		KEY idx_node_id  (node_id),
-		KEY idx_hash_id  (hash)
+		KEY idx_hash_id  (trace_id),
+		KEY idx_hash_id  (node_id),
+		KEY idx_hash_id  (hash),
+		KEY idx_client_id (client_id)
 	) ENGINE=InnoDB COMMENT='node retrieve record';`
 
 var cValidationResultsTable = `
@@ -205,17 +208,18 @@ var cWorkloadTable = `
 
 var cReplicaEventTable = `
     CREATE TABLE if not exists %s (
-		hash          VARCHAR(128) NOT NULL,
-		event         TINYINT      DEFAULT 0,
-		node_id       VARCHAR(128) NOT NULL,
-		cid           VARCHAR(128) DEFAULT '',
-		total_size    BIGINT       DEFAULT 0,
-		done_size     BIGINT       DEFAULT 0,
-	    created_time  DATETIME     DEFAULT CURRENT_TIMESTAMP,
-		source        TINYINT      DEFAULT 0,
-	    client_id     VARCHAR(128) DEFAULT '',
-		speed         INT          DEFAULT 0,
-		trace_id      VARCHAR(128) DEFAULT '', 
+		hash          VARCHAR(128)  NOT NULL,
+		event         TINYINT       DEFAULT 0,
+		node_id       VARCHAR(128)  NOT NULL,
+		cid           VARCHAR(128)  DEFAULT '',
+		total_size    BIGINT        DEFAULT 0,
+		done_size     BIGINT        DEFAULT 0,
+	    created_time  DATETIME      DEFAULT CURRENT_TIMESTAMP,
+		source        TINYINT       DEFAULT 0,
+	    client_id     VARCHAR(128)  DEFAULT '',
+		speed         INT           DEFAULT 0,
+		trace_id      VARCHAR(128)  DEFAULT '', 
+		msg           VARCHAR(1024) DEFAULT '', 
 		KEY idx_hash (hash),
 		KEY idx_node_id (node_id),
 		KEY idx_client_id (client_id),

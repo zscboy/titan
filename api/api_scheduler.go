@@ -67,6 +67,8 @@ type AssetAPI interface {
 	ShareAssets(ctx context.Context, userID string, assetCID []string, expireTime time.Time) (map[string][]string, error) //perm:web,admin,user
 	// ShareEncryptedAsset shares the encrypted file
 	ShareEncryptedAsset(ctx context.Context, userID, assetCID, filePass string, expireTime time.Time) ([]string, error) // perm:web,admin,user
+	// ShareAssetV2 shares the assets of the user.
+	ShareAssetV2(ctx context.Context, info *types.ShareAssetReq) ([]string, error) //perm:web,admin,user
 	// // UpdateShareStatus update share status of the user asset
 	// UpdateShareStatus(ctx context.Context, userID, assetCID string) error //perm:web,admin
 	// // GetAssetStatus retrieves a asset status

@@ -336,6 +336,48 @@ func (s *Scheduler) GenerateTokenForDownloadSource(ctx context.Context, nodeID s
 	return s.AssetManager.GenerateTokenForDownloadSource(nodeID, cid)
 }
 
+// ShareAssetV2  shares the file
+func (s *Scheduler) ShareAssetV2(ctx context.Context, info *types.ShareAssetReq) ([]string, error) {
+	assetCID := info.AssetCID
+	expireTime := info.ExpireTime
+
+	rsp, _, err := s.getDownloadInfos(assetCID, true)
+	if err != nil {
+		log.Errorf("ShareAssetV2 %s getDownloadInfos err:%s \n", assetCID, err.Error())
+		return nil, &api.ErrWeb{Code: terrors.NotFound.Int(), Message: err.Error()}
+	}
+	if len(rsp.SourceList) == 0 {
+		log.Errorf("ShareAssetV2 %s rsp.SourceList == 0 \n", assetCID)
+		return nil, &api.ErrWeb{Code: terrors.NotFoundNode.Int()}
+	}
+
+	payload := &types.AuthUserUploadDownloadAsset{UserID: info.UserID, AssetCID: assetCID, TraceID: info.TraceID}
+	if !expireTime.IsZero() {
+		payload.Expiration = expireTime
+	}
+
+	tk, err := generateAccessToken(payload, info.FilePass, s)
+	if err != nil {
+		log.Errorf("ShareAssetV2 %s generateAccessToken err:%s \n", assetCID, err.Error())
+		return nil, &api.ErrWeb{Code: terrors.GenerateAccessToken.Int()}
+	}
+
+	var ret []string
+
+	for _, info := range rsp.SourceList {
+		n := s.NodeManager.GetCandidateNode(info.NodeID)
+		if n != nil {
+			url := fmt.Sprintf("http://%s/ipfs/%s?token=%s", info.Address, assetCID, tk)
+			if len(n.ExternalURL) > 0 {
+				url = fmt.Sprintf("%s/ipfs/%s?token=%s", n.ExternalURL, assetCID, tk)
+			}
+			ret = append(ret, url)
+		}
+	}
+
+	return ret, err
+}
+
 // ShareAssets shares the assets of the user.
 func (s *Scheduler) ShareAssets(ctx context.Context, userID string, assetCIDs []string, expireTime time.Time) (map[string][]string, error) {
 	urls := make(map[string][]string)

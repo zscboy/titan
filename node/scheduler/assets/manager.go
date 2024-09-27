@@ -982,6 +982,10 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			continue
 		}
 
+		if len(progress.Msg) > 1024 {
+			progress.Msg = string([]rune(progress.Msg)[:1024])
+		}
+
 		event := &types.AssetReplicaEventInfo{
 			Hash:      cInfo.Hash,
 			Cid:       record.CID,
@@ -991,6 +995,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			ClientID:  progress.ClientID,
 			DoneSize:  progress.DoneSize,
 			TraceID:   progress.TraceID,
+			Msg:       progress.Msg,
 		}
 
 		if progress.Status == types.ReplicaStatusSucceeded {
