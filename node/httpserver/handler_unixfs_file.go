@@ -125,11 +125,6 @@ func (hs *HttpServer) serveFile(w http.ResponseWriter, r *http.Request, assetCID
 
 	http.ServeContent(w, r, name, modtime, content)
 
-	if countWrite, ok := w.(*SpeedCountWriter); ok {
-		if countWrite.dataSize == 0 {
-			countWrite.dataSize = size
-		}
-	}
 	log.Debugf("Served asset (%s)", contentPath)
 	return 0, nil
 }

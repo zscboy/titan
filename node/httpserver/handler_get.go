@@ -16,6 +16,7 @@ import (
 
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/Filecoin-Titan/titan/node/cidutil"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
 	"golang.org/x/xerrors"
 )
@@ -36,7 +37,7 @@ func (hs *HttpServer) isNeedRedirect(r *http.Request) bool {
 
 // getHandler dispatches incoming requests to the appropriate handler based on the format requested in the Accept header or 'format' query parameter
 func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
-	tkPayload, filePass, err := hs.verifyToken(w, r)
+	tkPayload, schJwtPayload, err := hs.verifyToken(w, r)
 	if err != nil {
 		log.Warnf("verify token error: %s, url: %s", err.Error(), r.URL.String())
 
@@ -64,6 +65,15 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
+	var (
+		filePass string
+		traceID  string
+	)
+	if schJwtPayload != nil {
+		filePass = schJwtPayload.FilePassNonce
+		traceID = schJwtPayload.TraceID
+	}
+
 	respFormat, formatParams, err := customResponseFormat(r)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("processing the Accept header error: %s", err.Error()), http.StatusBadRequest)
@@ -78,7 +88,7 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 	switch respFormat {
 	case "", formatJSON, formatCbor: // The implicit response format is UnixFS
 		if isDirectory, statusCode, err = hs.serveUnixFS(speedCountWriter, r, assetCID, []byte(filePass)); isDirectory {
-			log.Debugf("serveUnixDir size %d, speed %dB/s, cost time %fms", speedCountWriter.dataSize, speedCountWriter.speed(), speedCountWriter.CostTime())
+			log.Debugf("serveUnixDir size %d, speed %dB/s, cost time %fms", speedCountWriter.dataSize, speedCountWriter.Speed(), speedCountWriter.CostTime())
 			return
 		}
 	case formatRaw:
@@ -94,36 +104,54 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("unsupported format %s", respFormat)
 	}
 
+	var success types.EventStatus = types.EventStatusSucceed
 	if err != nil {
+		success = types.EventStatusFailed
 		http.Error(w, err.Error(), statusCode)
 		log.Errorf("get handler error %s", err.Error())
 		return
 	}
 
-	log.Debugf("tokenID:%s, clientID:%s, assetCid:%s, download size %d, speed %d, cost time %fms", tkPayload.ID, tkPayload.ClientID, tkPayload.AssetCID, speedCountWriter.dataSize, speedCountWriter.speed(), speedCountWriter.CostTime())
-
-	if len(tkPayload.ID) == 0 && len(tkPayload.ClientID) != 0 && speedCountWriter.speed() > 0 {
-		hs.scheduler.UserAssetDownloadResult(context.Background(), tkPayload.ClientID, tkPayload.AssetCID, speedCountWriter.dataSize, speedCountWriter.speed())
+	hash, err := cidutil.CIDToHash(tkPayload.AssetCID)
+	if err != nil {
+		log.Errorf("cid %s to hash error %s", tkPayload.AssetCID, err.Error())
 	}
+
+	hs.scheduler.UserAssetDownloadResultV2(context.Background(), &types.RetrieveEvent{
+		TraceID:       traceID,
+		ClientID:      tkPayload.ClientID,
+		Hash:          hash,
+		Speed:         speedCountWriter.Speed(),
+		Size:          speedCountWriter.dataSize,
+		Status:        success,
+		CreatedTime:   time.Now(),
+		PeakBandwidth: speedCountWriter.PeakSpeed(),
+	})
+
+	log.Debugf("[Download] tokenID:%s, clientID:%s, assetCid:%s, hash:%s, download size:%d, avg speed:%d, peak speed:%d,  cost time %fms", tkPayload.ID, tkPayload.ClientID, tkPayload.AssetCID, hash, speedCountWriter.dataSize, speedCountWriter.Speed(), speedCountWriter.PeakSpeed(), speedCountWriter.CostTime())
+
+	// if len(tkPayload.ID) == 0 && len(tkPayload.ClientID) != 0 && speedCountWriter.speed() > 0 {
+	// hs.scheduler.UserAssetDownloadResult(context.Background(), tkPayload.ClientID, tkPayload.AssetCID, speedCountWriter.dataSize, speedCountWriter.speed())
+	// }
 }
 
 // verifyToken checks the request's token to make sure it was authorized
-func (hs *HttpServer) verifyToken(w http.ResponseWriter, r *http.Request) (*types.TokenPayload, string, error) {
+func (hs *HttpServer) verifyToken(w http.ResponseWriter, r *http.Request) (*types.TokenPayload, *types.JWTPayload, error) {
 	if hs.schedulerPublicKey == nil {
-		return nil, "", fmt.Errorf("scheduler public key not exist, can not verify sign")
+		return nil, nil, fmt.Errorf("scheduler public key not exist, can not verify sign")
 	}
 
 	if token := r.Header.Get("User-Token"); len(token) > 0 {
 		ut, err := hs.scheduler.AuthVerify(context.TODO(), token)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, err
 		}
 
 		rootCID, err := getCIDFromURLPath(r.URL.Path)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, err
 		}
-		return &types.TokenPayload{AssetCID: rootCID.String()}, ut.FilePassNonce, nil
+		return &types.TokenPayload{AssetCID: rootCID.String()}, ut, nil
 	}
 
 	if token := r.URL.Query().Get("token"); len(token) > 0 {
@@ -132,16 +160,16 @@ func (hs *HttpServer) verifyToken(w http.ResponseWriter, r *http.Request) (*type
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	// TODO check if come from browser
 	if len(data) == 0 && len(r.UserAgent()) > 0 {
 		rootCID, err := getCIDFromURLPath(r.URL.Path)
 		if err != nil {
-			return nil, "", err
+			return nil, nil, err
 		}
-		return &types.TokenPayload{AssetCID: rootCID.String()}, "", nil
+		return &types.TokenPayload{AssetCID: rootCID.String()}, nil, nil
 	}
 
 	buffer := bytes.NewBuffer(data)
@@ -150,28 +178,28 @@ func (hs *HttpServer) verifyToken(w http.ResponseWriter, r *http.Request) (*type
 	esc := &types.Token{}
 	err = dec.Decode(esc)
 	if err != nil {
-		return nil, "", xerrors.Errorf("decode token error %w", err)
+		return nil, nil, xerrors.Errorf("decode token error %w", err)
 	}
 
 	sign, err := hex.DecodeString(esc.Sign)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	cipherText, err := hex.DecodeString(esc.CipherText)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	rsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
 	err = rsa.VerifySign(hs.schedulerPublicKey, sign, cipherText)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	mgs, err := rsa.Decrypt(cipherText, hs.privateKey)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	buffer = bytes.NewBuffer(mgs)
@@ -180,32 +208,32 @@ func (hs *HttpServer) verifyToken(w http.ResponseWriter, r *http.Request) (*type
 	tkPayload := &types.TokenPayload{}
 	err = dec.Decode(tkPayload)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
-	return tkPayload, "", nil
+	return tkPayload, nil, nil
 }
 
-func (hs *HttpServer) parseJWTToken(token string, r *http.Request) (*types.TokenPayload, string, error) {
+func (hs *HttpServer) parseJWTToken(token string, r *http.Request) (*types.TokenPayload, *types.JWTPayload, error) {
 	jwtPayload, err := hs.scheduler.VerifyTokenWithLimitCount(context.Background(), token)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	payload := &types.AuthUserUploadDownloadAsset{}
 	if err = json.Unmarshal([]byte(jwtPayload.Extend), payload); err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	root, err := getCIDFromURLPath(r.URL.Path)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	if root.String() != payload.AssetCID {
-		return nil, "", fmt.Errorf("request asset cid %s, parse token cid %s", root.String(), payload.AssetCID)
+		return nil, nil, fmt.Errorf("request asset cid %s, parse token cid %s", root.String(), payload.AssetCID)
 	}
 
-	return &types.TokenPayload{AssetCID: payload.AssetCID, ClientID: payload.UserID, Expiration: payload.Expiration}, jwtPayload.FilePassNonce, nil
+	return &types.TokenPayload{AssetCID: payload.AssetCID, ClientID: payload.UserID, Expiration: payload.Expiration}, jwtPayload, nil
 }
 
 // customResponseFormat checks the request's Accept header and query parameters to determine the desired response format
