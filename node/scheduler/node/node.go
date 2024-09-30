@@ -144,7 +144,11 @@ func APIFromCandidate(api api.Candidate) *API {
 }
 
 func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
+	oldValue := n.TodayOnlineTimeWindow
+
 	n.NodeDynamicInfo = nodeInfo.NodeDynamicInfo
+
+	n.TodayOnlineTimeWindow = oldValue
 
 	n.NetFlowUp = nodeInfo.NetFlowUp
 	n.NetFlowDown = nodeInfo.NetFlowDown

@@ -15,6 +15,12 @@ func (m *Manager) startNodePenaltyTimer() {
 	for {
 		<-ticker.C
 
+		// reset
+		now := time.Now()
+		if now.Hour() == 0 && now.Minute() < 1 {
+			m.candidateOfflineTime = make(map[string]int)
+		}
+
 		m.penaltyNode()
 	}
 }
@@ -42,12 +48,17 @@ func (m *Manager) penaltyNode() {
 			continue
 		}
 
-		dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
-		if dInfo != nil {
-			detailsList = append(detailsList, dInfo)
+		// No penalty for the first 30 minutes of each day
+		count := m.candidateOfflineTime[info.NodeID]
+		if count > 30 {
+			dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
+			if dInfo != nil {
+				detailsList = append(detailsList, dInfo)
+			}
 		}
 
 		offlineNodes[info.NodeID] = 0
+		m.candidateOfflineTime[info.NodeID]++
 	}
 
 	if len(offlineNodes) > 0 {

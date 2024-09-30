@@ -130,36 +130,122 @@ func (n *SQLDB) DeleteEdgeUpdateConfig(nodeType int) error {
 // SaveNodeInfo upserts a node's information into the database.
 func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	query := fmt.Sprintf(
-		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info, version,
+		`INSERT INTO %s (node_id, mac_location, cpu_cores, memory, node_name, cpu_info, available_disk_space, titan_disk_usage, gpu_info, version, last_seen,
 			    disk_type, io_system, system_version, disk_space, bandwidth_up, bandwidth_down, netflow_up, netflow_down, scheduler_sid) 
-				VALUES (:node_id, :mac_location, :cpu_cores, :memory, :node_name, :cpu_info, :available_disk_space, :titan_disk_usage, :gpu_info, :version,
+				VALUES (:node_id, :mac_location, :cpu_cores, :memory, :node_name, :cpu_info, :available_disk_space, :titan_disk_usage, :gpu_info, :version, :last_seen,
 				:disk_type, :io_system, :system_version, :disk_space, :bandwidth_up, :bandwidth_down, :netflow_up, :netflow_down, :scheduler_sid) 
 				ON DUPLICATE KEY UPDATE node_id=:node_id, scheduler_sid=:scheduler_sid, system_version=:system_version, cpu_cores=:cpu_cores, titan_disk_usage=:titan_disk_usage, gpu_info=:gpu_info,
-				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space,
+				memory=:memory, node_name=:node_name, disk_space=:disk_space, cpu_info=:cpu_info, available_disk_space=:available_disk_space, available_disk_space=:available_disk_space, last_seen=:last_seen,
 				netflow_up=:netflow_up, netflow_down=:netflow_down ,version=:version`, nodeInfoTable)
 
 	_, err := n.db.NamedExec(query, info)
 	return err
 }
 
-// UpdateNodeDynamicInfo updates various dynamic information fields for multiple nodes.
-func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) error {
-	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET last_seen=?,online_duration=?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,
-		    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`)
+func (n *SQLDB) UpdateNodeOnlineCount(nodes []string, count int, date time.Time) error {
+	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
 	}
-	defer stmt.Close()
+	defer tx.Rollback()
 
-	for _, info := range infos {
-		if _, err := stmt.Exec(info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage,
-			info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID); err != nil {
-			log.Errorf("SaveReplenishBackup %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
+	stmt2, err := tx.Prepare(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+	VALUES (?, ?, ?)
+	ON DUPLICATE KEY UPDATE online_count=?`)
+	if err != nil {
+		return err
+	}
+
+	defer stmt2.Close()
+
+	for _, nodeID := range nodes {
+		_, err = stmt2.Exec(nodeID, date, count, count)
+		if err != nil {
+			log.Errorf("UpdateOnlineCount %s err:%s", nodeID, err.Error())
+		}
+	}
+	return tx.Commit()
+}
+
+// UpdateNodeDynamicInfo updates various dynamic information fields for multiple nodes.
+func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo, date time.Time) error {
+	tx, err := n.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareNamed(`UPDATE ` + nodeInfoTable + ` SET last_seen=:last_seen, online_duration=:online_duration, disk_usage=:disk_usage, bandwidth_up=:bandwidth_up, bandwidth_down=:bandwidth_down, titan_disk_usage=:titan_disk_usage, available_disk_space=:available_disk_space, download_traffic=:download_traffic, upload_traffic=:upload_traffic WHERE node_id=:node_id`)
+	if err != nil {
+		return err
+	}
+	stmt2, err := tx.Prepare(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+	VALUES (?, ?, ?)
+	ON DUPLICATE KEY UPDATE online_count=?`)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		stmt.Close()
+		stmt2.Close()
+	}()
+
+	batchSize := 500
+	for i := 0; i < len(infos); i += batchSize {
+		end := i + batchSize
+		if end > len(infos) {
+			end = len(infos)
+		}
+		batch := infos[i:end]
+
+		for _, info := range batch {
+			if _, err := stmt.Exec(info); err != nil {
+				log.Errorf("UpdateNodeDynamicInfo %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
+			}
+
+			_, err := stmt2.Exec(info.NodeID, date, info.TodayOnlineTimeWindow, info.TodayOnlineTimeWindow)
+			if err != nil {
+				log.Errorf("UpdateOnlineCount %s err:%s", info.NodeID, err.Error())
+			}
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
+
+// // UpdateNodeDynamicInfo updates various dynamic information fields for multiple nodes.
+// func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo, date time.Time) error {
+// 	stmt, err := n.db.Preparex(`UPDATE ` + nodeInfoTable + ` SET last_seen=?,online_duration=?,disk_usage=?,bandwidth_up=?,bandwidth_down=?,
+// 		    titan_disk_usage=?,available_disk_space=?,download_traffic=?,upload_traffic=? WHERE node_id=?`)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer stmt.Close()
+
+// 	for _, info := range infos {
+// 		if _, err := stmt.Exec(info.LastSeen, info.OnlineDuration, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage,
+// 			info.AvailableDiskSpace, info.DownloadTraffic, info.UploadTraffic, info.NodeID); err != nil {
+// 			log.Errorf("SaveReplenishBackup %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
+// 		}
+// 	}
+
+// 	stmt2, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+// 	VALUES (?, ?, ?)
+// 	ON DUPLICATE KEY UPDATE online_count=?`)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer stmt2.Close()
+
+// 	for _, info := range infos {
+// 		if _, err := stmt2.Exec(info.NodeID, date, info.TodayOnlineTimeWindow, info.TodayOnlineTimeWindow); err != nil {
+// 			log.Errorf("UpdateOnlineCount %s err:%s", info.NodeID, err.Error())
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 // SaveNodeRegisterInfos stores registration details for multiple nodes.
 func (n *SQLDB) SaveNodeRegisterInfos(details []*types.ActivationDetail) error {
@@ -908,24 +994,41 @@ func (n *SQLDB) DeleteCandidateCodeInfo(code string) error {
 	return err
 }
 
-// UpdateOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
-func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time) error {
+// UpdateServerOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
+func (n *SQLDB) UpdateServerOnlineCount(serverID string, count int, date time.Time) error {
 	stmt, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
         VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE online_count=online_count+?`)
+        ON DUPLICATE KEY UPDATE online_count=?`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	for _, nodeID := range nodes {
-		if _, err := stmt.Exec(nodeID, date, countIncr, countIncr); err != nil {
-			log.Errorf("UpdateOnlineCount %s err:%s", nodeID, err.Error())
-		}
+	if _, err := stmt.Exec(serverID, date, count, count); err != nil {
+		log.Errorf("UpdateServerOnlineCount %s err:%s", serverID, err.Error())
 	}
 
 	return nil
 }
+
+// // UpdateOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
+// func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time) error {
+// 	stmt, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+//         VALUES (?, ?, ?)
+//         ON DUPLICATE KEY UPDATE online_count=online_count+?`)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer stmt.Close()
+
+// 	for _, nodeID := range nodes {
+// 		if _, err := stmt.Exec(nodeID, date, countIncr, countIncr); err != nil {
+// 			log.Errorf("UpdateOnlineCount %s err:%s", nodeID, err.Error())
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 // GetOnlineCount retrieves the online count for a specific node on a given date.
 func (n *SQLDB) GetOnlineCount(node string, date time.Time) (int, error) {

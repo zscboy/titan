@@ -516,6 +516,8 @@ type NodeAPIStruct struct {
 
 		UpdateNodeDynamicInfo func(p0 context.Context, p1 *types.NodeDynamicInfo) (error) `perm:"admin"`
 
+		UpdateNodeOnlineCount func(p0 context.Context, p1 []string, p2 int, p3 time.Time) (error) `perm:"admin,web,locator"`
+
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
 
 		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
@@ -2545,6 +2547,17 @@ func (s *NodeAPIStruct) UpdateNodeDynamicInfo(p0 context.Context, p1 *types.Node
 }
 
 func (s *NodeAPIStub) UpdateNodeDynamicInfo(p0 context.Context, p1 *types.NodeDynamicInfo) (error) {
+	return ErrNotSupported
+}
+
+func (s *NodeAPIStruct) UpdateNodeOnlineCount(p0 context.Context, p1 []string, p2 int, p3 time.Time) (error) {
+	if s.Internal.UpdateNodeOnlineCount == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UpdateNodeOnlineCount(p0, p1, p2, p3)
+}
+
+func (s *NodeAPIStub) UpdateNodeOnlineCount(p0 context.Context, p1 []string, p2 int, p3 time.Time) (error) {
 	return ErrNotSupported
 }
 

@@ -224,6 +224,8 @@ type NodeAPI interface {
 	// UserAssetDownloadResult After a user downloads a resource from a candidate node, the candidate node reports the download result
 	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error //perm:candidate
 	UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error                           //perm:candidate
+
+	UpdateNodeOnlineCount(ctx context.Context, nodes []string, count int, date time.Time) error //perm:admin,web,locator
 }
 
 // ProjectAPI is an interface for project

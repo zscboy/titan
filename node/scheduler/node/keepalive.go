@@ -17,51 +17,70 @@ func (m *Manager) startNodeKeepaliveTimer() {
 	ticker := time.NewTicker(keepaliveTime)
 	defer ticker.Stop()
 
+	minute := 10 // penalty free time
+
 	for {
 		<-ticker.C
 
-		m.nodesKeepalive()
+		m.nodesKeepalive(minute)
+		minute = 1
 	}
 }
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
-func (m *Manager) nodesKeepalive() {
+func (m *Manager) nodesKeepalive(minute int) {
 	now := time.Now()
+	t := now.Add(-keepaliveTime)
+	timeWindow := (minute * 60) / 5
 
 	// date := now.Format("2006-01-02")
-	date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	// date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
-	t := now.Add(-keepaliveTime)
-
-	nodes := []string{
-		string(m.ServerID),
-	}
+	// nodes := []string{
+	// 	string(m.ServerID),
+	// }
+	m.serverTodayOnlineTimeWindow += timeWindow
 
 	eList := m.GetAllEdgeNode()
 	for _, node := range eList {
 		if m.checkNodeStatus(node, t) {
-			nodes = append(nodes, node.NodeID)
+			node.OnlineDuration += minute
+			node.TodayOnlineTimeWindow += timeWindow
+			// nodes = append(nodes, node.NodeID)
 		}
 	}
 	_, cList := m.GetAllCandidateNodes()
 	for _, node := range cList {
 		if m.checkNodeStatus(node, t) {
-			nodes = append(nodes, node.NodeID)
+			node.OnlineDuration += minute
+			node.TodayOnlineTimeWindow += timeWindow
+			// nodes = append(nodes, node.NodeID)
+
 		}
 	}
 	l3List := m.GetAllL3Node()
 	for _, node := range l3List {
 		if m.checkNodeStatus(node, t) {
-			nodes = append(nodes, node.NodeID)
+			node.OnlineDuration += minute
+			node.TodayOnlineTimeWindow += timeWindow
+			// nodes = append(nodes, node.NodeID)
+		}
+	}
+	l5List := m.GetAllL5Node()
+	for _, node := range l5List {
+		if m.checkNodeStatus(node, t) {
+			node.OnlineDuration += minute
+			node.TodayOnlineTimeWindow += timeWindow
+			// nodes = append(nodes, node.NodeID)
 		}
 	}
 
-	if len(nodes) > 0 {
-		err := m.UpdateOnlineCount(nodes, 12, date)
-		if err != nil {
-			log.Errorf("UpdateNodeInfos err:%s", err.Error())
-		}
-	}
+	// if len(nodes) > 0 {
+	// 	err := m.UpdateOnlineCount(nodes, timeWindow, date)
+	// 	if err != nil {
+	// 		log.Errorf("UpdateNodeInfos err:%s", err.Error())
+	// 	}
+	// }
 }
 
 func (m *Manager) SetNodeOffline(node *Node) {

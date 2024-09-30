@@ -84,6 +84,25 @@ func (m *Manager) GetAllL3Node() []*Node {
 	return nodes
 }
 
+// GetAllL5Node load all edge node
+func (m *Manager) GetAllL5Node() []*Node {
+	nodes := make([]*Node, 0)
+
+	m.l5Nodes.Range(func(key, value interface{}) bool {
+		node := value.(*Node)
+
+		if node.IsAbnormal() {
+			return true
+		}
+
+		nodes = append(nodes, node)
+
+		return true
+	})
+
+	return nodes
+}
+
 // GetAllCandidateNodes  Get all valid candidate nodes
 func (m *Manager) GetAllCandidateNodes() ([]string, []*Node) {
 	var ids []string

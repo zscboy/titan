@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/lib/tablewriter"
@@ -29,6 +30,44 @@ var nodeCmds = &cli.Command{
 		nodeFromGeoCmd,
 		getRegionInfosCmd,
 		reimburseProfitCmd,
+		updateOnlineCountCmd,
+	},
+}
+
+var updateOnlineCountCmd = &cli.Command{
+	Name:  "online-count",
+	Usage: "update node online count",
+	Flags: []cli.Flag{
+		nodeIDsFlag,
+		&cli.IntFlag{
+			Name:  "count",
+			Usage: "count",
+			Value: 0,
+		},
+		&cli.Float64Flag{
+			Name:  "date",
+			Usage: "date:",
+			Value: 0.0,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		timeStr := cctx.String("date")
+		nodeIDs := cctx.StringSlice("node-ids")
+		count := cctx.Int("count")
+
+		ctx := ReqContext(cctx)
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		date, err := time.ParseInLocation("2006-01-02 15:04:05", timeStr, time.Local)
+		if err != nil {
+			return err
+		}
+
+		return schedulerAPI.UpdateNodeOnlineCount(ctx, nodeIDs, count, date)
 	},
 }
 

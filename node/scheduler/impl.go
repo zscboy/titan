@@ -236,8 +236,6 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 			s.NodeManager.GeoMgr.AddNodeGeo(nodeInfo, cNode.AreaID)
 		}
 
-		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
-
 		pStr, err := s.NodeManager.LoadNodePublicKey(nodeID)
 		if err != nil && err != sql.ErrNoRows {
 			return xerrors.Errorf("nodeConnect err load node port %s err : %s", nodeID, err.Error())
@@ -250,6 +248,8 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		cNode.PublicKey = publicKey
 		// init LastValidateTime
 		cNode.LastValidateTime = s.getNodeLastValidateTime(nodeID)
+
+		cNode.OnlineRate, cNode.TodayOnlineTimeWindow = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
 
 		err = s.NodeManager.NodeOnline(cNode, nodeInfo)
 		if err != nil {

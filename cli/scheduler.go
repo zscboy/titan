@@ -37,6 +37,12 @@ var (
 		Value: "",
 	}
 
+	nodeIDsFlag = &cli.StringSliceFlag{
+		Name:  "node-ids",
+		Usage: "node ids : --node-ids=id1,id2",
+		Value: &cli.StringSlice{},
+	}
+
 	cidFlag = &cli.StringFlag{
 		Name:  "cid",
 		Usage: "specify the cid of a asset",

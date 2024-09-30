@@ -26,6 +26,8 @@ type NodeDynamicInfo struct {
 	BandwidthDown      int64     `json:"bandwidth_down" db:"bandwidth_down"`
 	DownloadTraffic    int64     `db:"download_traffic"`
 	UploadTraffic      int64     `db:"upload_traffic"`
+
+	TodayOnlineTimeWindow int // today online time window
 }
 
 type NodeStatisticsInfo struct {

@@ -1850,3 +1850,39 @@ func (s *Scheduler) CreateTunnel(ctx context.Context, req *types.CreateTunnelReq
 
 	return eNode.CreateTunnel(ctx, req)
 }
+
+func (s *Scheduler) UpdateNodeOnlineCount(ctx context.Context, nodes []string, count int, date time.Time) error {
+	if date.Day() == time.Now().Day() {
+		for _, nodeID := range nodes {
+			node := s.NodeManager.GetNode(nodeID)
+			if node == nil {
+				continue
+			}
+
+			node.TodayOnlineTimeWindow = count
+		}
+
+		return nil
+	}
+
+	err := s.db.UpdateNodeOnlineCount(nodes, count, date)
+	if err != nil {
+		return err
+	}
+
+	for _, nodeID := range nodes {
+		node := s.NodeManager.GetNode(nodeID)
+		if node == nil {
+			continue
+		}
+
+		info, err := s.db.LoadNodeInfo(node.NodeID)
+		if err != nil {
+			continue
+		}
+
+		node.OnlineRate, node.TodayOnlineTimeWindow = s.NodeManager.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
+	}
+
+	return nil
+}

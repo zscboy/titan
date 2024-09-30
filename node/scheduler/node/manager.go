@@ -59,6 +59,9 @@ type Manager struct {
 	IPMgr  *IPMgr
 
 	serverOnlineCounts map[time.Time]int
+
+	serverTodayOnlineTimeWindow int
+	candidateOfflineTime        map[string]int // offline minute
 }
 
 // NewManager creates a new instance of the node manager
@@ -70,15 +73,16 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	}
 
 	nodeManager := &Manager{
-		SQLDB:      sdb,
-		ServerID:   serverID,
-		PrivateKey: pk,
-		notify:     pb,
-		config:     config,
-		etcdcli:    ec,
-		weightMgr:  newWeightManager(config),
-		GeoMgr:     newGeoMgr(),
-		IPMgr:      newIPMgr(ipLimit),
+		SQLDB:                sdb,
+		ServerID:             serverID,
+		PrivateKey:           pk,
+		notify:               pb,
+		config:               config,
+		etcdcli:              ec,
+		weightMgr:            newWeightManager(config),
+		GeoMgr:               newGeoMgr(),
+		IPMgr:                newIPMgr(ipLimit),
+		candidateOfflineTime: map[string]int{},
 	}
 
 	nodeManager.updateServerOnlineCounts()
@@ -280,7 +284,7 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 			detailsList = append(detailsList, dInfo)
 		}
 
-		node.OnlineDuration += minute
+		// node.OnlineDuration += minute
 		// add node mc
 		node.IncomeIncr = incr
 
@@ -297,9 +301,9 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 			}
 		}
 
-		node.OnlineDuration += minute
-
+		// node.OnlineDuration += minute
 		nodes = append(nodes, &node.NodeDynamicInfo)
+
 	}
 
 	l3List := m.GetAllL3Node()
@@ -309,25 +313,30 @@ func (m *Manager) updateNodeData(isCompensate bool) {
 			detailsList = append(detailsList, dInfo)
 		}
 
-		node.OnlineDuration += minute
+		// node.OnlineDuration += minute
 		// add node mc
 		node.IncomeIncr = incr
 
 		nodes = append(nodes, &node.NodeDynamicInfo)
 
 	}
+	now := time.Now()
+	date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
-	// for _, info := range nodes {
-	err := m.UpdateNodeDynamicInfo(nodes)
+	err := m.UpdateNodeDynamicInfo(nodes, date)
 	if err != nil {
 		log.Errorf("updateNodeData UpdateNodeDynamicInfo err:%s", err.Error())
-		// log.Errorf("updateNodeData UpdateNodeDynamicInfo %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
 	}
-	// }
 
 	err = m.AddNodeProfitDetails(detailsList)
 	if err != nil {
 		log.Errorf("updateNodeData AddNodeProfits err:%s", err.Error())
+	}
+
+	// update server count
+	err = m.UpdateServerOnlineCount(string(m.ServerID), m.serverTodayOnlineTimeWindow, date)
+	if err != nil {
+		log.Errorf("UpdateServerOnlineCount err:%s", err.Error())
 	}
 }
 
@@ -360,6 +369,13 @@ func (m *Manager) updateServerOnlineCounts() {
 			m.serverOnlineCounts[date] = count
 		}
 	}
+
+	// today
+	today := time.Now()
+	todayDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
+	todayCount, _ := m.GetOnlineCount(string(m.ServerID), todayDate)
+
+	m.serverTodayOnlineTimeWindow = todayCount
 }
 
 func (m *Manager) redistributeNodeSelectWeights() {
@@ -377,7 +393,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			continue
 		}
 
-		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
+		node.OnlineRate, node.TodayOnlineTimeWindow = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
 		node.Level = m.getNodeScoreLevel(node)
 
 		if !node.IsResourceNode() {
@@ -394,7 +410,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 			continue
 		}
 
-		node.OnlineRate = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
+		node.OnlineRate, node.TodayOnlineTimeWindow = m.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
 		node.Level = m.getNodeScoreLevel(node)
 
 		if !node.IsResourceNode() {
@@ -408,7 +424,7 @@ func (m *Manager) redistributeNodeSelectWeights() {
 }
 
 // ComputeNodeOnlineRate Compute node online rate
-func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) float64 {
+func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) (float64, int) {
 	nodeC := 0
 	serverC := 0
 
@@ -425,17 +441,21 @@ func (m *Manager) ComputeNodeOnlineRate(nodeID string, firstTime time.Time) floa
 		}
 	}
 
-	log.Infof("%s serverOnlineCounts [%v] %d/%d", nodeID, m.serverOnlineCounts, nodeC, serverC)
+	today := time.Now()
+	todayDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
+	todayCount, err := m.GetOnlineCount(nodeID, todayDate)
+
+	log.Infof("%s serverOnlineCounts [%v] %d/%d [%d][%v]", nodeID, m.serverOnlineCounts, nodeC, serverC, todayCount, err)
 
 	if serverC == 0 {
-		return 1.0
+		return 1.0, todayCount
 	}
 
 	if nodeC >= serverC {
-		return 1.0
+		return 1.0, todayCount
 	}
 
-	return float64(nodeC) / float64(serverC)
+	return float64(nodeC) / float64(serverC), todayCount
 }
 
 // UpdateNodeBandwidths update node bandwidthDown and bandwidthUp

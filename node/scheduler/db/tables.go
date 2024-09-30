@@ -91,8 +91,8 @@ var cNodeRetrieveTable = `
 		size          BIGINT         DEFAULT 0,		
 	    status        TINYINT        DEFAULT 0,
 		created_time  DATETIME       DEFAULT CURRENT_TIMESTAMP,
-		KEY idx_hash_id  (trace_id),
-		KEY idx_hash_id  (node_id),
+		KEY idx_trace_id  (trace_id),
+		KEY idx_node_id  (node_id),
 		KEY idx_hash_id  (hash),
 		KEY idx_client_id (client_id)
 	) ENGINE=InnoDB COMMENT='node retrieve record';`

@@ -571,11 +571,13 @@ func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce stri
 }
 
 func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error {
-	nodeID := handler.GetNodeID(ctx)
-	cNode := s.NodeManager.GetNode(nodeID)
+	info.NodeID = handler.GetNodeID(ctx)
+	cNode := s.NodeManager.GetNode(info.NodeID)
 	if cNode == nil {
-		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", nodeID)
+		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", info.NodeID)
 	}
+
+	log.Infof("UserAssetDownloadResultV2 Hash[%s] ClientID[%s] NodeID[%s] PeakBandwidth[%d] Size[%d]\n", info.Hash, info.ClientID, info.NodeID, info.PeakBandwidth, info.Size)
 
 	succeededCount := 0
 	failedCount := 0
@@ -583,7 +585,7 @@ func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.R
 	if info.Status == types.EventStatusSucceed {
 		succeededCount = 1
 
-		err := s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: info.Hash, NodeID: nodeID, TotalTraffic: info.Size, PeakBandwidth: info.PeakBandwidth, UserID: info.ClientID})
+		err := s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: info.Hash, NodeID: info.NodeID, TotalTraffic: info.Size, PeakBandwidth: info.PeakBandwidth, UserID: info.ClientID})
 		if err != nil {
 			return err
 		}
@@ -606,6 +608,8 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 	if err != nil {
 		return err
 	}
+
+	log.Infof("UserAssetDownloadResult Hash[%s] ClientID[%s] NodeID[%s] PeakBandwidth[%d] Size[%d]\n", hash, userID, nodeID, peakBandwidth, totalTraffic)
 
 	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth, UserID: userID})
 }

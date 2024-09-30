@@ -149,41 +149,8 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD speed         INT          DEFAULT 0", replicaInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD trace_id      VARCHAR(128) DEFAULT ''", replicaEventTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD INDEX  idx_trace_id (trace_id)", replicaEventTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD msg           VARCHAR(1024) DEFAULT ''", replicaEventTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec("ALTER TABLE project_replicas CHANGE max_timeout max_delay          INT           DEFAULT 0")
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec("ALTER TABLE project_replicas CHANGE min_timeout min_delay          INT           DEFAULT 0")
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-	_, err = d.db.Exec("ALTER TABLE project_replicas CHANGE avg_timeout avg_delay          INT           DEFAULT 0")
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
-
-	_, err = d.db.Exec(fmt.Sprintf("DROP TABLE %s ", nodeRetrieveTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD speed         INT          DEFAULT 0", replicaInfoTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 }
