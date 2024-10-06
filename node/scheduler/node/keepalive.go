@@ -8,45 +8,59 @@ import (
 
 // startNodeKeepaliveTimer periodically sends keepalive requests to all nodes and checks if any nodes have been offline for too long
 func (m *Manager) startNodeKeepaliveTimer() {
-	// start := time.Now()
-
-	// offset := (time.Minute - time.Duration(start.Second())*time.Second - time.Duration(start.Nanosecond())) + (time.Minute * 10)
-	// time.Sleep(offset)
 	time.Sleep(penaltyFreeTime)
 
 	ticker := time.NewTicker(keepaliveTime)
 	defer ticker.Stop()
 
 	minute := 10 // penalty free time
+	count := 5
 
 	for {
 		<-ticker.C
 
-		m.nodesKeepalive(minute)
+		m.nodesKeepalive(minute, count == 5)
 		minute = 1
+		if count == 5 {
+			count = 0
+		}
+		count++
 	}
 }
 
 // nodesKeepalive checks all nodes in the manager's lists for keepalive
-func (m *Manager) nodesKeepalive(minute int) {
+func (m *Manager) nodesKeepalive(minute int, isSave bool) {
 	now := time.Now()
 	t := now.Add(-keepaliveTime)
 	timeWindow := (minute * 60) / 5
 
-	// date := now.Format("2006-01-02")
-	// date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-
-	// nodes := []string{
-	// 	string(m.ServerID),
-	// }
 	m.serverTodayOnlineTimeWindow += timeWindow
+
+	nodes := make([]*types.NodeDynamicInfo, 0)
+	detailsList := make([]*types.ProfitDetails, 0)
+	nodeOnlineCount := make(map[string]int, 0)
+
+	saveDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 
 	eList := m.GetAllEdgeNode()
 	for _, node := range eList {
 		if m.checkNodeStatus(node, t) {
 			node.OnlineDuration += minute
 			node.TodayOnlineTimeWindow += timeWindow
-			// nodes = append(nodes, node.NodeID)
+		}
+
+		if isSave {
+			profitMinute := node.TodayOnlineTimeWindow * 5 / 60
+
+			incr, dInfo := m.GetEdgeBaseProfitDetails(node, profitMinute)
+			if dInfo != nil {
+				detailsList = append(detailsList, dInfo)
+			}
+			node.IncomeIncr = incr
+			nodes = append(nodes, &node.NodeDynamicInfo)
+
+			nodeOnlineCount[node.NodeID] = node.TodayOnlineTimeWindow
+			node.TodayOnlineTimeWindow = 0
 		}
 	}
 	_, cList := m.GetAllCandidateNodes()
@@ -54,8 +68,21 @@ func (m *Manager) nodesKeepalive(minute int) {
 		if m.checkNodeStatus(node, t) {
 			node.OnlineDuration += minute
 			node.TodayOnlineTimeWindow += timeWindow
-			// nodes = append(nodes, node.NodeID)
+		}
 
+		if isSave {
+			if qualifiedNAT(node.NATType) {
+				profitMinute := node.TodayOnlineTimeWindow * 5 / 60
+
+				dInfo := m.GetCandidateBaseProfitDetails(node, profitMinute)
+				if dInfo != nil {
+					detailsList = append(detailsList, dInfo)
+				}
+			}
+			nodes = append(nodes, &node.NodeDynamicInfo)
+
+			nodeOnlineCount[node.NodeID] = node.TodayOnlineTimeWindow
+			node.TodayOnlineTimeWindow = 0
 		}
 	}
 	l3List := m.GetAllL3Node()
@@ -63,7 +90,20 @@ func (m *Manager) nodesKeepalive(minute int) {
 		if m.checkNodeStatus(node, t) {
 			node.OnlineDuration += minute
 			node.TodayOnlineTimeWindow += timeWindow
-			// nodes = append(nodes, node.NodeID)
+		}
+
+		if isSave {
+			profitMinute := node.TodayOnlineTimeWindow * 5 / 60
+
+			incr, dInfo := m.GetEdgeBaseProfitDetails(node, profitMinute)
+			if dInfo != nil {
+				detailsList = append(detailsList, dInfo)
+			}
+			node.IncomeIncr = incr
+			nodes = append(nodes, &node.NodeDynamicInfo)
+
+			nodeOnlineCount[node.NodeID] = node.TodayOnlineTimeWindow
+			node.TodayOnlineTimeWindow = 0
 		}
 	}
 	l5List := m.GetAllL5Node()
@@ -71,15 +111,37 @@ func (m *Manager) nodesKeepalive(minute int) {
 		if m.checkNodeStatus(node, t) {
 			node.OnlineDuration += minute
 			node.TodayOnlineTimeWindow += timeWindow
-			// nodes = append(nodes, node.NodeID)
+		}
+
+		if isSave {
+			nodeOnlineCount[node.NodeID] = node.TodayOnlineTimeWindow
+			node.TodayOnlineTimeWindow = 0
 		}
 	}
 
-	// if len(nodes) > 0 {
-	// 	err := m.UpdateOnlineCount(nodes, timeWindow, date)
-	// 	if err != nil {
-	// 		log.Errorf("UpdateNodeInfos err:%s", err.Error())
-	// 	}
+	if !isSave {
+		return
+	}
+
+	nodeOnlineCount[string(m.ServerID)] = m.serverTodayOnlineTimeWindow
+	m.serverTodayOnlineTimeWindow = 0
+
+	err := m.UpdateNodeDynamicInfo(nodes)
+	if err != nil {
+		log.Errorf("updateNodeData UpdateNodeDynamicInfo err:%s", err.Error())
+	}
+
+	err = m.AddNodeProfitDetails(detailsList)
+	if err != nil {
+		log.Errorf("updateNodeData AddNodeProfits err:%s", err.Error())
+	}
+
+	err = m.UpdateNodeOnlineCount(nodeOnlineCount, saveDate)
+
+	// // update server count
+	// err = m.UpdateServerOnlineCount(string(m.ServerID), m.serverTodayOnlineTimeWindow, saveDate)
+	// if err != nil {
+	// 	log.Errorf("UpdateServerOnlineCount err:%s", err.Error())
 	// }
 }
 

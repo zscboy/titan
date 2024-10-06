@@ -249,7 +249,7 @@ func (s *Scheduler) nodeConnect(ctx context.Context, opts *types.ConnectOptions,
 		// init LastValidateTime
 		cNode.LastValidateTime = s.getNodeLastValidateTime(nodeID)
 
-		cNode.OnlineRate, cNode.TodayOnlineTimeWindow = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
+		cNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
 
 		err = s.NodeManager.NodeOnline(cNode, nodeInfo)
 		if err != nil {

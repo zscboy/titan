@@ -635,6 +635,7 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 	nodeInfo.BandwidthUp = units.KiB
 	nodeInfo.NATType = types.NatTypeUnknown.String()
 	nodeInfo.LastSeen = time.Now()
+	nodeInfo.FirstTime = time.Now()
 
 	dbInfo, err := s.db.LoadNodeInfo(nodeID)
 	if err != nil && err != sql.ErrNoRows {
@@ -652,6 +653,8 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 		nodeInfo.UploadTraffic = dbInfo.UploadTraffic
 		nodeInfo.FirstTime = dbInfo.FirstTime
 	}
+
+	nNode.OnlineRate = s.NodeManager.ComputeNodeOnlineRate(nodeID, nodeInfo.FirstTime)
 
 	nNode.InitInfo(&nodeInfo)
 
@@ -729,6 +732,9 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.Node
 		return nil, xerrors.Errorf("nodeID %s LoadNodeInfo err:%s", nodeID, err.Error())
 	}
 
+	today := time.Now()
+	todayDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
+
 	nodeInfo.Status = types.NodeOffline
 
 	n := s.NodeManager.GetNode(nodeID)
@@ -745,11 +751,18 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.Node
 		nodeInfo.AreaID = n.AreaID
 		nodeInfo.RemoteAddr = n.RemoteAddr
 		nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
+		nodeInfo.TodayOnlineTimeWindow = s.loadNodeTodayOnlineTimeWindow(nodeID, todayDate)
 
 		log.Debugf("%s node select codes:%v , url:%s", nodeID, n.SelectWeights(), n.ExternalURL)
 	}
 
 	return nodeInfo, nil
+}
+
+func (s *Scheduler) loadNodeTodayOnlineTimeWindow(nodeID string, todayDate time.Time) int {
+	todayCount, _ := s.db.GetOnlineCount(nodeID, todayDate)
+
+	return todayCount
 }
 
 // GetNodeList retrieves a list of nodes with pagination.
@@ -761,6 +774,9 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 		return nil, xerrors.Errorf("LoadNodeInfos err:%s", err.Error())
 	}
 	defer rows.Close()
+
+	today := time.Now()
+	todayDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, today.Location())
 
 	nodeInfos := make([]types.NodeInfo, 0)
 	for rows.Next() {
@@ -790,6 +806,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.AreaID = n.AreaID
 			nodeInfo.RemoteAddr = n.RemoteAddr
 			nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
+			nodeInfo.TodayOnlineTimeWindow = s.loadNodeTodayOnlineTimeWindow(nodeInfo.NodeID, todayDate)
 		}
 
 		nodeInfos = append(nodeInfos, *nodeInfo)
@@ -1849,40 +1866,4 @@ func (s *Scheduler) CreateTunnel(ctx context.Context, req *types.CreateTunnelReq
 	}
 
 	return eNode.CreateTunnel(ctx, req)
-}
-
-func (s *Scheduler) UpdateNodeOnlineCount(ctx context.Context, nodes []string, count int, date time.Time) error {
-	if date.Day() == time.Now().Day() {
-		for _, nodeID := range nodes {
-			node := s.NodeManager.GetNode(nodeID)
-			if node == nil {
-				continue
-			}
-
-			node.TodayOnlineTimeWindow = count
-		}
-
-		return nil
-	}
-
-	err := s.db.UpdateNodeOnlineCount(nodes, count, date)
-	if err != nil {
-		return err
-	}
-
-	for _, nodeID := range nodes {
-		node := s.NodeManager.GetNode(nodeID)
-		if node == nil {
-			continue
-		}
-
-		info, err := s.db.LoadNodeInfo(node.NodeID)
-		if err != nil {
-			continue
-		}
-
-		node.OnlineRate, node.TodayOnlineTimeWindow = s.NodeManager.ComputeNodeOnlineRate(node.NodeID, info.FirstTime)
-	}
-
-	return nil
 }

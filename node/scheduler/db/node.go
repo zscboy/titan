@@ -142,7 +142,7 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
-func (n *SQLDB) UpdateNodeOnlineCount(nodes []string, count int, date time.Time) error {
+func (n *SQLDB) UpdateNodeOnlineCount(nodeOnlineCount map[string]int, date time.Time) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -151,14 +151,14 @@ func (n *SQLDB) UpdateNodeOnlineCount(nodes []string, count int, date time.Time)
 
 	stmt2, err := tx.Prepare(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
 	VALUES (?, ?, ?)
-	ON DUPLICATE KEY UPDATE online_count=?`)
+	ON DUPLICATE KEY UPDATE online_count=online_count+?`)
 	if err != nil {
 		return err
 	}
 
 	defer stmt2.Close()
 
-	for _, nodeID := range nodes {
+	for nodeID, count := range nodeOnlineCount {
 		_, err = stmt2.Exec(nodeID, date, count, count)
 		if err != nil {
 			log.Errorf("UpdateOnlineCount %s err:%s", nodeID, err.Error())
@@ -168,7 +168,7 @@ func (n *SQLDB) UpdateNodeOnlineCount(nodes []string, count int, date time.Time)
 }
 
 // UpdateNodeDynamicInfo updates various dynamic information fields for multiple nodes.
-func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo, date time.Time) error {
+func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo) error {
 	tx, err := n.db.Beginx()
 	if err != nil {
 		return err
@@ -179,16 +179,16 @@ func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo, date time.
 	if err != nil {
 		return err
 	}
-	stmt2, err := tx.Prepare(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
-	VALUES (?, ?, ?)
-	ON DUPLICATE KEY UPDATE online_count=?`)
-	if err != nil {
-		return err
-	}
+	// stmt2, err := tx.Prepare(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+	// VALUES (?, ?, ?)
+	// ON DUPLICATE KEY UPDATE online_count=online_count+?`)
+	// if err != nil {
+	// 	return err
+	// }
 
 	defer func() {
 		stmt.Close()
-		stmt2.Close()
+		// stmt2.Close()
 	}()
 
 	batchSize := 500
@@ -204,10 +204,10 @@ func (n *SQLDB) UpdateNodeDynamicInfo(infos []*types.NodeDynamicInfo, date time.
 				log.Errorf("UpdateNodeDynamicInfo %s, %.4f,%d,%d,%.4f,%.4f err:%s", info.NodeID, info.DiskUsage, info.BandwidthUp, info.BandwidthDown, info.TitanDiskUsage, info.AvailableDiskSpace, err.Error())
 			}
 
-			_, err := stmt2.Exec(info.NodeID, date, info.TodayOnlineTimeWindow, info.TodayOnlineTimeWindow)
-			if err != nil {
-				log.Errorf("UpdateOnlineCount %s err:%s", info.NodeID, err.Error())
-			}
+			// _, err := stmt2.Exec(info.NodeID, date, info.TodayOnlineTimeWindow, info.TodayOnlineTimeWindow)
+			// if err != nil {
+			// 	log.Errorf("UpdateOnlineCount %s err:%s", info.NodeID, err.Error())
+			// }
 		}
 	}
 
@@ -994,22 +994,22 @@ func (n *SQLDB) DeleteCandidateCodeInfo(code string) error {
 	return err
 }
 
-// UpdateServerOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
-func (n *SQLDB) UpdateServerOnlineCount(serverID string, count int, date time.Time) error {
-	stmt, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE online_count=?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+// // UpdateServerOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
+// func (n *SQLDB) UpdateServerOnlineCount(serverID string, count int, date time.Time) error {
+// 	stmt, err := n.db.Preparex(`INSERT INTO ` + onlineCountTable + ` (node_id, created_time, online_count)
+//         VALUES (?, ?, ?)
+//         ON DUPLICATE KEY UPDATE online_count=online_count+?`)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer stmt.Close()
 
-	if _, err := stmt.Exec(serverID, date, count, count); err != nil {
-		log.Errorf("UpdateServerOnlineCount %s err:%s", serverID, err.Error())
-	}
+// 	if _, err := stmt.Exec(serverID, date, count, count); err != nil {
+// 		log.Errorf("UpdateServerOnlineCount %s err:%s", serverID, err.Error())
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // // UpdateOnlineCount updates the online count for nodes on a specific date, incrementing counts where applicable.
 // func (n *SQLDB) UpdateOnlineCount(nodes []string, countIncr int, date time.Time) error {
