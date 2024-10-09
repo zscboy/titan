@@ -17,7 +17,10 @@ import (
 	"github.com/Filecoin-Titan/titan/node/repo"
 )
 
-var tlsCfg *tls.Config
+var (
+	tlsCfg           *tls.Config
+	tlsRefreshPreiod = 1 * time.Minute
+)
 
 func fetchTlsConfigFromRemote(acmeAddress string) (cfg *tls.Config, domainSuffix string) {
 
@@ -89,39 +92,75 @@ func fetchTlsConfigFromRemote(acmeAddress string) (cfg *tls.Config, domainSuffix
 		}
 	}
 
-	if err := mergeLocalTlsConfig(tlsConfig); err != nil {
-		log.Error("merge local tls config error", err)
-		return nil, ""
-	}
-
-	tlsCfg = tlsConfig
+	// if err := mergeLocalTlsConfig(tlsConfig); err != nil {
+	// 	log.Error("merge local tls config error", err)
+	// 	return nil, ""
+	// }
 
 	return tlsConfig, domainSuffix
 }
 
-func refreshTlsConfig(acmeAddress string, lr repo.LockedRepo, candidateCfg *config.CandidateCfg) {
-	ticker := time.NewTicker(24 * time.Hour)
-	for range ticker.C {
-		tlsConfig, suffix := fetchTlsConfigFromRemote(acmeAddress)
+type TickRefresher struct {
+	t            *time.Ticker
+	lr           repo.LockedRepo
+	acmeAddress  string
+	candidateCfg *config.CandidateCfg
+}
+
+func NewTlsTickRefresher(acmeAddress string, lr repo.LockedRepo, candidateCfg *config.CandidateCfg) error {
+	ticker := &TickRefresher{
+		acmeAddress:  acmeAddress,
+		lr:           lr,
+		candidateCfg: candidateCfg,
+		t:            time.NewTicker(tlsRefreshPreiod),
+	}
+
+	ticker.attempt()
+
+	go ticker.refreshTlsConfig()
+	return nil
+}
+
+func (ticker *TickRefresher) refreshTlsConfig() {
+
+	for range ticker.t.C {
+		tlsConfig, suffix := fetchTlsConfigFromRemote(ticker.acmeAddress)
 		if suffix == "" {
 			log.Error("fail to refresh tls config, remote host not exist, will use default config")
 			continue
 		}
+
 		log.Infof("refreshing tls config with suffix:%s", suffix)
-		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
+		if err := flushConfig(ticker.lr, tlsConfig, ticker.candidateCfg); err != nil {
 			log.Errorf("flush config: %v", err)
 		}
+
+		tlsCfg = tlsConfig
 	}
 }
 
-func mergeLocalTlsConfig(tlsConfig *tls.Config) error {
-	localCfg, err := defaultTLSConfig()
-	if err != nil {
-		return err
+func (ticker *TickRefresher) attempt() {
+	tlsConfig, suffix := fetchTlsConfigFromRemote(ticker.acmeAddress)
+	if suffix == "" {
+		log.Error("fail to refresh tls config, remote host not exist, will use default config")
 	}
-	tlsConfig.Certificates = append(tlsConfig.Certificates, localCfg.Certificates...)
-	return nil
+
+	log.Infof("refreshing tls config with suffix:%s", suffix)
+	if err := flushConfig(ticker.lr, tlsConfig, ticker.candidateCfg); err != nil {
+		log.Errorf("flush config: %v", err)
+	}
+
+	tlsCfg = tlsConfig
 }
+
+// func mergeLocalTlsConfig(tlsConfig *tls.Config) error {
+// 	localCfg, err := defaultTLSConfig()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	tlsConfig.Certificates = append(tlsConfig.Certificates, localCfg.Certificates...)
+// 	return nil
+// }
 
 func defaultTLSConfig() (*tls.Config, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)

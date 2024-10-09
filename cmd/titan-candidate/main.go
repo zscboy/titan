@@ -226,8 +226,7 @@ var daemonStartCmd = &cli.Command{
 		}
 		nodeID := string(nodeIDBuf)
 
-		var tlsConfig *tls.Config
-		tlsConfig, domainSuffix := fetchTlsConfigFromRemote(candidateCfg.AcmeUrl)
+		_, domainSuffix := fetchTlsConfigFromRemote(candidateCfg.AcmeUrl)
 		if domainSuffix != "" {
 			nodeVal := nodeID[2:]
 			_, port, _ := net.SplitHostPort(candidateCfg.Network.ListenAddress)
@@ -239,9 +238,6 @@ var daemonStartCmd = &cli.Command{
 				candidateCfg.IngressCertificatePath = lr.GetCertificatePath()
 				candidateCfg.IngressCertificateKeyPath = lr.GetCertificateKeyPath()
 			}
-		}
-		if err := flushConfig(lr, tlsConfig, candidateCfg); err != nil {
-			return xerrors.Errorf("flush tls config error: %w", err)
 		}
 
 		err = lr.Close()
@@ -369,15 +365,13 @@ var daemonStartCmd = &cli.Command{
 			node.Override(node.SetApiEndpointKey, func(lr repo.LockedRepo) error {
 				return setEndpointAPI(lr, candidateCfg.Network.ListenAddress)
 			}),
+			node.Override(node.TlsConfigHandler, func(lr repo.LockedRepo) error {
+				return NewTlsTickRefresher(candidateCfg.AcmeUrl, lr, candidateCfg)
+			}),
 		)
 		if err != nil {
 			return xerrors.Errorf("creating node: %w", err)
 		}
-
-		// tlsConfig, err := getTLSConfig(candidateCfg)
-		// if err != nil {
-		// 	return xerrors.Errorf("get tls config error: %w", err)
-		// }
 
 		handler := CandidateHandler(candidateAPI.AuthVerify, candidateAPI, true)
 		handler = httpServer.NewHandler(handler)
@@ -391,15 +385,17 @@ var daemonStartCmd = &cli.Command{
 				ctx, _ := tag.New(context.Background(), tag.Upsert(metrics.APIInterface, "titan-candidate"))
 				return ctx
 			},
-			// TLSConfig: tlsConfig,
 			TLSConfig: &tls.Config{
-				GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) { return tlsCfg, nil },
+				GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+					return tlsCfg, nil
+				},
+				GetCertificate: func(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
+					return tlsCfg.GetCertificate(chi)
+				},
 			},
 		}
 
-		go refreshTlsConfig(candidateCfg.AcmeUrl, lr, candidateCfg)
-
-		go startHTTP3Server(transport, handler, tlsConfig)
+		go startHTTP3Server(transport, handler, tlsCfg)
 
 		go func() {
 			<-ctx.Done()
@@ -421,8 +417,6 @@ var daemonStartCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-
-		// dl := &dualListener{Listener: nl, tlsConfig: tlsConfig}
 
 		log.Infof("Candidate listen on %s", candidateCfg.Network.ListenAddress)
 
@@ -529,19 +523,13 @@ var daemonStartCmd = &cli.Command{
 			}
 		}()
 
-		if tlsConfig != nil {
-			return httpSrv.ServeTLS(nl, "", "")
-		}
-		return httpSrv.Serve(nl)
+		return httpSrv.ServeTLS(nl, "", "")
 	},
 }
 
 // private minio storage only, not public storage
 func isPrivateMinioOnly(config *config.CandidateCfg) bool {
-	if config.IsPrivate {
-		return true
-	}
-	return false
+	return config.IsPrivate
 }
 
 func keepalive(api api.Scheduler, timeout time.Duration) (uuid.UUID, error) {
