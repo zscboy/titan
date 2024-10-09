@@ -19,7 +19,7 @@ import (
 
 var (
 	tlsCfg           *tls.Config
-	tlsRefreshPreiod = 1 * time.Minute
+	tlsRefreshPreiod = 24 * time.Hour
 )
 
 func fetchTlsConfigFromRemote(acmeAddress string) (cfg *tls.Config, domainSuffix string) {
