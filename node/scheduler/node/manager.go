@@ -1,6 +1,7 @@
 package node
 
 import (
+	"context"
 	"crypto/rsa"
 	"math"
 	"sync"
@@ -24,6 +25,7 @@ var (
 )
 
 const (
+	loadNodeInfoTime = 3 * 60 * time.Second // seconds
 	// keepaliveTime is the interval between keepalive requests
 	keepaliveTime = 60 * time.Second // seconds
 
@@ -88,27 +90,11 @@ func NewManager(sdb *db.SQLDB, serverID dtypes.ServerID, pk *rsa.PrivateKey, pb 
 	nodeManager.updateServerOnlineCounts()
 
 	go nodeManager.startNodeKeepaliveTimer()
-	// go nodeManager.startSaveNodeDataTimer()
 	go nodeManager.startNodePenaltyTimer()
 	go nodeManager.startCheckNodeTimer()
+	go nodeManager.startUpdateNodeMetricsTimer()
 
 	return nodeManager
-}
-
-func (m *Manager) startSaveNodeDataTimer() {
-	time.Sleep(penaltyFreeTime)
-
-	ticker := time.NewTicker(saveInfoInterval)
-	defer ticker.Stop()
-
-	// Give nodes a data to make up for 10 minutes
-	m.updateNodeData(true)
-
-	for {
-		<-ticker.C
-
-		m.updateNodeData(false)
-	}
 }
 
 func (m *Manager) startCheckNodeTimer() {
@@ -127,15 +113,37 @@ func (m *Manager) startCheckNodeTimer() {
 	for {
 		<-timer.C
 
-		log.Debugln("start node timer...")
-
 		m.redistributeNodeSelectWeights()
-
 		m.checkNodeDeactivate()
-
 		m.CleanData()
 
 		timer.Reset(oneDay)
+	}
+}
+
+func (m *Manager) startUpdateNodeMetricsTimer() {
+	ticker := time.NewTicker(loadNodeInfoTime)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+
+		_, cList := m.GetAllCandidateNodes()
+		for _, node := range cList {
+			if node.IsAbnormal() {
+				continue
+			}
+
+			info, err := node.API.GetNodeInfo(context.Background())
+			if err != nil {
+				continue
+			}
+
+			node.CPUUsage = info.CPUUsage
+			node.MemoryUsage = info.MemoryUsage
+			node.DiskSpace = info.DiskSpace
+			node.DiskUsage = info.DiskUsage
+		}
 	}
 }
 
@@ -265,79 +273,6 @@ func (m *Manager) RepayNodeWeight(node *Node) {
 		m.weightMgr.repayEdgeWeight(node.selectWeights)
 		node.selectWeights = nil
 	}
-}
-
-// nodesKeepalive checks all nodes in the manager's lists for keepalive
-func (m *Manager) updateNodeData(isCompensate bool) {
-	nodes := make([]*types.NodeDynamicInfo, 0)
-	detailsList := make([]*types.ProfitDetails, 0)
-
-	minute := 5
-	if isCompensate {
-		minute = 10
-	}
-
-	eList := m.GetAllEdgeNode()
-	for _, node := range eList {
-		incr, dInfo := m.GetEdgeBaseProfitDetails(node, minute)
-		if dInfo != nil {
-			detailsList = append(detailsList, dInfo)
-		}
-
-		// node.OnlineDuration += minute
-		// add node mc
-		node.IncomeIncr = incr
-
-		nodes = append(nodes, &node.NodeDynamicInfo)
-
-	}
-
-	_, cList := m.GetAllCandidateNodes()
-	for _, node := range cList {
-		if qualifiedNAT(node.NATType) {
-			dInfo := m.GetCandidateBaseProfitDetails(node, minute)
-			if dInfo != nil {
-				detailsList = append(detailsList, dInfo)
-			}
-		}
-
-		// node.OnlineDuration += minute
-		nodes = append(nodes, &node.NodeDynamicInfo)
-
-	}
-
-	l3List := m.GetAllL3Node()
-	for _, node := range l3List {
-		incr, dInfo := m.GetEdgeBaseProfitDetails(node, minute)
-		if dInfo != nil {
-			detailsList = append(detailsList, dInfo)
-		}
-
-		// node.OnlineDuration += minute
-		// add node mc
-		node.IncomeIncr = incr
-
-		nodes = append(nodes, &node.NodeDynamicInfo)
-
-	}
-	// now := time.Now()
-	// date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-
-	err := m.UpdateNodeDynamicInfo(nodes)
-	if err != nil {
-		log.Errorf("updateNodeData UpdateNodeDynamicInfo err:%s", err.Error())
-	}
-
-	err = m.AddNodeProfitDetails(detailsList)
-	if err != nil {
-		log.Errorf("updateNodeData AddNodeProfits err:%s", err.Error())
-	}
-
-	// // update server count
-	// err = m.UpdateServerOnlineCount(string(m.ServerID), m.serverTodayOnlineTimeWindow, date)
-	// if err != nil {
-	// 	log.Errorf("UpdateServerOnlineCount err:%s", err.Error())
-	// }
 }
 
 func roundDivision(a, b int) int {

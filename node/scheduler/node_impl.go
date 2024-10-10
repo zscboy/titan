@@ -745,6 +745,7 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.Node
 		nodeInfo.CPUUsage = n.CPUUsage
 		nodeInfo.MemoryUsage = n.MemoryUsage
 		nodeInfo.DiskUsage = n.DiskUsage
+		nodeInfo.DiskSpace = n.DiskSpace
 		nodeInfo.ExternalIP = n.ExternalIP
 		nodeInfo.IncomeIncr = n.IncomeIncr
 		nodeInfo.IsTestNode = n.IsTestNode
@@ -800,6 +801,7 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.CPUUsage = n.CPUUsage
 			nodeInfo.MemoryUsage = n.MemoryUsage
 			nodeInfo.DiskUsage = n.DiskUsage
+			nodeInfo.DiskSpace = n.DiskSpace
 			nodeInfo.ExternalIP = n.ExternalIP
 			nodeInfo.IncomeIncr = n.IncomeIncr
 			nodeInfo.IsTestNode = n.IsTestNode
