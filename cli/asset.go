@@ -376,7 +376,7 @@ var pullAssetCmd = &cli.Command{
 			return xerrors.New("cid is nil")
 		}
 
-		info := &types.PullAssetReq{CID: cid}
+		info := &types.PullAssetReq{CIDs: []string{cid}}
 
 		if date == "" {
 			date = time.Now().Add(defaultExpiration).Format(defaultDateTimeLayout)

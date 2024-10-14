@@ -42,8 +42,6 @@ const (
 	uploadProgressInterval = time.Second
 	// Interval to check candidate backup of asset (Unit:Minute)
 	checkCandidateBackupInterval = 5 * time.Minute
-	// Maximum number of replicas per asset
-	assetEdgeReplicasLimit = 1000
 	// The number of retries to select the pull asset node
 	selectNodeRetryLimit = 2
 	// If the node disk size is greater than this value, pulling will not continue
@@ -52,8 +50,6 @@ const (
 	numAssetBuckets = 128
 	// When the node is offline for more than this value, the scheduler will assign other nodes to pull the assets to increase the reliability of the assets
 	maxNodeOfflineTime = 24 * time.Hour
-	// Total bandwidth limit provided by the asset (The larger the bandwidth provided, the more backups are required)
-	assetBandwidthLimit = 10000 // unit:MiB/s
 	// If the node does not reply more than once, the asset pull timeout is determined.
 	assetTimeoutLimit = 3
 
@@ -66,6 +62,11 @@ const (
 	expirationOfStorageAsset = 150 // day
 
 	defaultReplicaCount = 200
+
+	// AssetEdgeReplicasLimit Maximum number of replicas per asset
+	AssetEdgeReplicasLimit = 1000
+	// AssetBandwidthLimit Total bandwidth limit provided by the asset (The larger the bandwidth provided, the more backups are required)
+	AssetBandwidthLimit = 10000 // unit:MiB/s
 )
 
 // Manager manages asset replicas
@@ -675,20 +676,12 @@ func (m *Manager) CreateAssetUploadTask(hash string, req *types.CreateAssetReq) 
 }
 
 // CreateAssetPullTask create a new asset pull task
-func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
+func (m *Manager) CreateAssetPullTask(info *types.PullAssetInfo) error {
 	// Waiting for state machine initialization
 	m.stateMachineWait.Wait()
 
 	if len(m.getPullingAssetList()) >= m.assetPullTaskLimit {
 		return xerrors.Errorf("The asset in the pulling exceeds the limit %d, please wait", m.assetPullTaskLimit)
-	}
-
-	if info.Replicas > assetEdgeReplicasLimit {
-		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, assetEdgeReplicasLimit)
-	}
-
-	if info.Bandwidth > assetBandwidthLimit {
-		return xerrors.Errorf("The number of bandwidthDown %d exceeds the limit %d", info.Bandwidth, assetBandwidthLimit)
 	}
 
 	log.Infof("asset event: %s, add asset replica: %d,expiration: %s", info.CID, info.Replicas, info.Expiration.String())
@@ -722,6 +715,7 @@ func (m *Manager) CreateAssetPullTask(info *types.PullAssetReq) error {
 			CreatedTime:           time.Now(),
 			Note:                  note,
 			Source:                int64(source),
+			Owner:                 info.Owner,
 		}
 
 		err = m.SaveAssetRecord(record)
@@ -1110,10 +1104,6 @@ func (m *Manager) UpdateAssetExpiration(cid string, t time.Time) error {
 
 // ResetAssetReplicaCount updates the asset replica count for a given CID
 func (m *Manager) ResetAssetReplicaCount(cid string, count int) error {
-	if count > assetEdgeReplicasLimit || count < 1 {
-		return xerrors.Errorf("ResetAssetReplicaCount count %d not meeting the requirements", count)
-	}
-
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
 		return err
@@ -1447,7 +1437,7 @@ func (m *Manager) chooseEdgeNodes(count int, bandwidthDown int64, filterNodes []
 			return true
 		}
 
-		if len(selectMap) >= assetEdgeReplicasLimit {
+		if len(selectMap) >= AssetEdgeReplicasLimit {
 			return true
 		}
 

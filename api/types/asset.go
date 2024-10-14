@@ -94,19 +94,25 @@ type ReplicaInfo struct {
 
 // PullAssetReq represents a request to pull an asset to Titan
 type PullAssetReq struct {
+	CIDs       []string
+	Replicas   int64
+	Expiration time.Time
+	Owner      string
+	Bandwidth  int64 // unit:MiB/s
+}
+
+// PullAssetInfo represents a request to pull an asset to Titan
+type PullAssetInfo struct {
 	CID        string
 	Replicas   int64
 	Expiration time.Time
+	Owner      string
 
-	Bucket    string
-	Hash      string
-	Bandwidth int64 // unit:MiB/s
-
+	Bucket            string
+	Hash              string
+	Bandwidth         int64 // unit:MiB/s
 	SeedNodeID        string
 	CandidateReplicas int64
-
-	CandidateNodeList []string
-	EdgeNodeList      []string
 }
 
 // AssetType represents the type of a asset

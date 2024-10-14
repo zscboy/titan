@@ -16,6 +16,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/handler"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	"github.com/Filecoin-Titan/titan/node/scheduler/assets"
 	"github.com/Filecoin-Titan/titan/node/scheduler/node"
 	"github.com/filecoin-project/go-jsonrpc/auth"
 	"golang.org/x/xerrors"
@@ -46,6 +47,10 @@ func (s *Scheduler) UpdateAssetExpiration(ctx context.Context, cid string, t tim
 
 // ResetAssetReplicaCount resets the replica count for an asset with the specified CID
 func (s *Scheduler) ResetAssetReplicaCount(ctx context.Context, cid string, count int) error {
+	if count > assets.AssetEdgeReplicasLimit || count < 1 {
+		return xerrors.Errorf("ResetAssetReplicaCount count %d not meeting the requirements", count)
+	}
+
 	return s.AssetManager.ResetAssetReplicaCount(cid, count)
 }
 
@@ -190,16 +195,9 @@ func (s *Scheduler) RemoveAssetReplica(ctx context.Context, cid, nodeID string) 
 
 // PullAsset pull an asset based on the provided PullAssetReq structure.
 func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) error {
-	if info.CID == "" {
+	if len(info.CIDs) == 0 {
 		return xerrors.New("Cid is Nil")
 	}
-
-	hash, err := cidutil.CIDToHash(info.CID)
-	if err != nil {
-		return xerrors.Errorf("%s cid to hash err:%s", info.CID, err.Error())
-	}
-
-	info.Hash = hash
 
 	if info.Replicas < 1 {
 		return xerrors.Errorf("replicas %d must greater than 1", info.Replicas)
@@ -209,7 +207,27 @@ func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) err
 		return xerrors.Errorf("expiration %s less than now(%v)", info.Expiration.String(), time.Now())
 	}
 
-	return s.AssetManager.CreateAssetPullTask(info) // TODO UserID
+	if info.Replicas > assets.AssetEdgeReplicasLimit {
+		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", info.Replicas, assets.AssetEdgeReplicasLimit)
+	}
+
+	if info.Bandwidth > assets.AssetBandwidthLimit {
+		return xerrors.Errorf("The number of bandwidthDown %d exceeds the limit %d", info.Bandwidth, assets.AssetBandwidthLimit)
+	}
+
+	list := make([]types.AssetDataInfo, 0)
+
+	for _, cid := range info.CIDs {
+		hash, err := cidutil.CIDToHash(cid)
+		if err != nil {
+			return xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
+		}
+
+		list = append(list, types.AssetDataInfo{Cid: cid, Replicas: info.Replicas, Owner: info.Owner, Expiration: info.Expiration, Hash: hash})
+	}
+
+	return s.db.SaveAssetData(list)
+	// return s.AssetManager.CreateAssetPullTask(info) // TODO UserID
 }
 
 // GetAssetListForBucket retrieves a list of asset hashes for the specified node's bucket.

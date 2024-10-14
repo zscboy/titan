@@ -53,14 +53,30 @@ func (n *SQLDB) ListAWSData(limit, offset int, isDistribute bool) ([]*types.AWSD
 	return infos, nil
 }
 
-// LoadAWSData fetches a single AWS data entry based on the bucket identifier.
-func (n *SQLDB) LoadAWSData(bucket string) (*types.AWSDataInfo, error) {
-	var info types.AWSDataInfo
-	query := fmt.Sprintf("SELECT * FROM %s WHERE bucket=? ", awsDataTable)
-	err := n.db.Get(&info, query, bucket)
+// SaveAssetData saves multiple ipfs data entries within a transaction, ensuring data integrity. It checks the validity of the data size for each entry before saving.
+func (n *SQLDB) SaveAssetData(infos []types.AssetDataInfo) error {
+	query := fmt.Sprintf(
+		`INSERT INTO %s (owner, replicas, cid, expiration, hash) VALUES (:owner, :replicas, :cid, :expiration, :hash)`, assetDataTable)
+
+	_, err := n.db.NamedExec(query, infos)
+	return err
+}
+
+// UpdateAssetData updates specific ipfs data entries, setting new CID and distribution status along with the current timestamp.
+func (n *SQLDB) UpdateAssetData(info *types.AssetDataInfo) error {
+	query := fmt.Sprintf(`UPDATE %s SET  status=?, distribute_time=NOW() WHERE cid=?`, assetDataTable)
+	_, err := n.db.Exec(query, info.Status, info.Cid)
+	return err
+}
+
+// ListAssetData retrieves a list of ipfs data entries based on their distribution status, with pagination support.
+func (n *SQLDB) ListAssetData(limit int, status int) ([]*types.AssetDataInfo, error) {
+	var infos []*types.AssetDataInfo
+	query := fmt.Sprintf("SELECT * FROM %s WHERE status=? order by distribute_time asc LIMIT ? ", assetDataTable)
+	err := n.db.Select(&infos, query, status, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	return &info, nil
+	return infos, nil
 }

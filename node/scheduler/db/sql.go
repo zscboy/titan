@@ -50,6 +50,7 @@ const (
 	workloadRecordTable  = "workload_record"
 	replenishBackupTable = "replenish_backup"
 	awsDataTable         = "aws_data"
+	assetDataTable       = "asset_data"
 	profitDetailsTable   = "profit_details"
 	projectInfoTable     = "project_info"
 	projectReplicasTable = "project_replicas"
@@ -133,9 +134,9 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cServicesTable, servicesTable))
 	tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
 	tx.MustExec(fmt.Sprintf(cAssetDownloadTable, assetDownloadTable))
-
 	tx.MustExec(fmt.Sprintf(cNodeStatisticsTable, nodeStatisticsTable))
 	tx.MustExec(fmt.Sprintf(cNodeRetrieveTable, nodeRetrieveTable))
+	tx.MustExec(fmt.Sprintf(cAssetDataTable, assetDataTable))
 
 	return tx.Commit()
 }
@@ -153,4 +154,9 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
+
+	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE titan_disk_usage titan_disk_usage       DOUBLE  DEFAULT 0", nodeInfoTable))
+	if err != nil {
+		log.Errorf("InitTables doExec err:%s", err.Error())
+	}
 }

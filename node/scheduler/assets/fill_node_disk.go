@@ -96,6 +96,45 @@ func (m *Manager) autoRestartAssetReplicas(isStorage bool) bool {
 	return true
 }
 
+func (m *Manager) pullAssetFromIPFS() bool {
+	if m.nodeMgr.Candidates < 1 {
+		return false
+	}
+
+	// download data from aws
+	list, err := m.ListAssetData(10, 0)
+	if err != nil {
+		return false
+	}
+
+	if len(list) == 0 {
+		return false
+	}
+
+	for _, info := range list {
+		info.Status = 1
+
+		err = m.CreateAssetPullTask(&types.PullAssetInfo{
+			CID:        info.Cid,
+			Replicas:   info.Replicas,
+			Expiration: time.Now().Add(3 * 360 * 24 * time.Hour),
+			Hash:       info.Hash,
+			Owner:      info.Owner,
+		})
+		if err != nil {
+			log.Errorf("awsTask pullAssetFromIPFS CreateAssetPullTask %s err:%s", info.Cid, err.Error())
+			info.Status = 2
+		}
+
+		err = m.UpdateAssetData(info)
+		if err != nil {
+			log.Errorf("pullAssetFromIPFS UpdateAssetData err:%s", err.Error())
+		}
+	}
+
+	return true
+}
+
 func (m *Manager) pullAssetFromAWSs() bool {
 	task := m.getPullAssetTask()
 	if task != nil {
@@ -111,7 +150,7 @@ func (m *Manager) pullAssetFromAWSs() bool {
 				return false
 			}
 
-			err = m.CreateAssetPullTask(&types.PullAssetReq{
+			err = m.CreateAssetPullTask(&types.PullAssetInfo{
 				CID:        task.Cid,
 				Replicas:   int64(task.Replicas),
 				Expiration: time.Now().Add(3 * 360 * 24 * time.Hour),
@@ -174,6 +213,10 @@ func (m *Manager) fillDiskTasks() {
 	}
 
 	log.Infof("awsTask, edge count : %d ,pullCount : %d limitCount : %d", m.nodeMgr.Edges, len(pullList), limitCount)
+
+	if m.pullAssetFromIPFS() {
+		return
+	}
 
 	if m.autoRestartAssetReplicas(true) {
 		return

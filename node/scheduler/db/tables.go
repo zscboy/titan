@@ -43,7 +43,7 @@ var cNodeInfoTable = `
 		version              INT             DEFAULT 0,
 	    disk_space           FLOAT           DEFAULT 0,
 		available_disk_space FLOAT           DEFAULT 0,
-		titan_disk_usage     FLOAT           DEFAULT 0,
+		titan_disk_usage     DOUBLE          DEFAULT 0,
     	bandwidth_up         BIGINT          DEFAULT 0,
     	bandwidth_down       BIGINT          DEFAULT 0,
 		netflow_up           BIGINT          DEFAULT 0,
@@ -258,6 +258,17 @@ var cAWSDataTable = `
 		size            FLOAT        DEFAULT 0,
 		PRIMARY KEY (bucket)
     ) ENGINE=InnoDB COMMENT='aws data';`
+
+var cAssetDataTable = `
+    CREATE TABLE if not exists %s (
+		cid             VARCHAR(128) NOT NULL,
+		replicas        INT          DEFAULT 0,
+		status          TINYINT      DEFAULT 0,
+		distribute_time DATETIME     DEFAULT CURRENT_TIMESTAMP,
+		owner           VARCHAR(128) DEFAULT '',
+		expiration      DATETIME     NOT NULL,
+		PRIMARY KEY (cid)
+    ) ENGINE=InnoDB COMMENT='asset data';`
 
 var cProfitDetailsTable = `
     CREATE TABLE if not exists %s (

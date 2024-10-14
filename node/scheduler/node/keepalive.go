@@ -137,7 +137,9 @@ func (m *Manager) nodesKeepalive(minute int, isSave bool) {
 	}
 
 	err = m.UpdateNodeOnlineCount(nodeOnlineCount, saveDate)
-
+	if err != nil {
+		log.Errorf("updateNodeData UpdateNodeOnlineCount err:%s", err.Error())
+	}
 	// // update server count
 	// err = m.UpdateServerOnlineCount(string(m.ServerID), m.serverTodayOnlineTimeWindow, saveDate)
 	// if err != nil {
@@ -145,6 +147,7 @@ func (m *Manager) nodesKeepalive(minute int, isSave bool) {
 	// }
 }
 
+// SetNodeOffline removes the node's IP and geo information from the manager.
 func (m *Manager) SetNodeOffline(node *Node) {
 	m.IPMgr.RemoveNodeIP(node.NodeID, node.ExternalIP)
 	m.GeoMgr.RemoveNodeGeo(node.NodeID, node.Type, node.AreaID)

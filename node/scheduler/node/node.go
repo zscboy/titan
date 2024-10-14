@@ -143,6 +143,7 @@ func APIFromCandidate(api api.Candidate) *API {
 	return a
 }
 
+// InitInfo initializes the node information.
 func (n *Node) InitInfo(nodeInfo *types.NodeInfo) {
 	oldValue := n.TodayOnlineTimeWindow
 
