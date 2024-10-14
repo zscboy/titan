@@ -143,7 +143,7 @@ type ProjectOverview struct {
 	UploadTraffic   int64  `db:"sum_upload_traffic"`
 	DownloadTraffic int64  `db:"sum_download_traffic"`
 	Time            int64  `db:"sum_time"`
-	AvgTimeout      int64  `db:"avg_timeout"`
+	AvgDelay        int64  `db:"avg_delay"`
 }
 
 // ListProjectOverviewRsp list replica events
