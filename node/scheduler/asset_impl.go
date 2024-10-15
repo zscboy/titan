@@ -595,7 +595,9 @@ func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.R
 		return xerrors.Errorf("UserAssetDownloadResult node not found: %s", info.NodeID)
 	}
 
-	log.Infof("UserAssetDownloadResultV2 Hash[%s] ClientID[%s] NodeID[%s] PeakBandwidth[%d] Size[%d]\n", info.Hash, info.ClientID, info.NodeID, info.PeakBandwidth, info.Size)
+	s.NodeManager.UpdateNodeBandwidths(info.NodeID, 0, info.Speed)
+
+	log.Infof("UserAssetDownloadResultV2 Hash[%s] ClientID[%s] NodeID[%s] PeakBandwidth[%d] Speed[%d] Size[%d]\n", info.Hash, info.ClientID, info.NodeID, info.PeakBandwidth, info.Speed, info.Size)
 
 	succeededCount := 0
 	failedCount := 0

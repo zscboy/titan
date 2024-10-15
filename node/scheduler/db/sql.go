@@ -154,9 +154,4 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s CHANGE titan_disk_usage titan_disk_usage       DOUBLE  DEFAULT 0", nodeInfoTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
 }

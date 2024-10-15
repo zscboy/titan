@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/Filecoin-Titan/titan/node/cidutil"
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/db"
 	"github.com/Filecoin-Titan/titan/node/scheduler/leadership"
@@ -69,7 +68,7 @@ func (m *Manager) popWorkloadResult() *WorkloadResult {
 }
 
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
-	// log.Infof("workload PushResult nodeID:[%s] , %s\n", nodeID, data.WorkloadID)
+	log.Infof("workload PushResult nodeID:[%s] , %s [%s]\n", nodeID, data.WorkloadID, data.AssetCID)
 
 	m.addWorkloadResult(&WorkloadResult{data: data, nodeID: nodeID})
 	// m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
@@ -92,10 +91,10 @@ func (m *Manager) handleResults() {
 // handleClientWorkload handle node workload
 func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNode string) error {
 	if data.WorkloadID == "" {
-		hash, err := cidutil.CIDToHash(data.AssetCID)
-		if err != nil {
-			return err
-		}
+		// hash, err := cidutil.CIDToHash(data.AssetCID)
+		// if err != nil {
+		// 	return err
+		// }
 
 		// L1 download
 		for _, dw := range data.Workloads {
@@ -104,18 +103,18 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 				m.nodeMgr.UpdateNodeBandwidths(downloadNode, speed, 0)
 			}
 
-			event := &types.RetrieveEvent{
-				Hash:   hash,
-				NodeID: dw.SourceID,
-				// ClientID: record.ClientID,
-				Size:   dw.DownloadSize,
-				Status: types.EventStatusSucceed,
-				Speed:  speed,
-			}
+			// event := &types.RetrieveEvent{
+			// 	Hash:   hash,
+			// 	NodeID: dw.SourceID,
+			// 	// ClientID: record.ClientID,
+			// 	Size:   dw.DownloadSize,
+			// 	Status: types.EventStatusSucceed,
+			// 	Speed:  speed,
+			// }
 
-			if err := m.SaveRetrieveEventInfo(event, 1, 0); err != nil {
-				log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
-			}
+			// if err := m.SaveRetrieveEventInfo(event, 1, 0); err != nil {
+			// 	log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
+			// }
 		}
 
 		return nil
@@ -139,12 +138,12 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 		return err
 	}
 
-	hash, err := cidutil.CIDToHash(record.AssetCID)
-	if err != nil {
-		return err
-	}
+	// hash, err := cidutil.CIDToHash(record.AssetCID)
+	// if err != nil {
+	// 	return err
+	// }
 
-	eventList := make([]*types.RetrieveEvent, 0)
+	// eventList := make([]*types.RetrieveEvent, 0)
 	detailsList := make([]*types.ProfitDetails, 0)
 
 	limit := int64(float64(record.AssetSize))
@@ -178,23 +177,23 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 			}
 		}
 
-		retrieveEvent := &types.RetrieveEvent{
-			Hash:     hash,
-			NodeID:   dw.SourceID,
-			ClientID: record.ClientID,
-			Size:     dw.DownloadSize,
-			Status:   types.EventStatusSucceed,
-			Speed:    speed,
-		}
-		eventList = append(eventList, retrieveEvent)
+		// retrieveEvent := &types.RetrieveEvent{
+		// 	Hash:     hash,
+		// 	NodeID:   dw.SourceID,
+		// 	ClientID: record.ClientID,
+		// 	Size:     dw.DownloadSize,
+		// 	Status:   types.EventStatusSucceed,
+		// 	Speed:    speed,
+		// }
+		// eventList = append(eventList, retrieveEvent)
 	}
 
-	// Retrieve Event
-	for _, data := range eventList {
-		if err := m.SaveRetrieveEventInfo(data, 1, 0); err != nil {
-			log.Errorf("handleClientWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
-		}
-	}
+	// // Retrieve Event
+	// for _, data := range eventList {
+	// 	if err := m.SaveRetrieveEventInfo(data, 1, 0); err != nil {
+	// 		log.Errorf("handleClientWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
+	// 	}
+	// }
 
 	err = m.nodeMgr.AddNodeProfitDetails(detailsList)
 	if err != nil {

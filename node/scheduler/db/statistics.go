@@ -10,11 +10,12 @@ import (
 
 // SaveRetrieveEventInfo records a retrieval event and updates the associated node information in the database.
 func (n *SQLDB) SaveRetrieveEventInfo(info *types.RetrieveEvent, succeededCount, failedCount int) error {
+	total := succeededCount + failedCount
 	// update node info
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, retrieve_count, retrieve_succeeded_count, retrieve_failed_count) VALUES (?, ?, ?, ?) 
 				ON DUPLICATE KEY UPDATE retrieve_count=retrieve_count+? ,retrieve_succeeded_count=retrieve_succeeded_count+?, retrieve_failed_count=retrieve_failed_count+?, update_time=NOW()`, nodeStatisticsTable)
-	_, err := n.db.Exec(query, info.NodeID, 1, succeededCount, failedCount, 1, succeededCount, failedCount)
+	_, err := n.db.Exec(query, info.NodeID, total, succeededCount, failedCount, total, succeededCount, failedCount)
 	if err != nil {
 		return err
 	}
@@ -41,11 +42,13 @@ func (n *SQLDB) SaveReplicaEvent(info *types.AssetReplicaEventInfo, succeededCou
 		}
 	}()
 
+	total := succeededCount + failedCount
+
 	// update node asset count
 	query := fmt.Sprintf(
 		`INSERT INTO %s (node_id, asset_count, asset_succeeded_count, asset_failed_count) VALUES (?, ?, ?, ?) 
 				ON DUPLICATE KEY UPDATE asset_count=asset_count+? ,asset_succeeded_count=asset_succeeded_count+?, asset_failed_count=asset_failed_count+?, update_time=NOW()`, nodeStatisticsTable)
-	_, err = tx.Exec(query, info.NodeID, 1, succeededCount, failedCount, 1, succeededCount, failedCount)
+	_, err = tx.Exec(query, info.NodeID, total, succeededCount, failedCount, total, succeededCount, failedCount)
 	if err != nil {
 		return err
 	}
