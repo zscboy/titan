@@ -136,6 +136,18 @@ func (n *SQLDB) LoadAssetRecords(statuses []string, serverID dtypes.ServerID) ([
 	return out, nil
 }
 
+// LoadAssetRecordRowsWithCID retrieves a paginated list of all asset records with cid
+func (n *SQLDB) LoadAssetRecordRowsWithCID(cids []string, serverID dtypes.ServerID) (*sqlx.Rows, error) {
+	sQuery := fmt.Sprintf(`SELECT * FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE cid in (?) `, assetRecordTable, assetStateTable(serverID))
+	query, args, err := sqlx.In(sQuery, cids)
+	if err != nil {
+		return nil, err
+	}
+
+	query = n.db.Rebind(query)
+	return n.db.QueryxContext(context.Background(), query, args...)
+}
+
 // LoadAssetRecordRows retrieves a paginated list of all asset records from a specified server ID filtered by state.
 func (n *SQLDB) LoadAssetRecordRows(statuses []string, limit, offset int, serverID dtypes.ServerID) (*sqlx.Rows, error) {
 	if limit > loadAssetRecordsDefaultLimit || limit == 0 {

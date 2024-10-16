@@ -87,6 +87,8 @@ type AssetAPIStruct struct {
 
 		GetAssetRecordsByDateRange func(p0 context.Context, p1 int, p2 int, p3 time.Time, p4 time.Time) (*types.ListAssetRecordRsp, error) `perm:"web,admin"`
 
+		GetAssetRecordsWithCIDs func(p0 context.Context, p1 []string) ([]*types.AssetRecord, error) `perm:"web,admin"`
+
 		GetAssetsForNode func(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) `perm:"web,admin"`
 
 		GetDownloadResultsFromAssets func(p0 context.Context, p1 []string, p2 time.Time, p3 time.Time) ([]*types.AssetDownloadResultRsp, error) `perm:"web,admin"`
@@ -494,6 +496,8 @@ type NodeAPIStruct struct {
 
 		ReDetermineNodeNATType func(p0 context.Context, p1 string) (error) `perm:"admin,web,locator"`
 
+		RecompenseNodeProfit func(p0 context.Context, p1 string, p2 string, p3 float64) (error) `perm:"admin,web,locator"`
+
 		RegisterCandidateNode func(p0 context.Context, p1 string, p2 string, p3 string) (*types.ActivationDetail, error) `perm:"default"`
 
 		RegisterEdgeNode func(p0 context.Context, p1 string, p2 string) (*types.ActivationDetail, error) `perm:"default"`
@@ -502,8 +506,6 @@ type NodeAPIStruct struct {
 
 		RegisterNodeV2 func(p0 context.Context, p1 types.NodeRegister) (*types.ActivationDetail, error) `perm:"default"`
 
-		ReimburseNodeProfit func(p0 context.Context, p1 string, p2 string, p3 float64) (error) `perm:"admin,web,locator"`
-
 		RequestActivationCodes func(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeActivation, error) `perm:"web,admin"`
 
 		SetTunserverURL func(p0 context.Context, p1 string, p2 string) (error) `perm:"admin,web,locator"`
@@ -511,10 +513,6 @@ type NodeAPIStruct struct {
 		UndoNodeDeactivation func(p0 context.Context, p1 string) (error) `perm:"web,admin"`
 
 		UpdateBandwidths func(p0 context.Context, p1 int64, p2 int64) (error) `perm:"edge,candidate"`
-
-		UpdateNetFlows func(p0 context.Context, p1 int64, p2 int64, p3 int64) (error) `perm:"edge"`
-
-		UpdateNodeDynamicInfo func(p0 context.Context, p1 *types.NodeDynamicInfo) (error) `perm:"admin"`
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
 
@@ -658,8 +656,6 @@ type SchedulerStruct struct {
 		SubmitWorkloadReport func(p0 context.Context, p1 *types.WorkloadRecordReq) (error) `perm:"default"`
 
 		SubmitWorkloadReportV2 func(p0 context.Context, p1 *types.WorkloadRecordReq) (error) `perm:"default"`
-
-		TriggerElection func(p0 context.Context) (error) `perm:"admin"`
 
 	}
 }
@@ -1012,6 +1008,17 @@ func (s *AssetAPIStruct) GetAssetRecordsByDateRange(p0 context.Context, p1 int, 
 
 func (s *AssetAPIStub) GetAssetRecordsByDateRange(p0 context.Context, p1 int, p2 int, p3 time.Time, p4 time.Time) (*types.ListAssetRecordRsp, error) {
 	return nil, ErrNotSupported
+}
+
+func (s *AssetAPIStruct) GetAssetRecordsWithCIDs(p0 context.Context, p1 []string) ([]*types.AssetRecord, error) {
+	if s.Internal.GetAssetRecordsWithCIDs == nil {
+		return *new([]*types.AssetRecord), ErrNotSupported
+	}
+	return s.Internal.GetAssetRecordsWithCIDs(p0, p1)
+}
+
+func (s *AssetAPIStub) GetAssetRecordsWithCIDs(p0 context.Context, p1 []string) ([]*types.AssetRecord, error) {
+	return *new([]*types.AssetRecord), ErrNotSupported
 }
 
 func (s *AssetAPIStruct) GetAssetsForNode(p0 context.Context, p1 string, p2 int, p3 int) (*types.ListNodeAssetRsp, error) {
@@ -2427,6 +2434,17 @@ func (s *NodeAPIStub) ReDetermineNodeNATType(p0 context.Context, p1 string) (err
 	return ErrNotSupported
 }
 
+func (s *NodeAPIStruct) RecompenseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
+	if s.Internal.RecompenseNodeProfit == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.RecompenseNodeProfit(p0, p1, p2, p3)
+}
+
+func (s *NodeAPIStub) RecompenseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
+	return ErrNotSupported
+}
+
 func (s *NodeAPIStruct) RegisterCandidateNode(p0 context.Context, p1 string, p2 string, p3 string) (*types.ActivationDetail, error) {
 	if s.Internal.RegisterCandidateNode == nil {
 		return nil, ErrNotSupported
@@ -2471,17 +2489,6 @@ func (s *NodeAPIStub) RegisterNodeV2(p0 context.Context, p1 types.NodeRegister) 
 	return nil, ErrNotSupported
 }
 
-func (s *NodeAPIStruct) ReimburseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
-	if s.Internal.ReimburseNodeProfit == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.ReimburseNodeProfit(p0, p1, p2, p3)
-}
-
-func (s *NodeAPIStub) ReimburseNodeProfit(p0 context.Context, p1 string, p2 string, p3 float64) (error) {
-	return ErrNotSupported
-}
-
 func (s *NodeAPIStruct) RequestActivationCodes(p0 context.Context, p1 types.NodeType, p2 int) ([]*types.NodeActivation, error) {
 	if s.Internal.RequestActivationCodes == nil {
 		return *new([]*types.NodeActivation), ErrNotSupported
@@ -2523,28 +2530,6 @@ func (s *NodeAPIStruct) UpdateBandwidths(p0 context.Context, p1 int64, p2 int64)
 }
 
 func (s *NodeAPIStub) UpdateBandwidths(p0 context.Context, p1 int64, p2 int64) (error) {
-	return ErrNotSupported
-}
-
-func (s *NodeAPIStruct) UpdateNetFlows(p0 context.Context, p1 int64, p2 int64, p3 int64) (error) {
-	if s.Internal.UpdateNetFlows == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateNetFlows(p0, p1, p2, p3)
-}
-
-func (s *NodeAPIStub) UpdateNetFlows(p0 context.Context, p1 int64, p2 int64, p3 int64) (error) {
-	return ErrNotSupported
-}
-
-func (s *NodeAPIStruct) UpdateNodeDynamicInfo(p0 context.Context, p1 *types.NodeDynamicInfo) (error) {
-	if s.Internal.UpdateNodeDynamicInfo == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateNodeDynamicInfo(p0, p1)
-}
-
-func (s *NodeAPIStub) UpdateNodeDynamicInfo(p0 context.Context, p1 *types.NodeDynamicInfo) (error) {
 	return ErrNotSupported
 }
 
@@ -3104,17 +3089,6 @@ func (s *SchedulerStruct) SubmitWorkloadReportV2(p0 context.Context, p1 *types.W
 }
 
 func (s *SchedulerStub) SubmitWorkloadReportV2(p0 context.Context, p1 *types.WorkloadRecordReq) (error) {
-	return ErrNotSupported
-}
-
-func (s *SchedulerStruct) TriggerElection(p0 context.Context) (error) {
-	if s.Internal.TriggerElection == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.TriggerElection(p0)
-}
-
-func (s *SchedulerStub) TriggerElection(p0 context.Context) (error) {
 	return ErrNotSupported
 }
 

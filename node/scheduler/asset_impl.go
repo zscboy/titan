@@ -97,6 +97,37 @@ func (s *Scheduler) GetReplicas(ctx context.Context, cid string, limit, offset i
 	return dInfo, nil
 }
 
+// GetAssetRecordsWithCIDs retrieves a list of asset records with cid
+func (s *Scheduler) GetAssetRecordsWithCIDs(ctx context.Context, cids []string) ([]*types.AssetRecord, error) {
+	rows, err := s.db.LoadAssetRecordRowsWithCID(cids, s.ServerID)
+	if err != nil {
+		return nil, xerrors.Errorf("LoadAssetRecords err:%s", err.Error())
+	}
+	defer rows.Close()
+
+	list := make([]*types.AssetRecord, 0)
+
+	// loading assets to local
+	for rows.Next() {
+		cInfo := &types.AssetRecord{}
+		err = rows.StructScan(cInfo)
+		if err != nil {
+			log.Errorf("asset StructScan err: %s", err.Error())
+			continue
+		}
+
+		// cInfo.ReplicaInfos, err = s.db.LoadReplicasByStatus(cInfo.Hash, types.ReplicaStatusAll)
+		// if err != nil {
+		// 	log.Errorf("asset %s load replicas err: %s", cInfo.CID, err.Error())
+		// 	continue
+		// }
+
+		list = append(list, cInfo)
+	}
+
+	return list, nil
+}
+
 // GetAssetRecords lists asset records with optional filtering by status, limit, and offset.
 func (s *Scheduler) GetAssetRecords(ctx context.Context, limit, offset int, statuses []string, serverID dtypes.ServerID) ([]*types.AssetRecord, error) {
 	if serverID == "" {

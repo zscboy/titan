@@ -27,6 +27,8 @@ type AssetAPI interface {
 	GetAssetRecord(ctx context.Context, cid string) (*types.AssetRecord, error) //perm:web,admin
 	// GetAssetRecords retrieves a list of asset records with pagination using the specified limit, offset, and states
 	GetAssetRecords(ctx context.Context, limit, offset int, states []string, serverID dtypes.ServerID) ([]*types.AssetRecord, error) //perm:web,admin
+	// GetAssetRecordsWithCIDs retrieves a list of asset records with cid
+	GetAssetRecordsWithCIDs(ctx context.Context, cids []string) ([]*types.AssetRecord, error) //perm:web,admin
 	// GetReplicas retrieves a list of asset replicas with pagination using the specified limit, offset
 	GetReplicas(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaRsp, error) //perm:web,admin
 	// RePullFailedAssets retries the pull process for a list of failed assets
@@ -179,8 +181,6 @@ type NodeAPI interface {
 	VerifyTokenWithLimitCount(ctx context.Context, token string) (*types.JWTPayload, error) //perm:edge,candidate
 	// UpdateBandwidths update node bandwidthDown and bandwidthUp
 	UpdateBandwidths(ctx context.Context, bandwidthDown, bandwidthUp int64) error //perm:edge,candidate
-	// UpdateNetFlows update node net flow total,up,down usage
-	UpdateNetFlows(ctx context.Context, total, up, down int64) error //perm:edge
 	// GetCandidateNodeIP get candidate ip for locator
 	GetCandidateNodeIP(ctx context.Context, nodeID string) (string, error) //perm:web,admin
 	// GetMinioConfigFromCandidate get minio config from candidate
@@ -209,14 +209,13 @@ type NodeAPI interface {
 	FreeUpDiskSpace(ctx context.Context, nodeID string, size int64) (*types.FreeUpDiskResp, error) //perm:edge,candidate,admin
 	// GetNextFreeTime returns the next free up time
 	GetNextFreeTime(ctx context.Context, nodeID string) (int64, error) //perm:edge,candidate,admin
-	// UpdateNodeDynamicInfo
-	UpdateNodeDynamicInfo(ctx context.Context, info *types.NodeDynamicInfo) error //perm:admin
+
 	// ReDetermineNodeNATType
 	ReDetermineNodeNATType(ctx context.Context, nodeID string) error //perm:admin,web,locator
 	// SetTunserverURL
 	SetTunserverURL(ctx context.Context, nodeID, wsNodeID string) error //perm:admin,web,locator
-	// ReimburseNodeProfit
-	ReimburseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error //perm:admin,web,locator
+	// RecompenseNodeProfit
+	RecompenseNodeProfit(ctx context.Context, nodeID, note string, profit float64) error //perm:admin,web,locator
 	// GetTunserverURLFromUser
 	GetTunserverURLFromUser(ctx context.Context, req *types.TunserverReq) (*types.TunserverRsp, error) //perm:admin,web,locator
 	// CreateTunnel create tunnel for workerd communication
@@ -273,8 +272,6 @@ type Scheduler interface {
 	GetSchedulerPublicKey(ctx context.Context) (string, error) //perm:edge,candidate
 	// GetNodePublicKey retrieves the node's public key in PEM format
 	GetNodePublicKey(ctx context.Context, nodeID string) (string, error) //perm:web,admin
-	// TriggerElection starts a new election process
-	TriggerElection(ctx context.Context) error //perm:admin
 	// GetEdgeUpdateConfigs retrieves edge update configurations for different node types
 	GetEdgeUpdateConfigs(ctx context.Context) (map[int]*EdgeUpdateConfig, error) //perm:edge
 	// SetEdgeUpdateConfig updates the edge update configuration for a specific node type with the provided information

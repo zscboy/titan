@@ -458,12 +458,6 @@ func (s *Scheduler) NodeValidationResult(ctx context.Context, r io.Reader, sign 
 	return nil
 }
 
-// TriggerElection triggers a single election for validators.
-func (s *Scheduler) TriggerElection(ctx context.Context) error {
-	// s.ValidationMgr.StartElection()
-	return nil
-}
-
 // GetValidationResults retrieves a list of validation results.
 func (s *Scheduler) GetValidationResults(ctx context.Context, nodeID string, limit, offset int) (*types.ListValidationResultRsp, error) {
 	svm, err := s.NodeManager.LoadValidationResultInfos(nodeID, limit, offset)
@@ -495,6 +489,7 @@ func (s *Scheduler) GetNodePublicKey(ctx context.Context, nodeID string) (string
 	return string(pem), nil
 }
 
+// SubmitProjectReport submits a project report for the given request.
 func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectRecordReq) error {
 	candidateID := handler.GetNodeID(ctx)
 	if len(candidateID) == 0 {
@@ -574,13 +569,13 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 	return s.db.UpdateProjectReplicasInfo(rInfo)
 }
 
-// SubmitWorkloadReportV2
+// SubmitWorkloadReportV2 submits a workload report to the scheduler.
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {
 	// from sdk or web or client
 	return s.WorkloadManager.PushResult(workload, "")
 }
 
-// SubmitWorkloadReport
+// SubmitWorkloadReport submits a workload report to the scheduler.
 func (s *Scheduler) SubmitWorkloadReport(ctx context.Context, workload *types.WorkloadRecordReq) error {
 	// from node
 	nodeID := handler.GetNodeID(ctx)
@@ -603,11 +598,7 @@ func (s *Scheduler) GetWorkloadRecord(ctx context.Context, id string) (*types.Wo
 	return s.db.LoadWorkloadRecordOfID(id)
 }
 
-// UpdateNetFlows update node net flow total,up,down usage
-func (s *Scheduler) UpdateNetFlows(ctx context.Context, total, up, down int64) error {
-	return nil
-}
-
+// ReDetermineNodeNATType re-determines the NAT type for the specified node.
 func (s *Scheduler) ReDetermineNodeNATType(ctx context.Context, nodeID string) error {
 	node := s.NodeManager.GetCandidateNode(nodeID)
 	if node != nil {
@@ -624,6 +615,7 @@ func (s *Scheduler) ReDetermineNodeNATType(ctx context.Context, nodeID string) e
 	return nil
 }
 
+// GenerateCandidateCodes generates a specified number of candidate codes for a given node type.
 func (s *Scheduler) GenerateCandidateCodes(ctx context.Context, count int, nodeType types.NodeType, isTest bool) ([]string, error) {
 	infos := make([]*types.CandidateCodeInfo, 0)
 	out := make([]string, 0)
@@ -643,6 +635,7 @@ func (s *Scheduler) GenerateCandidateCodes(ctx context.Context, count int, nodeT
 	return out, s.db.SaveCandidateCodeInfo(infos)
 }
 
+// GetCandidateCodeInfos retrieves candidate code information for a given node ID and code.
 func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID, code string) ([]*types.CandidateCodeInfo, error) {
 	if nodeID != "" {
 		info, err := s.db.GetCandidateCodeInfoForNodeID(nodeID)
@@ -665,14 +658,17 @@ func (s *Scheduler) GetCandidateCodeInfos(ctx context.Context, nodeID, code stri
 	return s.db.GetCandidateCodeInfos()
 }
 
+// ResetCandidateCode resets the candidate code for the specified node.
 func (s *Scheduler) ResetCandidateCode(ctx context.Context, nodeID, code string) error {
 	return s.db.ResetCandidateCodeInfo(code, nodeID)
 }
 
+// RemoveCandidateCode removes the candidate code information from the database.
 func (s *Scheduler) RemoveCandidateCode(ctx context.Context, code string) error {
 	return s.db.DeleteCandidateCodeInfo(code)
 }
 
+// GetValidators returns a list of validator addresses.
 func (s *Scheduler) GetValidators(ctx context.Context) ([]string, error) {
 	return s.ValidationMgr.GetValidators(), nil
 }

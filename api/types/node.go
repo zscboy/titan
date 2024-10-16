@@ -586,8 +586,8 @@ const (
 	ProfitTypeUpload
 	// ProfitTypeOfflinePenalty
 	ProfitTypeOfflinePenalty
-	// ProfitTypeReimburse
-	ProfitTypeReimburse
+	// ProfitTypeRecompense
+	ProfitTypeRecompense
 )
 
 type ProfitDetails struct {

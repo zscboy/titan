@@ -28,13 +28,13 @@ var nodeCmds = &cli.Command{
 		nodeCleanReplicasCmd,
 		nodeFromGeoCmd,
 		getRegionInfosCmd,
-		reimburseProfitCmd,
+		recompenseProfitCmd,
 	},
 }
 
-var reimburseProfitCmd = &cli.Command{
+var recompenseProfitCmd = &cli.Command{
 	Name:  "profit",
-	Usage: "reimburse profit",
+	Usage: "recompense profit",
 	Flags: []cli.Flag{
 		nodeIDFlag,
 		&cli.StringFlag{
@@ -60,7 +60,7 @@ var reimburseProfitCmd = &cli.Command{
 		}
 		defer closer()
 
-		return schedulerAPI.ReimburseNodeProfit(ctx, nodeID, note, profit)
+		return schedulerAPI.RecompenseNodeProfit(ctx, nodeID, note, profit)
 	},
 }
 

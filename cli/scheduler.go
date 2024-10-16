@@ -22,7 +22,7 @@ var SchedulerCMDs = []*cli.Command{
 	WithCategory("codes", codesCmds),
 	WithCategory("provider", providerCmds),
 	WithCategory("deployment", deploymentCmds),
-	// startElectionCmd,
+
 	// other
 	edgeUpdaterCmd,
 	loadWorkloadCmd,
@@ -176,7 +176,7 @@ var showValidatorCmd = &cli.Command{
 
 var reNatCmd = &cli.Command{
 	Name:  "rn",
-	Usage: "re determine node nat type",
+	Usage: "recheck determine node nat type",
 	Flags: []cli.Flag{
 		nodeIDFlag,
 	},
@@ -198,27 +198,6 @@ var reNatCmd = &cli.Command{
 		return schedulerAPI.ReDetermineNodeNATType(ctx, nodeID)
 	},
 }
-
-// var startElectionCmd = &cli.Command{
-// 	Name:  "start-election",
-// 	Usage: "Start election validator",
-
-// 	Before: func(cctx *cli.Context) error {
-// 		return nil
-// 	},
-// 	Action: func(cctx *cli.Context) error {
-// 		ctx := ReqContext(cctx)
-
-// 		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		defer closer()
-
-// 		return schedulerAPI.TriggerElection(ctx)
-// 	},
-// }
 
 var edgeUpdaterCmd = &cli.Command{
 	Name:  "edge-updater",

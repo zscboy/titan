@@ -251,8 +251,8 @@ func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuratio
 	}
 }
 
-// GetReimburseProfitDetails Reimburse
-func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note string) *types.ProfitDetails {
+// GetRecompenseProfitDetails recompense
+func (m *Manager) GetRecompenseProfitDetails(nodeID string, profit float64, note string) *types.ProfitDetails {
 	if profit < 0.000001 {
 		return nil
 	}
@@ -260,7 +260,7 @@ func (m *Manager) GetReimburseProfitDetails(nodeID string, profit float64, note 
 	return &types.ProfitDetails{
 		NodeID: nodeID,
 		Profit: profit,
-		PType:  types.ProfitTypeReimburse,
+		PType:  types.ProfitTypeRecompense,
 		Note:   note,
 	}
 }
