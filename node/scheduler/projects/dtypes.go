@@ -15,8 +15,10 @@ func (c ProjectID) String() string {
 	return string(c)
 }
 
+// ProjectState represents the state of a project in the scheduler.
 type ProjectState string
 
+// NodeSelect indicates the project state when a node is selected.
 const (
 	NodeSelect ProjectState = "NodeSelect"
 	Update     ProjectState = "Update"
@@ -31,6 +33,7 @@ func (ps ProjectState) String() string {
 	return string(ps)
 }
 
+// ProjectRequirement represents the resource requirements for a project.
 type ProjectRequirement struct {
 	CPUCores int64
 	Memory   int64
@@ -40,7 +43,7 @@ type ProjectRequirement struct {
 	NodeIDs []string
 }
 
-// ProjectInfo
+// ProjectInfo represents information about a project.
 type ProjectInfo struct {
 	// uuid
 	UUID      ProjectID

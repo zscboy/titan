@@ -6,6 +6,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc/auth"
 )
 
+// OpenRPCDocument represents a document in the OpenRPC format.
 type OpenRPCDocument map[string]interface{}
 
 // EventTopics represents topics for pub/sub events
@@ -27,6 +28,7 @@ type ValidationInfo struct {
 	NextElectionTime time.Time
 }
 
+// JWTPayload represents the payload for JWT authentication.
 type JWTPayload struct {
 	// role base access controller permission
 	Allow []auth.Permission

@@ -142,6 +142,7 @@ func (n *SQLDB) SaveNodeInfo(info *types.NodeInfo) error {
 	return err
 }
 
+// UpdateNodeOnlineCount updates the online count of nodes for a given date.
 func (n *SQLDB) UpdateNodeOnlineCount(nodeOnlineCount map[string]int, date time.Time) error {
 	tx, err := n.db.Beginx()
 	if err != nil {

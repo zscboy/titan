@@ -30,6 +30,7 @@ type NodeDynamicInfo struct {
 	TodayOnlineTimeWindow int // today online time window
 }
 
+// NodeStatisticsInfo holds statistics about node assets.
 type NodeStatisticsInfo struct {
 	AssetCount             int64 `db:"asset_count"`
 	AssetSucceededCount    int64 `db:"asset_succeeded_count"`
@@ -85,6 +86,7 @@ type NodeInfo struct {
 	NodeStatisticsInfo
 }
 
+// NodeMigrateInfo holds information about node migration.
 type NodeMigrateInfo struct {
 	NodeInfo       *NodeInfo
 	ActivationInfo *ActivationDetail
@@ -98,6 +100,7 @@ type NodeMigrateInfo struct {
 // NodeClientType node client type
 type NodeClientType int
 
+// NodeOther represents a node type that is not specifically defined.
 const (
 	NodeOther NodeClientType = iota
 	NodeWindows
@@ -109,6 +112,7 @@ const (
 // NodeStatus node status
 type NodeStatus int
 
+// NodeOffline indicates that the node is not currently online.
 const (
 	NodeOffline NodeStatus = iota
 
@@ -129,6 +133,7 @@ func (n NodeStatus) String() string {
 // NodeType node type
 type NodeType int
 
+// NodeUnknown represents an unknown node type.
 const (
 	NodeUnknown NodeType = iota
 
@@ -190,6 +195,7 @@ type EdgeDownloadInfo struct {
 	NatType string
 }
 
+// ExitProfitRsp represents the response structure for exit profit calculations.
 type ExitProfitRsp struct {
 	CurrentPoint   float64
 	RemainingPoint float64
@@ -236,12 +242,14 @@ type CandidateDownloadInfo struct {
 	AWSKey string
 }
 
+// SourceDownloadInfo holds information about the source download.
 type SourceDownloadInfo struct {
 	NodeID  string
 	Address string
 	Tk      *Token
 }
 
+// AssetSourceDownloadInfoRsp contains information about the download source for an asset.
 type AssetSourceDownloadInfoRsp struct {
 	WorkloadID string
 
@@ -255,7 +263,7 @@ type AssetSourceDownloadInfoRsp struct {
 	SourceList []*SourceDownloadInfo
 }
 
-// NodeIPInfo
+// NodeIPInfo represents the IP information of a node.
 type NodeIPInfo struct {
 	NodeID      string
 	IP          string
@@ -309,6 +317,7 @@ func (n NatType) String() string {
 	return "UnknowNAT"
 }
 
+// FromString converts a string representation of a NAT type to a NatType.
 func (n NatType) FromString(natType string) NatType {
 	switch natType {
 	case "NoNat":
@@ -427,7 +436,7 @@ type Token struct {
 	Sign string
 }
 
-// ProjectRecordReq
+// ProjectRecordReq represents a request for a project record.
 type ProjectRecordReq struct {
 	NodeID            string
 	ProjectID         string
@@ -440,8 +449,10 @@ type ProjectRecordReq struct {
 	AvgDelay          int64
 }
 
+// WorkloadEvent represents the different types of workload events.
 type WorkloadEvent int
 
+// WorkloadEventPull indicates a pull event for workloads.
 const (
 	WorkloadEventPull WorkloadEvent = iota
 	WorkloadEventSync
@@ -462,13 +473,14 @@ const (
 	WorkloadStatusInvalid
 )
 
+// Workload represents a unit of work with a source ID and download size.
 type Workload struct {
 	SourceID     string
 	DownloadSize int64
 	CostTime     int64 // Millisecond
 }
 
-// WorkloadReportRecord use to store workloadReport
+// WorkloadRecord use to store workloadReport
 type WorkloadRecord struct {
 	WorkloadID    string         `db:"workload_id"`
 	AssetCID      string         `db:"asset_cid"`
@@ -488,6 +500,7 @@ type WorkloadRecordReq struct {
 	Workloads  []Workload
 }
 
+// NodeWorkloadReport represents a report of workloads for a node.
 type NodeWorkloadReport struct {
 	// CipherText encrypted []*WorkloadReport by scheduler public key
 	CipherText []byte
@@ -495,12 +508,14 @@ type NodeWorkloadReport struct {
 	Sign []byte
 }
 
+// NatPunchReq represents a request for NAT punching.
 type NatPunchReq struct {
 	Tk      *Token
 	NodeID  string
 	Timeout time.Duration
 }
 
+// ConnectOptions holds the configuration options for connecting to the server.
 type ConnectOptions struct {
 	Token         string
 	TcpServerPort int
@@ -512,6 +527,7 @@ type ConnectOptions struct {
 	ResourcesStatistics *ResourcesStatistics
 }
 
+// GeneratedCarInfo holds information about a generated CAR (Content Addressable Resource).
 type GeneratedCarInfo struct {
 	DataCid   string
 	PieceCid  string
@@ -519,11 +535,13 @@ type GeneratedCarInfo struct {
 	Path      string
 }
 
+// NodeActivation represents the activation details for a node.
 type NodeActivation struct {
 	NodeID         string
 	ActivationCode string
 }
 
+// NodeRegister represents a registration for a node with its ID and code.
 type NodeRegister struct {
 	NodeID    string
 	Code      string
@@ -532,6 +550,7 @@ type NodeRegister struct {
 	NodeType  NodeType
 }
 
+// ActivationDetail holds the details of an activation for a node.
 type ActivationDetail struct {
 	NodeID        string   `json:"node_id" db:"node_id"`
 	AreaID        string   `json:"area_id" `
@@ -543,6 +562,7 @@ type ActivationDetail struct {
 	CreatedTime   string   `db:"created_time"`
 }
 
+// Marshal converts ActivationDetail to a JSON string.
 func (d *ActivationDetail) Marshal() (string, error) {
 	b, err := json.Marshal(d)
 	if err != nil {
@@ -552,6 +572,7 @@ func (d *ActivationDetail) Marshal() (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Unmarshal decodes a base64 encoded string into ActivationDetail.
 func (d *ActivationDetail) Unmarshal(code string) error {
 	sDec, err := base64.StdEncoding.DecodeString(code)
 	if err != nil {
@@ -569,8 +590,8 @@ func (d *ActivationDetail) Unmarshal(code string) error {
 // ProfitType represents the type of profit
 type ProfitType int
 
+// ProfitTypeBase represents the base profit type.
 const (
-	// ProfitTypeBase
 	ProfitTypeBase ProfitType = iota
 	// ProfitTypePull
 	ProfitTypePull
@@ -590,6 +611,7 @@ const (
 	ProfitTypeRecompense
 )
 
+// ProfitDetails holds the profit information for a specific node.
 type ProfitDetails struct {
 	ID          int64      `db:"id"`
 	NodeID      string     `db:"node_id"`
@@ -609,11 +631,13 @@ type ListNodeProfitDetailsRsp struct {
 	Infos []*ProfitDetails `json:"infos"`
 }
 
+// RateLimiter controls the rate of bandwidth usage for uploading and downloading.
 type RateLimiter struct {
 	BandwidthUpLimiter   *rate.Limiter
 	BandwidthDownLimiter *rate.Limiter
 }
 
+// CandidateCodeInfo holds information about a candidate's code.
 type CandidateCodeInfo struct {
 	Code       string    `db:"code"`
 	NodeType   NodeType  `db:"node_type"`
@@ -622,16 +646,19 @@ type CandidateCodeInfo struct {
 	IsTest     bool      `db:"is_test"`
 }
 
+// TunserverRsp represents the response from the Tunserver.
 type TunserverRsp struct {
 	URL    string
 	NodeID string
 }
 
+// TunserverReq represents a request for a Tunserver with an IP and AreaID.
 type TunserverReq struct {
 	IP     string
 	AreaID string
 }
 
+// CreateTunnelReq represents a request to create a tunnel.
 type CreateTunnelReq struct {
 	NodeID    string
 	ProjectID string
@@ -639,11 +666,13 @@ type CreateTunnelReq struct {
 	TunnelID  string
 }
 
+// AccessPointRsp represents the response structure for access points.
 type AccessPointRsp struct {
 	Schedulers []string
 	GeoInfo    *region.GeoInfo
 }
 
+// KeepaliveRsp represents the response structure for keepalive requests.
 type KeepaliveRsp struct {
 	SessionID string
 	ErrCode   int

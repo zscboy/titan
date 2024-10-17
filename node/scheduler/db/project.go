@@ -159,7 +159,7 @@ func (n *SQLDB) LoadProjectInfos(serverID dtypes.ServerID, userID string, limit,
 	return infos, nil
 }
 
-// UpdateProjectReplicasInfo
+// UpdateProjectReplicasInfo updates the replicas information for a project.
 func (n *SQLDB) UpdateProjectReplicasInfo(info *types.ProjectReplicas) error {
 	query := fmt.Sprintf(
 		`UPDATE %s SET time=?,max_delay=?,min_delay=?,avg_delay=?,upload_traffic=?,download_traffic=? WHERE id=? AND node_id=?`, projectReplicasTable)
@@ -370,6 +370,7 @@ func (n *SQLDB) LoadNodesOfStartingReplica(id string) ([]string, error) {
 	return nodes, nil
 }
 
+// LoadProjectOverviews retrieves project overviews from the database.
 func (n *SQLDB) LoadProjectOverviews() ([]*types.ProjectOverview, error) {
 	var out []*types.ProjectOverview
 	query := fmt.Sprintf(`SELECT node_id, SUM(upload_traffic) AS sum_upload_traffic,

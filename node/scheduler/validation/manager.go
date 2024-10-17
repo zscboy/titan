@@ -19,8 +19,8 @@ import (
 var log = logging.Logger("validation")
 
 const (
-	FILECOIN_EPOCH_DURATION   = 30
-	GAME_CHAIN_EPOCH_LOOKBACK = 10
+	filecoinEpochDuration  = 30
+	gameChainEpochLookback = 10
 
 	validationWorkers = 50
 	oneDay            = 24 * time.Hour
@@ -63,6 +63,7 @@ func (m *Manager) addValidator(nodeID string) {
 	m.validators = append(m.validators, nodeID)
 }
 
+// IsValidator checks if the given nodeID is a validator.
 func (m *Manager) IsValidator(nodeID string) bool {
 	m.lck.Lock()
 	defer m.lck.Unlock()
@@ -80,6 +81,7 @@ func (m *Manager) IsValidator(nodeID string) bool {
 	return false
 }
 
+// GetValidators returns a list of validators.
 func (m *Manager) GetValidators() []string {
 	return m.validators
 }
@@ -151,7 +153,7 @@ func (m *Manager) getGameEpoch() (uint64, error) {
 		return 0, xerrors.Errorf("current time is not correct with negative duration: %s", duration)
 	}
 
-	elapseEpoch := int64(duration.Seconds()) / FILECOIN_EPOCH_DURATION
+	elapseEpoch := int64(duration.Seconds()) / filecoinEpochDuration
 
 	return m.cachedEpoch + uint64(elapseEpoch), nil
 }
@@ -164,11 +166,11 @@ func (m *Manager) getSeedFromFilecoin() (int64, error) {
 		return seed, xerrors.Errorf("getGameEpoch failed: %w", err)
 	}
 
-	if height <= GAME_CHAIN_EPOCH_LOOKBACK {
+	if height <= gameChainEpochLookback {
 		return seed, xerrors.Errorf("getGameEpoch return invalid height: %d", height)
 	}
 
-	lookback := height - GAME_CHAIN_EPOCH_LOOKBACK
+	lookback := height - gameChainEpochLookback
 	tps, err := m.getTipsetByHeight(lookback)
 	if err != nil {
 		return seed, xerrors.Errorf("getTipsetByHeight failed: %w", err)
@@ -186,7 +188,7 @@ func (m *Manager) getSeedFromFilecoin() (int64, error) {
 
 func (m *Manager) getTipsetByHeight(height uint64) (*lotuscli.TipSet, error) {
 	iheight := int64(height)
-	for i := 0; i < GAME_CHAIN_EPOCH_LOOKBACK && iheight > 0; i++ {
+	for i := 0; i < gameChainEpochLookback && iheight > 0; i++ {
 		tps, err := lotuscli.ChainGetTipSetByHeight(m.lotusRPCAddress, iheight)
 		if err != nil {
 			return nil, err

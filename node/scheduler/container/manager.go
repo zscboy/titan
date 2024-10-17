@@ -49,11 +49,13 @@ func (m *Manager) AddNewProvider(ctx context.Context, provider *types.Provider) 
 	return m.DB.AddNewProvider(ctx, provider)
 }
 
+// GetRemoteAddress returns the remote address from the context.
 func (m *Manager) GetRemoteAddress(ctx context.Context) (string, error) {
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	return remoteAddr, nil
 }
 
+// GetStatistics retrieves the resource statistics for a given node ID.
 func (m *Manager) GetStatistics(ctx context.Context, id string) (*types.ResourcesStatistics, error) {
 	node := m.nodeMgr.GetNode(id)
 	if node == nil {
@@ -63,11 +65,13 @@ func (m *Manager) GetStatistics(ctx context.Context, id string) (*types.Resource
 	return node.GetStatistics(ctx)
 }
 
+// GetProviders retrieves all providers based on the given options.
 func (m *Manager) GetProviders(ctx context.Context, opt *types.GetProviderOption) ([]*types.Provider, error) {
 	_, providers, err := m.DB.GetAllProviders(ctx, opt)
 	return providers, err
 }
 
+// GetProviderList retrieves a list of providers based on the given options.
 func (m *Manager) GetProviderList(ctx context.Context, opt *types.GetProviderOption) (*types.ProvidersResp, error) {
 	total, providers, err := m.DB.GetAllProviders(ctx, opt)
 	if err != nil {

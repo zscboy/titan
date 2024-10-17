@@ -463,6 +463,7 @@ func (s *Scheduler) CalculateDowntimePenalty(ctx context.Context, nodeID string)
 	}, err
 }
 
+// AssignTunserverURL assigns a Tunserver URL.
 func (s *Scheduler) AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) {
 	return &types.TunserverRsp{}, nil
 }

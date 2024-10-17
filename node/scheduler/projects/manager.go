@@ -56,7 +56,7 @@ func NewManager(nodeManager *node.Manager, sdb *db.SQLDB, ds datastore.Batching)
 	return m
 }
 
-// Start initializes and starts the project state machine and associated tickers
+// StartTimer Start initializes and starts the project state machine and associated tickers
 func (m *Manager) StartTimer(ctx context.Context) {
 	if err := m.initStateMachines(); err != nil {
 		log.Errorf("restartStateMachines err: %s", err.Error())
@@ -310,6 +310,7 @@ func (m *Manager) startCheckServicingProjectTimer() {
 	}
 }
 
+// CheckProjectReplicasFromNode checks the project replicas for a given node ID.
 func (m *Manager) CheckProjectReplicasFromNode(nodeID string) {
 	list, err := m.LoadAllProjectReplicasForNode(nodeID)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 )
 
+// Project represents a project with an ID and a name.
 type Project struct {
 	ID        string // Id
 	Name      string
@@ -16,14 +17,18 @@ type Project struct {
 	Msg string
 }
 
+// ProjectType represents the type of a project.
 type ProjectType int64
 
+// ProjectTypeTunnel represents a tunnel project type.
 const (
 	ProjectTypeTunnel ProjectType = iota
 )
 
+// ProjectReplicaStatus represents the status of a project replica.
 type ProjectReplicaStatus int
 
+// ProjectReplicaStatusStarting indicates that the project replica is starting.
 const (
 	ProjectReplicaStatusStarting ProjectReplicaStatus = iota
 	ProjectReplicaStatusStarted
@@ -47,6 +52,7 @@ func (ps ProjectReplicaStatus) String() string {
 	}
 }
 
+// ProjectReq represents a request for a project.
 type ProjectReq struct {
 	UUID   string
 	NodeID string
@@ -57,6 +63,7 @@ type ProjectReq struct {
 	Replicas  int64
 }
 
+// DeployProjectReq represents a request to deploy a project.
 type DeployProjectReq struct {
 	UUID       string
 	Name       string
@@ -69,6 +76,7 @@ type DeployProjectReq struct {
 	Requirement ProjectRequirement
 }
 
+// ProjectRequirement represents the requirements for a project.
 type ProjectRequirement struct {
 	CPUCores int64
 	Memory   int64
@@ -78,6 +86,7 @@ type ProjectRequirement struct {
 	NodeIDs []string
 }
 
+// ProjectInfo holds information about a project.
 type ProjectInfo struct {
 	// uuid
 	UUID        string          `db:"id"`
@@ -99,6 +108,7 @@ type ProjectInfo struct {
 	ReplenishReplicas int64 `db:"replenish_replicas"`
 }
 
+// ProjectReplicas represents the replicas of a project.
 type ProjectReplicas struct {
 	Id            string               `db:"id"`
 	Status        ProjectReplicaStatus `db:"status"`
@@ -127,8 +137,10 @@ type ProjectStateInfo struct {
 	ReplenishReplicas int64  `db:"replenish_replicas"`
 }
 
+// ProjectEvent represents the different types of events for a project.
 type ProjectEvent int
 
+// ProjectEventRemove indicates that a project has been removed.
 const (
 	ProjectEventRemove ProjectEvent = iota
 	ProjectEventAdd
@@ -137,7 +149,7 @@ const (
 	ProjectEventFailed
 )
 
-// ProjectOverview
+// ProjectOverview represents an overview of a project.
 type ProjectOverview struct {
 	NodeID          string `db:"node_id"`
 	UploadTraffic   int64  `db:"sum_upload_traffic"`
@@ -158,6 +170,7 @@ type ListProjectReplicaRsp struct {
 	List  []*ProjectReplicas `json:"list"`
 }
 
+// NodeProjectReq represents a request for a node project.
 type NodeProjectReq struct {
 	NodeID    string
 	Limit     int

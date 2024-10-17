@@ -9,6 +9,7 @@ import (
 	xerrors "golang.org/x/xerrors"
 )
 
+// UpdateStatus updates the status of projects for a given node ID.
 func (m *Manager) UpdateStatus(nodeID string, list []*types.Project) error {
 	for _, info := range list {
 		exist, _ := m.projectStateMachines.Has(ProjectID(info.ID))
@@ -38,6 +39,7 @@ func (m *Manager) UpdateStatus(nodeID string, list []*types.Project) error {
 	return nil
 }
 
+// Deploy deploys a project based on the provided request.
 func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	exist := m.isProjectTaskExist(req.UUID)
 	if exist {
@@ -91,6 +93,7 @@ func (m *Manager) Deploy(req *types.DeployProjectReq) error {
 	return m.projectStateMachines.Send(ProjectID(info.UUID), rInfo)
 }
 
+// Update updates the project with the given request.
 func (m *Manager) Update(req *types.ProjectReq) error {
 	if req.Replicas > edgeReplicasLimit {
 		return xerrors.Errorf("The number of replicas %d exceeds the limit %d", req.Replicas, edgeReplicasLimit)
@@ -132,6 +135,7 @@ func (m *Manager) Update(req *types.ProjectReq) error {
 	return m.projectStateMachines.Send(ProjectID(req.UUID), rInfo)
 }
 
+// Delete removes a project based on the provided request.
 func (m *Manager) Delete(req *types.ProjectReq) error {
 	if req.UUID == "" {
 		return xerrors.New("UUID is nil")
@@ -148,6 +152,7 @@ func (m *Manager) Delete(req *types.ProjectReq) error {
 	return m.projectStateMachines.Send(ProjectID(req.UUID), ProjectForceState{State: Remove, Event: int64(types.ProjectEventRemove)})
 }
 
+// GetProjectInfo retrieves the project information for the given UUID.
 func (m *Manager) GetProjectInfo(uuid string) (*types.ProjectInfo, error) {
 	info, err := m.LoadProjectInfo(uuid)
 	if err != nil {

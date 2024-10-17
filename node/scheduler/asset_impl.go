@@ -328,6 +328,7 @@ func (s *Scheduler) GetReplicaEventsForNode(ctx context.Context, nodeID string, 
 	return info, nil
 }
 
+// GetReplicaEvents retrieves replica events within a specified time range.
 func (s *Scheduler) GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	res := new(types.ListAssetReplicaEventRsp)
 	return res, nil
@@ -507,6 +508,7 @@ func (s *Scheduler) ShareEncryptedAsset(ctx context.Context, userID, assetCID, f
 	return ret, err
 }
 
+// MinioUploadFileEvent handles the Minio file upload event.
 func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error {
 	if event == nil {
 		return fmt.Errorf("event can not empty")
@@ -536,14 +538,17 @@ func (s *Scheduler) MinioUploadFileEvent(ctx context.Context, event *types.Minio
 	}, 1, 0)
 }
 
+// AddAWSData saves the provided AWS data information to the database.
 func (s *Scheduler) AddAWSData(ctx context.Context, list []types.AWSDataInfo) error {
 	return s.db.SaveAWSData(list)
 }
 
+// LoadAWSData retrieves AWS data from the database with pagination and distribution options.
 func (s *Scheduler) LoadAWSData(ctx context.Context, limit, offset int, isDistribute bool) ([]*types.AWSDataInfo, error) {
 	return s.db.ListAWSData(limit, offset, isDistribute)
 }
 
+// SwitchFillDiskTimer toggles the fill disk timer based on the open parameter.
 func (s *Scheduler) SwitchFillDiskTimer(ctx context.Context, open bool) error {
 	log.Infof("SwitchFillDiskTimer open:%v", open)
 	if open {
@@ -570,6 +575,7 @@ func splitSliceIntoChunks(slice []*types.ReplicaInfo, numChunks int) [][]*types.
 	return chunks
 }
 
+// RemoveNodeFailedReplica removes failed replicas from nodes.
 func (s *Scheduler) RemoveNodeFailedReplica(ctx context.Context) error {
 	rList, err := s.db.LoadFailedReplicas()
 	if err != nil {
@@ -619,6 +625,7 @@ func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce stri
 	return tk, nil
 }
 
+// UserAssetDownloadResultV2 handles the download result for user assets.
 func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error {
 	info.NodeID = handler.GetNodeID(ctx)
 	cNode := s.NodeManager.GetNode(info.NodeID)
@@ -665,6 +672,7 @@ func (s *Scheduler) UserAssetDownloadResult(ctx context.Context, userID, cid str
 	return s.db.SaveAssetDownloadResult(&types.AssetDownloadResult{Hash: hash, NodeID: nodeID, TotalTraffic: totalTraffic, PeakBandwidth: peakBandwidth, UserID: userID})
 }
 
+// GetNodeUploadInfoV2 retrieves upload information for a specific user.
 func (s *Scheduler) GetNodeUploadInfoV2(ctx context.Context, info *types.GetUploadInfoReq) (*types.UploadInfo, error) {
 	userID := info.UserID
 
@@ -676,6 +684,7 @@ func (s *Scheduler) GetNodeUploadInfoV2(ctx context.Context, info *types.GetUplo
 	return s.getUploadInfo(userID, info.URLMode, info.TraceID)
 }
 
+// GetNodeUploadInfo retrieves upload information for a specific user.
 func (s *Scheduler) GetNodeUploadInfo(ctx context.Context, userID string, passNonce string, urlMode bool) (*types.UploadInfo, error) {
 	uID := handler.GetUserID(ctx)
 	if len(uID) > 0 {
@@ -818,7 +827,7 @@ func (s *Scheduler) GetAssetRecordsByDateRange(ctx context.Context, offset int, 
 	return info, nil
 }
 
-// GetSucceededReplicaByCID
+// GetSucceededReplicaByCID retrieves succeeded replicas by CID with a specified limit and offset.
 func (s *Scheduler) GetSucceededReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListReplicaRsp, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -833,7 +842,7 @@ func (s *Scheduler) GetSucceededReplicaByCID(ctx context.Context, cid string, li
 	return dInfo, nil
 }
 
-// GetFailedReplicaByCID
+// GetFailedReplicaByCID retrieves failed replicas by CID with a specified limit and offset.
 func (s *Scheduler) GetFailedReplicaByCID(ctx context.Context, cid string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
@@ -848,7 +857,7 @@ func (s *Scheduler) GetFailedReplicaByCID(ctx context.Context, cid string, limit
 	return info, nil
 }
 
-// GetSucceededReplicaByNode
+// GetSucceededReplicaByNode retrieves succeeded replicas by node ID with a specified limit and offset.
 func (s *Scheduler) GetSucceededReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListReplicaRsp, error) {
 	info, err := s.db.LoadSucceededReplicasByNode(nodeID, limit, offset)
 	if err != nil {
@@ -858,7 +867,7 @@ func (s *Scheduler) GetSucceededReplicaByNode(ctx context.Context, nodeID string
 	return info, nil
 }
 
-// GetFailedReplicaByNode
+// GetFailedReplicaByNode retrieves failed replica events for a specific node.
 func (s *Scheduler) GetFailedReplicaByNode(ctx context.Context, nodeID string, limit, offset int) (*types.ListAssetReplicaEventRsp, error) {
 	info, err := s.db.LoadReplicaEventsByNode(nodeID, types.ReplicaEventFailed, limit, offset)
 	if err != nil {

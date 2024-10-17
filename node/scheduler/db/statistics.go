@@ -110,6 +110,7 @@ func (n *SQLDB) saveProjectReplicaEvent(tx *sqlx.Tx, info *types.ProjectReplicaE
 	return err
 }
 
+// LoadNodeStatisticsInfo retrieves statistics information for a given node ID.
 func (n *SQLDB) LoadNodeStatisticsInfo(nodeID string) (types.NodeStatisticsInfo, error) {
 	sInfo := types.NodeStatisticsInfo{}
 	query := fmt.Sprintf(`SELECT asset_count,asset_succeeded_count,asset_failed_count,retrieve_count,retrieve_succeeded_count,retrieve_failed_count,

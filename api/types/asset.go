@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
+	// Ensure you have the correct import for MinIO
 )
 
 // AssetPullProgress represents the progress of pulling an asset
@@ -125,6 +126,7 @@ const (
 	AssetTypeFile
 )
 
+// ReplicaEvent represents the different types of replica events.
 type ReplicaEvent int
 
 const (
@@ -188,14 +190,11 @@ type AssetStats struct {
 // AssetSource aws or storage
 type AssetSource int64
 
+// AssetSourceAdminPull indicates that the asset source is pulled by an admin.
 const (
-	// AssetSourceAdminPull
 	AssetSourceAdminPull AssetSource = iota
-	// AssetSourceAWS status
 	AssetSourceAWS
-	// AssetSourceStorage status
 	AssetSourceStorage
-	// AssetSourceMinio status
 	AssetSourceMinio
 )
 
@@ -257,12 +256,14 @@ type ListReplicaRsp struct {
 	ReplicaInfos []*ReplicaInfo `json:"replica_infos"`
 }
 
+// AssetStatus represents the status of an asset.
 type AssetStatus struct {
 	IsExist           bool
 	IsExpiration      bool
 	IsVisitOutOfLimit bool
 }
 
+// MinioUploadFileEvent represents an event for uploading a file to Minio.
 type MinioUploadFileEvent struct {
 	AssetCID   string
 	Size       int64
@@ -270,44 +271,51 @@ type MinioUploadFileEvent struct {
 	Expiration time.Time
 }
 
+// AssetView represents a view of an asset with its top hash.
 type AssetView struct {
 	TopHash string
 	// key bucketID, value bucketHash
 	BucketHashes map[uint32]string
 }
 
+// FreeUpDiskResp represents the response structure for freeing up disk space.
 type FreeUpDiskResp struct {
 	Hashes   []string
 	NextTime int64
 }
 
+// FreeUpDiskStateResp represents the response for freeing up disk state.
 type FreeUpDiskStateResp struct {
 	Hashes   []*FreeUpDiskState
 	NextTime int64
 }
 
+// FreeUpDiskState represents the state of a disk space freeing operation.
 type FreeUpDiskState struct {
 	Hash   string
 	ErrMsg string
 }
 
+// AWSDownloadSources represents the source information for downloading from AWS.
 type AWSDownloadSources struct {
 	Bucket string
 	Key    string
 }
 
+// DownloadSources represents the sources for downloading assets.
 type DownloadSources struct {
 	Nodes []*SourceDownloadInfo
 	AWS   *AWSDownloadSources
 }
 
+// AssetPullRequest represents a request to pull an asset.
 type AssetPullRequest struct {
 	AssetCID   string
 	Dss        *DownloadSources
 	WorkloadID string
 }
 
-// AssetDownloadResult
+// AssetDownloadResult represents the result of an asset download.
 type AssetDownloadResult struct {
 	Hash          string    `db:"hash"`
 	NodeID        string    `db:"node_id"`
@@ -323,7 +331,7 @@ type ListAssetDownloadRsp struct {
 	AssetDownloadResults []*AssetDownloadResult `json:"list"`
 }
 
-// AssetDownloadResultRsp
+// AssetDownloadResultRsp represents the response for an asset download result.
 type AssetDownloadResultRsp struct {
 	Hash          string `db:"hash"`
 	TotalTraffic  int64  `db:"total_traffic"`
@@ -331,6 +339,7 @@ type AssetDownloadResultRsp struct {
 	UserID        string `db:"user_id"`
 }
 
+// ShareAssetReq represents a request for sharing an asset.
 type ShareAssetReq struct {
 	TraceID    string
 	UserID     string

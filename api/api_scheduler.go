@@ -221,8 +221,7 @@ type NodeAPI interface {
 	// CreateTunnel create tunnel for workerd communication
 	CreateTunnel(ctx context.Context, req *types.CreateTunnelReq) error // perm:candidate
 	// UserAssetDownloadResult After a user downloads a resource from a candidate node, the candidate node reports the download result
-	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error //perm:candidate
-	UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error                           //perm:candidate
+	UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error //perm:candidate
 }
 
 // ProjectAPI is an interface for project
@@ -290,13 +289,15 @@ type Scheduler interface {
 	RemoveCandidateCode(ctx context.Context, code string) error                                         //perm:admin,web,locator
 
 	// GetNodeUploadInfo
-	GetNodeUploadInfo(ctx context.Context, userID string, pass string, urlMode bool) (*types.UploadInfo, error) //perm:user,web,admin
-	GetNodeUploadInfoV2(ctx context.Context, info *types.GetUploadInfoReq) (*types.UploadInfo, error)           //perm:user,web,admin
-
-	// AssignTunserverURL Deprecated
-	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error) //perm:edge
+	GetNodeUploadInfoV2(ctx context.Context, info *types.GetUploadInfoReq) (*types.UploadInfo, error) //perm:user,web,admin
 
 	GetValidators(ctx context.Context) ([]string, error) //perm:web,admin
 
 	GetReplicaEvents(ctx context.Context, start, end time.Time, limit, offset int) (*types.ListAssetReplicaEventRsp, error) //perm:web,admin
+
+	// Deprecated api
+	// AssignTunserverURL
+	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error)                                        //perm:edge
+	GetNodeUploadInfo(ctx context.Context, userID string, pass string, urlMode bool) (*types.UploadInfo, error) //perm:user,web,admin
+	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error   //perm:candidate
 }

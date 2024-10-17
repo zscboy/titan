@@ -1303,7 +1303,7 @@ func (m *Manager) getDownloadSources(hash string) []*types.SourceDownloadInfo {
 			continue
 		}
 
-		if cNode.Type == types.NodeEdge && (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String()) {
+		if cNode.Type == types.NodeEdge && (cNode.NATType != types.NatTypeNo.String() && cNode.NATType != types.NatTypeFullCone.String() && cNode.NATType != types.NatTypeUnknown.String()) {
 			continue
 		}
 

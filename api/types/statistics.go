@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// EventStatus
+// EventStatus represents the status of an event.
 type EventStatus int
 
 const (
