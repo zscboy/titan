@@ -138,11 +138,12 @@ type (
 		isStaring   bool
 		dSwitch     DaemonSwitch
 		downloader  *Downloader
+		quicClient  *http.Client
 	}
 )
 
 func NewCLib(daemonStart daemonStartFunc) *CLib {
-	return &CLib{daemonStart: daemonStart, downloader: newDownloader(), dSwitch: DaemonSwitch{IsStop: true}}
+	return &CLib{daemonStart: daemonStart, downloader: newDownloader(), dSwitch: DaemonSwitch{IsStop: true}, quicClient: client.NewHTTP3Client()}
 }
 
 func (clib *CLib) JSONCall(jsonStr string) *JSONCallResult {
@@ -669,13 +670,13 @@ func (clib *CLib) checkLocators(str string) *JSONCallResult {
 	var wg sync.WaitGroup
 	wg.Add(len(ret))
 
+	clib.quicClient.Timeout = 2 * time.Second
+
 	for i := range ret {
 		go func(idx int) {
 			defer wg.Done()
 			ret[i].Timeout = 9999
-			cnt := client.NewHTTP3Client()
-			cnt.Timeout = 2 * time.Second
-			api, closer, err := client.NewLocator(context.Background(), ret[i].Locator, nil, jsonrpc.WithHTTPClient(cnt))
+			api, closer, err := client.NewLocator(context.Background(), ret[i].Locator, nil, jsonrpc.WithHTTPClient(clib.quicClient))
 			if err != nil {
 				return
 			}

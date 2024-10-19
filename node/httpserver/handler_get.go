@@ -109,14 +109,12 @@ func (hs *HttpServer) getHandler(w http.ResponseWriter, r *http.Request) {
 		success = types.EventStatusFailed
 		http.Error(w, err.Error(), statusCode)
 		log.Errorf("get handler error %s", err.Error())
-		return
 	}
 
 	hash, err := cidutil.CIDToHash(tkPayload.AssetCID)
 	if err != nil {
 		log.Errorf("cid %s to hash error %s", tkPayload.AssetCID, err.Error())
 	}
-
 	hs.scheduler.UserAssetDownloadResultV2(context.Background(), &types.RetrieveEvent{
 		TraceID:       traceID,
 		ClientID:      tkPayload.ClientID,
