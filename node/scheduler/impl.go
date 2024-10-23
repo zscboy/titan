@@ -572,7 +572,8 @@ func (s *Scheduler) SubmitProjectReport(ctx context.Context, req *types.ProjectR
 // SubmitWorkloadReportV2 submits a workload report to the scheduler.
 func (s *Scheduler) SubmitWorkloadReportV2(ctx context.Context, workload *types.WorkloadRecordReq) error {
 	// from sdk or web or client
-	return s.WorkloadManager.PushResult(workload, "")
+	// return s.WorkloadManager.PushResult(workload, "")
+	return nil
 }
 
 // SubmitWorkloadReport submits a workload report to the scheduler.

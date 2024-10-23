@@ -159,7 +159,8 @@ func (m *Manager) GetEdgeBaseProfitDetails(node *Node, minute int) (float64, *ty
 func (m *Manager) GetCandidateBaseProfitDetails(node *Node, minute int) *types.ProfitDetails {
 	// Every 5 minutes
 	arR := rateOfAR(node.OnlineRate)
-	mcx := l1RBase * node.OnlineRate * arR
+	arO := rateOfOnline(node.OnlineDuration)
+	mcx := l1RBase * node.OnlineRate * arR * arO
 
 	count := roundDivision(minute, 5)
 	mcx = mcx * float64(count)
@@ -172,7 +173,7 @@ func (m *Manager) GetCandidateBaseProfitDetails(node *Node, minute int) *types.P
 		NodeID: node.NodeID,
 		Profit: mcx,
 		PType:  types.ProfitTypeBase,
-		Note:   fmt.Sprintf("rbase:[%.4f],node rate:[%.4f] ar rate:[%.4f] , count[%d]", l1RBase, node.OnlineRate, arR, count),
+		Note:   fmt.Sprintf("rbase:[%.4f],node rate:[%.4f] ar rate:[%.4f] arO:[%.2f], count[%d], online[%d]", l1RBase, node.OnlineRate, arR, arO, count, node.OnlineDuration),
 	}
 }
 
@@ -232,7 +233,12 @@ func (m *Manager) GetUploadProfitDetails(node *Node, size float64, pid string) *
 }
 
 // CalculatePenalty Penalty
-func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int) *types.ProfitDetails {
+func (m *Manager) CalculatePenalty(nodeID string, profit float64, offlineDuration int, onlineDuration int) *types.ProfitDetails {
+	onlineDay := (float64(onlineDuration) / 1440)
+	if onlineDay > 30 {
+		profit = profit / onlineDay * 30
+	}
+
 	od := float64(offlineDuration / 200)
 	pr := (penaltyRate + penaltyRate*od)
 	pn := profit * pr
@@ -316,6 +322,21 @@ func rateOfAR(ar float64) float64 {
 	}
 
 	return 0
+}
+
+func rateOfOnline(onlineDuration int) float64 {
+	onlineDay := onlineDuration / 1440
+	if onlineDay >= 120 {
+		return 1.3
+	} else if onlineDay >= 90 {
+		return 1.2
+	} else if onlineDay >= 60 {
+		return 1.1
+	} else if onlineDay >= 30 {
+		return 1.05
+	}
+
+	return 1
 }
 
 func rateOfL2Base(nct types.NodeClientType) float64 {

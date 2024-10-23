@@ -626,6 +626,7 @@ func generateAccessToken(auth *types.AuthUserUploadDownloadAsset, passNonce stri
 }
 
 // UserAssetDownloadResultV2 handles the download result for user assets.
+// When a user downloads a file through a shared link, L1 will submit a report
 func (s *Scheduler) UserAssetDownloadResultV2(ctx context.Context, info *types.RetrieveEvent) error {
 	info.NodeID = handler.GetNodeID(ctx)
 	cNode := s.NodeManager.GetNode(info.NodeID)

@@ -51,7 +51,7 @@ func (m *Manager) penaltyNode() {
 		// No penalty for the first 30 minutes of each day
 		count := m.candidateOfflineTime[info.NodeID]
 		if count > 30 {
-			dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1))
+			dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1), info.OnlineDuration)
 			if dInfo != nil {
 				detailsList = append(detailsList, dInfo)
 			}

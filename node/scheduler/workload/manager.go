@@ -106,19 +106,17 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 				m.nodeMgr.UpdateNodeBandwidths(downloadNode, speed, 0)
 			}
 
-			if m.nodeMgr.GetEdgeNode(dw.SourceID) != nil {
-				event := &types.RetrieveEvent{
-					Hash:     hash,
-					NodeID:   dw.SourceID,
-					ClientID: downloadNode,
-					Size:     dw.DownloadSize,
-					Status:   types.EventStatusSucceed,
-					Speed:    speed,
-				}
+			event := &types.RetrieveEvent{
+				Hash:     hash,
+				NodeID:   dw.SourceID,
+				ClientID: downloadNode,
+				Size:     dw.DownloadSize,
+				Status:   types.EventStatusSucceed,
+				Speed:    speed,
+			}
 
-				if err := m.SaveRetrieveEventInfo(event, 1, 0); err != nil {
-					log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
-				}
+			if err := m.SaveRetrieveEventInfo(event, 1, 0); err != nil {
+				log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
 			}
 		}
 
@@ -180,17 +178,17 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 
 				detailsList = append(detailsList, dInfo)
 			}
-
-			retrieveEvent := &types.RetrieveEvent{
-				Hash:     hash,
-				NodeID:   dw.SourceID,
-				ClientID: record.ClientID,
-				Size:     dw.DownloadSize,
-				Status:   types.EventStatusSucceed,
-				Speed:    speed,
-			}
-			eventList = append(eventList, retrieveEvent)
 		}
+
+		retrieveEvent := &types.RetrieveEvent{
+			Hash:     hash,
+			NodeID:   dw.SourceID,
+			ClientID: record.ClientID,
+			Size:     dw.DownloadSize,
+			Status:   types.EventStatusSucceed,
+			Speed:    speed,
+		}
+		eventList = append(eventList, retrieveEvent)
 	}
 
 	// Retrieve Event

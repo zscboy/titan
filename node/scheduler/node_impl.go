@@ -296,6 +296,12 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 		nodeID = nID
 	}
 
+	// is candidate
+	err := s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
+	if err != nil {
+		return err
+	}
+
 	deactivateTime, err := s.db.LoadDeactivateNodeTime(nodeID)
 	if err != nil {
 		return xerrors.Errorf("LoadDeactivateNodeTime %s err : %s", nodeID, err.Error())
@@ -305,27 +311,24 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 		return xerrors.Errorf("node %s is waiting to deactivate", nodeID)
 	}
 
-	if hours <= 0 {
-		hours = 24
+	minute := hours * 60
+	if minute <= 0 {
+		minute = 30
 	}
 
 	penaltyPoint := 0.0
 
-	// is candidate
-	err = s.db.NodeExistsFromType(nodeID, types.NodeCandidate)
-	if err == nil {
-		info, err := s.db.LoadNodeInfo(nodeID)
-		if err != nil {
-			return err
-		}
-		// if node is candidate , need to backup asset
-		s.AssetManager.CandidateDeactivate(nodeID)
-
-		pe, _ := s.NodeManager.CalculateDowntimePenalty(info.Profit)
-		penaltyPoint = info.Profit - pe
+	info, err := s.db.LoadNodeInfo(nodeID)
+	if err != nil {
+		return err
 	}
+	// if node is candidate , need to backup asset
+	s.AssetManager.CandidateDeactivate(nodeID)
 
-	deactivateTime = time.Now().Add(time.Duration(hours) * time.Hour).Unix()
+	pe, _ := s.NodeManager.CalculateDowntimePenalty(info.Profit)
+	penaltyPoint = info.Profit - pe
+
+	deactivateTime = time.Now().Add(time.Duration(minute) * time.Minute).Unix()
 	err = s.db.SaveDeactivateNode(nodeID, deactivateTime, penaltyPoint)
 	if err != nil {
 		return xerrors.Errorf("SaveDeactivateNode %s err : %s", nodeID, err.Error())
@@ -1145,8 +1148,13 @@ func (s *Scheduler) NodeKeepalive(ctx context.Context) (*types.KeepaliveRsp, err
 		return &types.KeepaliveRsp{ErrCode: int(terrors.NodeOffline), ErrMsg: fmt.Sprintf("node %s offline or not exist", nodeID)}, nil
 	}
 
-	if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
-		return &types.KeepaliveRsp{ErrCode: int(terrors.NodeDeactivate), ErrMsg: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}, nil
+	if node.Type == types.NodeCandidate {
+		now := time.Now().Unix()
+		log.Infof("NodeKeepalive node [%s] DeactivateTime:[%d] , [%d] \n", nodeID, node.DeactivateTime, now)
+
+		if node.DeactivateTime > 0 && node.DeactivateTime < now {
+			return &types.KeepaliveRsp{ErrCode: int(terrors.NodeDeactivate), ErrMsg: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}, nil
+		}
 	}
 
 	if node.ForceOffline {
@@ -1198,8 +1206,13 @@ func (s *Scheduler) NodeKeepaliveV2(ctx context.Context) (uuid.UUID, error) {
 
 		node := s.NodeManager.GetNode(nodeID)
 		if node != nil {
-			if node.DeactivateTime > 0 && node.DeactivateTime < time.Now().Unix() {
-				return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
+			if node.Type == types.NodeCandidate {
+				now := time.Now().Unix()
+				log.Infof("NodeKeepaliveV2 node [%s] DeactivateTime:[%d] , [%d] \n", nodeID, node.DeactivateTime, now)
+
+				if node.DeactivateTime > 0 && node.DeactivateTime < now {
+					return uuid, &api.ErrNode{Code: int(terrors.NodeDeactivate), Message: fmt.Sprintf("The node %s has been deactivate and cannot be logged in", nodeID)}
+				}
 			}
 
 			if node.ForceOffline {
