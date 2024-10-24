@@ -90,8 +90,10 @@ var planners = map[AssetState]func(events []statemachine.Event, state *AssetPull
 	SyncFailed:   planOne(),
 	UploadFailed: planOne(),
 	Remove:       planOne(),
-	Stop:         planOne(),
-	Servicing:    planOne(),
+	Stop: planOne(
+		on(AssetRePull{}, CandidatesSelect),
+	),
+	Servicing: planOne(),
 }
 
 // plan creates a plan for the next asset pulling action based on the given events and asset state

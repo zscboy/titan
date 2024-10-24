@@ -61,20 +61,12 @@ type AssetAPI interface {
 	GenerateTokenForDownloadSource(ctx context.Context, nodeID string, cid string) (*types.SourceDownloadInfo, error) //perm:web,admin,user
 	// GenerateTokenForDownloadSources Generate Token For Download Source
 	GenerateTokenForDownloadSources(ctx context.Context, cid string) ([]*types.SourceDownloadInfo, error) //perm:web,admin,user
-	// // ListAssets lists the assets of the user.
-	// ListAssets(ctx context.Context, userID string, limit, offset, groupID int) (*types.ListAssetRecordRsp, error) //perm:web,admin,user
-	// // DeleteAsset deletes the asset of the user.
-	// DeleteAsset(ctx context.Context, userID, assetCID string) error //perm:web,admin,user
 	// ShareAssets shares the assets of the user.
 	ShareAssets(ctx context.Context, userID string, assetCID []string, expireTime time.Time) (map[string][]string, error) //perm:web,admin,user
 	// ShareEncryptedAsset shares the encrypted file
 	ShareEncryptedAsset(ctx context.Context, userID, assetCID, filePass string, expireTime time.Time) ([]string, error) // perm:web,admin,user
 	// ShareAssetV2 shares the assets of the user.
 	ShareAssetV2(ctx context.Context, info *types.ShareAssetReq) ([]string, error) //perm:web,admin,user
-	// // UpdateShareStatus update share status of the user asset
-	// UpdateShareStatus(ctx context.Context, userID, assetCID string) error //perm:web,admin
-	// // GetAssetStatus retrieves a asset status
-	// GetAssetStatus(ctx context.Context, userID, assetCID string) (*types.AssetStatus, error) //perm:web,admin
 	// MinioUploadFileEvent the event of minio upload file
 	MinioUploadFileEvent(ctx context.Context, event *types.MinioUploadFileEvent) error //perm:candidate
 	// AddAWSData add aws resource information

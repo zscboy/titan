@@ -473,11 +473,23 @@ const (
 	WorkloadStatusInvalid
 )
 
+// WorkloadReqStatus Workload Status
+type WorkloadReqStatus int
+
+// WorkloadReqStatusSucceeded is the workload status.
+const (
+	WorkloadReqStatusSucceeded WorkloadReqStatus = iota
+	WorkloadReqStatusFailed
+	WorkloadReqStatusInvalid
+)
+
 // Workload represents a unit of work with a source ID and download size.
 type Workload struct {
 	SourceID     string
 	DownloadSize int64
 	CostTime     int64 // Millisecond
+
+	Status WorkloadReqStatus
 }
 
 // WorkloadRecord use to store workloadReport

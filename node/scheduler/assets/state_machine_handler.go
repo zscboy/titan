@@ -468,7 +468,7 @@ func (m *Manager) handleUploadFailed(ctx statemachine.Context, info AssetPulling
 func (m *Manager) handleRemove(ctx statemachine.Context, info AssetPullingInfo) error {
 	log.Infof("handle remove: %s", info.Hash)
 	m.stopAssetTimeoutCounting(info.Hash.String())
-	defer m.AssetRemoveDone(info.Hash.String())
+	defer m.assetRemoveDone(info.Hash.String())
 
 	hash := info.Hash.String()
 	cid := info.CID
@@ -493,7 +493,15 @@ func (m *Manager) handleStop(ctx statemachine.Context, info AssetPullingInfo) er
 	log.Infof("handle stop: %s", info.Hash)
 	m.stopAssetTimeoutCounting(info.Hash.String())
 
-	// m.DeleteUnfinishedReplicas(info.Hash.String())
+	if info.RetryCount >= int64(maxRetryCount) {
+		log.Infof("handle stop: %s, retry count: %d", info.Hash.String(), info.RetryCount)
+		return nil
+	}
 
-	return nil
+	// m.DeleteUnfinishedReplicas(info.Hash.String())
+	if err := failedCoolDown(ctx, info, minRetryTime); err != nil {
+		return err
+	}
+
+	return ctx.Send(AssetRePull{})
 }
