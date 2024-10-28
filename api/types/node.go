@@ -480,7 +480,6 @@ type WorkloadReqStatus int
 const (
 	WorkloadReqStatusSucceeded WorkloadReqStatus = iota
 	WorkloadReqStatusFailed
-	WorkloadReqStatusInvalid
 )
 
 // Workload represents a unit of work with a source ID and download size.

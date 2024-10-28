@@ -254,7 +254,7 @@ func (s *Scheduler) PullAsset(ctx context.Context, info *types.PullAssetReq) err
 			return xerrors.Errorf("%s cid to hash err:%s", cid, err.Error())
 		}
 
-		list = append(list, types.AssetDataInfo{Cid: cid, Replicas: info.Replicas, Owner: info.Owner, Expiration: info.Expiration, Hash: hash})
+		list = append(list, types.AssetDataInfo{Cid: cid, Replicas: info.Replicas, Owner: info.Owner, Expiration: info.Expiration, Hash: hash, Status: 0})
 	}
 
 	return s.db.SaveAssetData(list)

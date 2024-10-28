@@ -262,6 +262,7 @@ var cAWSDataTable = `
 var cAssetDataTable = `
     CREATE TABLE if not exists %s (
 		cid             VARCHAR(128) NOT NULL,
+		hash            VARCHAR(128) NOT NULL,
 		replicas        INT          DEFAULT 0,
 		status          TINYINT      DEFAULT 0,
 		distribute_time DATETIME     DEFAULT CURRENT_TIMESTAMP,

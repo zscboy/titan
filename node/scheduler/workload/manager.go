@@ -91,6 +91,38 @@ func (m *Manager) handleResults() {
 	}
 }
 
+func (m *Manager) saveRetrieveEventFromWorkload(dw types.Workload, hash, downloadNode string) {
+	status := types.EventStatusFailed
+	speed := int64(0)
+	succeededCount := 0
+	failedCount := 0
+
+	if dw.Status == types.WorkloadReqStatusSucceeded {
+		speed = int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
+		if speed > 0 {
+			m.nodeMgr.UpdateNodeBandwidths(downloadNode, speed, 0)
+			m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
+		}
+		status = types.EventStatusSucceed
+		succeededCount = 1
+	} else {
+		failedCount = 1
+	}
+
+	event := &types.RetrieveEvent{
+		Hash:     hash,
+		NodeID:   dw.SourceID,
+		ClientID: downloadNode,
+		Size:     dw.DownloadSize,
+		Status:   status,
+		Speed:    speed,
+	}
+
+	if err := m.SaveRetrieveEventInfo(event, succeededCount, failedCount); err != nil {
+		log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
+	}
+}
+
 // handleClientWorkload handle node workload
 func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNode string) error {
 	if data.WorkloadID == "" {
@@ -101,23 +133,7 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 
 		// L1 download
 		for _, dw := range data.Workloads {
-			speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
-			if speed > 0 {
-				m.nodeMgr.UpdateNodeBandwidths(downloadNode, speed, 0)
-			}
-
-			event := &types.RetrieveEvent{
-				Hash:     hash,
-				NodeID:   dw.SourceID,
-				ClientID: downloadNode,
-				Size:     dw.DownloadSize,
-				Status:   types.EventStatusSucceed,
-				Speed:    speed,
-			}
-
-			if err := m.SaveRetrieveEventInfo(event, 1, 0); err != nil {
-				log.Errorf("handleClientWorkload SaveRetrieveEventInfo  error %s", err.Error())
-			}
+			m.saveRetrieveEventFromWorkload(dw, hash, downloadNode)
 		}
 
 		return nil
@@ -146,56 +162,36 @@ func (m *Manager) handleClientWorkload(data *types.WorkloadRecordReq, downloadNo
 		return err
 	}
 
-	eventList := make([]*types.RetrieveEvent, 0)
 	detailsList := make([]*types.ProfitDetails, 0)
 
 	limit := int64(float64(record.AssetSize))
 
 	for _, dw := range data.Workloads {
-		// update node bandwidths
-		speed := int64((float64(dw.DownloadSize) / float64(dw.CostTime)) * 1000)
-		if speed > 0 {
-			m.nodeMgr.UpdateNodeBandwidths(dw.SourceID, 0, speed)
-			m.nodeMgr.UpdateNodeBandwidths(record.ClientID, speed, 0)
-		}
+		m.saveRetrieveEventFromWorkload(dw, hash, record.ClientID)
 
-		// Only edge can get this reward
-		node := m.nodeMgr.GetNode(dw.SourceID)
-		if node == nil {
-			continue
-		}
-		node.UploadTraffic += dw.DownloadSize
-
-		if downloadNode != "" && node.Type == types.NodeEdge {
-			if dw.DownloadSize > limit {
-				dw.DownloadSize = limit
+		if dw.Status == types.WorkloadReqStatusSucceeded {
+			// Only edge can get this reward
+			node := m.nodeMgr.GetNode(dw.SourceID)
+			if node == nil {
+				continue
 			}
+			node.UploadTraffic += dw.DownloadSize
 
-			dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
-			if dInfo != nil {
-				dInfo.CID = record.AssetCID
-				dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+			if downloadNode != "" && node.Type == types.NodeEdge {
+				if dw.DownloadSize > limit {
+					dw.DownloadSize = limit
+				}
 
-				detailsList = append(detailsList, dInfo)
+				dInfo := m.nodeMgr.GetNodeBePullProfitDetails(node, float64(dw.DownloadSize), "")
+				if dInfo != nil {
+					dInfo.CID = record.AssetCID
+					dInfo.Note = fmt.Sprintf("%s,%s", dInfo.Note, record.WorkloadID)
+
+					detailsList = append(detailsList, dInfo)
+				}
 			}
 		}
 
-		retrieveEvent := &types.RetrieveEvent{
-			Hash:     hash,
-			NodeID:   dw.SourceID,
-			ClientID: record.ClientID,
-			Size:     dw.DownloadSize,
-			Status:   types.EventStatusSucceed,
-			Speed:    speed,
-		}
-		eventList = append(eventList, retrieveEvent)
-	}
-
-	// Retrieve Event
-	for _, data := range eventList {
-		if err := m.SaveRetrieveEventInfo(data, 1, 0); err != nil {
-			log.Errorf("handleClientWorkload SaveRetrieveEventInfo token:%s ,  error %s", record.WorkloadID, err.Error())
-		}
 	}
 
 	err = m.nodeMgr.AddNodeProfitDetails(detailsList)

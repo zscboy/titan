@@ -55,8 +55,13 @@ func (n *SQLDB) ListAWSData(limit, offset int, isDistribute bool) ([]*types.AWSD
 
 // SaveAssetData saves multiple ipfs data entries within a transaction, ensuring data integrity. It checks the validity of the data size for each entry before saving.
 func (n *SQLDB) SaveAssetData(infos []types.AssetDataInfo) error {
+	// query := fmt.Sprintf(
+	// 	`INSERT INTO %s (owner, replicas, cid, expiration, hash) VALUES (:owner, :replicas, :cid, :expiration, :hash)`, assetDataTable)
+
 	query := fmt.Sprintf(
-		`INSERT INTO %s (owner, replicas, cid, expiration, hash) VALUES (:owner, :replicas, :cid, :expiration, :hash)`, assetDataTable)
+		`INSERT INTO %s (owner, replicas, cid, expiration, hash)
+					VALUES (:owner, :replicas, :cid, :expiration, :hash)
+					ON DUPLICATE KEY UPDATE status=:status, expiration=:expiration, replicas=:replicas, owner=:owner`, assetDataTable)
 
 	_, err := n.db.NamedExec(query, infos)
 	return err
