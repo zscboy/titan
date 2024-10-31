@@ -57,7 +57,7 @@ func ConfigCandidate(c interface{}) Option {
 		Override(new(*types.RateLimiter), modules.NewRateLimiter),
 		Override(new(*asset.Asset), asset.NewAsset),
 		Override(new(*datasync.DataSync), modules.NewDataSync),
-		Override(new(*candidate.TCPServer), modules.NewTCPServer),
+		// Override(new(*candidate.TCPServer), modules.NewTCPServer),
 		Override(new(dtypes.WorkerdPath), modules.WorkerdPath),
 		Override(new(*workerd.Workerd), modules.NewWorkerd),
 	)

@@ -46,7 +46,6 @@ type Candidate struct {
 	*datasync.DataSync
 	Scheduler api.Scheduler
 	Config    *config.CandidateCfg
-	TCPSrv    *TCPServer
 }
 
 // WaitQuiet does nothing and returns nil error.
