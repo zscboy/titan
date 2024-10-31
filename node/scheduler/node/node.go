@@ -88,7 +88,7 @@ type API struct {
 	api.DataSync
 	api.Asset
 	api.Workerd
-	api.ProviderAPI
+	// api.ProviderAPI
 	WaitQuiet func(ctx context.Context) error
 	// edge api
 	// ExternalServiceAddress func(ctx context.Context, candidateURL string) (string, error)
@@ -129,12 +129,12 @@ func APIFromEdge(api api.Edge) *API {
 // APIFromCandidate creates a new API from a Candidate API
 func APIFromCandidate(api api.Candidate) *API {
 	a := &API{
-		Common:                  api,
-		Device:                  api,
-		Validation:              api,
-		DataSync:                api,
-		Asset:                   api,
-		ProviderAPI:             api,
+		Common:     api,
+		Device:     api,
+		Validation: api,
+		DataSync:   api,
+		Asset:      api,
+		// ProviderAPI:             api,
 		WaitQuiet:               api.WaitQuiet,
 		GetBlocksOfAsset:        api.GetBlocksWithAssetCID,
 		CheckNetworkConnectable: api.CheckNetworkConnectable,

@@ -7,8 +7,6 @@ import (
 	gopath "path"
 	"sync"
 
-	"github.com/Filecoin-Titan/titan/node/container"
-
 	"github.com/Filecoin-Titan/titan/api"
 	"github.com/Filecoin-Titan/titan/api/types"
 	titanrsa "github.com/Filecoin-Titan/titan/node/rsa"
@@ -45,7 +43,6 @@ type HttpServer struct {
 	maxSizeOfUploadFile int64
 	webRedirect         string
 	rateLimiter         *types.RateLimiter
-	client              *container.Client
 	v3Progress          *sync.Map
 	// tusd
 }
@@ -59,7 +56,6 @@ type HttpServerOptions struct {
 	MaxSizeOfUploadFile int64
 	WebRedirect         string
 	RateLimiter         *types.RateLimiter
-	Client              *container.Client
 }
 
 // NewHttpServer creates a new HttpServer with the given Asset, Scheduler, and RSA private key.
@@ -74,7 +70,6 @@ func NewHttpServer(opts *HttpServerOptions) *HttpServer {
 		maxSizeOfUploadFile: opts.MaxSizeOfUploadFile,
 		webRedirect:         opts.WebRedirect,
 		rateLimiter:         opts.RateLimiter,
-		client:              opts.Client,
 		v3Progress:          &sync.Map{},
 	}
 

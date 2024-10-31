@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Filecoin-Titan/titan/node/container"
-
 	"github.com/Filecoin-Titan/titan/node"
 	"github.com/Filecoin-Titan/titan/node/asset"
 	"github.com/Filecoin-Titan/titan/node/httpserver"
@@ -345,7 +343,7 @@ var daemonStartCmd = &cli.Command{
 
 				return dtypes.InternalIP(strings.Split(localAddr.IP.String(), ":")[0]), nil
 			}),
-			node.Override(node.RunGateway, func(assetMgr *asset.Manager, validation *validation.Validation, apiSecret *jwt.HMACSHA, limiter *types.RateLimiter, client *container.Client) error {
+			node.Override(node.RunGateway, func(assetMgr *asset.Manager, validation *validation.Validation, apiSecret *jwt.HMACSHA, limiter *types.RateLimiter) error {
 				opts := &httpserver.HttpServerOptions{
 					Asset: assetMgr, Scheduler: schedulerAPI,
 					PrivateKey:          privateKey,
@@ -354,7 +352,6 @@ var daemonStartCmd = &cli.Command{
 					MaxSizeOfUploadFile: candidateCfg.MaxSizeOfUploadFile,
 					WebRedirect:         candidateCfg.WebRedirect,
 					RateLimiter:         limiter,
-					Client:              client,
 				}
 				httpServer = httpserver.NewHttpServer(opts)
 				return nil
@@ -468,17 +465,17 @@ var daemonStartCmd = &cli.Command{
 				for {
 					select {
 					case <-readyCh:
-						rs, rerr := candidateAPI.GetStatistics(ctx)
-						if rerr != nil {
-							log.Errorf("get resource statistics: %v", err)
-						}
+						// rs, rerr := candidateAPI.GetStatistics(ctx)
+						// if rerr != nil {
+						// 	log.Errorf("get resource statistics: %v", err)
+						// }
 
 						opts := &types.ConnectOptions{
-							ExternalURL:         candidateCfg.ExternalURL,
-							Token:               token,
-							TcpServerPort:       tcpServerPort,
-							IsPrivateMinioOnly:  isPrivateMinioOnly(candidateCfg),
-							ResourcesStatistics: rs,
+							ExternalURL:        candidateCfg.ExternalURL,
+							Token:              token,
+							TcpServerPort:      tcpServerPort,
+							IsPrivateMinioOnly: isPrivateMinioOnly(candidateCfg),
+							// ResourcesStatistics: rs,
 						}
 
 						err := schedulerAPI.CandidateConnect(ctx, opts)

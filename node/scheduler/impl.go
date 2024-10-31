@@ -75,7 +75,6 @@ type Scheduler struct {
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 	WorkloadManager        *workload.Manager
 	ProjectManager         *projects.Manager
-	// ContainerManager       *container.Manager
 
 	PrivateKey *rsa.PrivateKey
 	Transport  *quic.Transport

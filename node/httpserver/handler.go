@@ -75,7 +75,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.URL.Path, reqIpfs) &&
 		!strings.Contains(r.URL.Path, reqUpload) &&
 		!strings.Contains(r.URL.Path, reqRpc) &&
-		!strings.Contains(r.URL.Path, reqLease) &&
 		!strings.Contains(r.URL.Path, reqUploadv2) &&
 		!strings.Contains(r.URL.Path, reqUploadv3) &&
 		!strings.Contains(r.URL.Path, reqUploadv3Status) &&
@@ -98,8 +97,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.hs.uploadv3StatusHandler(w, r)
 	case reqUploadv4:
 		h.hs.uploadv4Handler(w, r)
-	case reqLease:
-		h.hs.LeaseShellHandler(w, r)
 	default:
 		h.handler.ServeHTTP(w, r)
 	}

@@ -210,17 +210,3 @@ func RegisterToEtcd(mctx helpers.MetricsCtx, lc fx.Lifecycle, configFunc dtypes.
 
 	return eCli, nil
 }
-
-// func NewContainerManager(mctx helpers.MetricsCtx, l fx.Lifecycle, nm *node.Manager, db *db.SQLDB, p *pubsub.PubSub) *container.Manager {
-// 	m := container.NewManager(nm, db, p)
-
-// 	ctx := helpers.LifecycleCtx(mctx, l)
-// 	l.Append(fx.Hook{
-// 		OnStart: func(context.Context) error {
-// 			go m.ListenNodeState(ctx)
-// 			return nil
-// 		},
-// 	})
-
-// 	return m
-// }

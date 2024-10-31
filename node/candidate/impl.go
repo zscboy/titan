@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Filecoin-Titan/titan/node/container"
-
 	"github.com/Filecoin-Titan/titan/api/client"
 	"github.com/Filecoin-Titan/titan/api/types"
 	"github.com/Filecoin-Titan/titan/node/asset"
@@ -46,7 +44,6 @@ type Candidate struct {
 	*device.Device
 	*vd.Validation
 	*datasync.DataSync
-	*container.Client
 	Scheduler api.Scheduler
 	Config    *config.CandidateCfg
 	TCPSrv    *TCPServer
