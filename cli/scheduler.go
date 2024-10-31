@@ -20,8 +20,8 @@ var SchedulerCMDs = []*cli.Command{
 	WithCategory("config", sConfigCmds),
 	WithCategory("project", projectCmds),
 	WithCategory("codes", codesCmds),
-	WithCategory("provider", providerCmds),
-	WithCategory("deployment", deploymentCmds),
+	// WithCategory("provider", providerCmds),
+	// WithCategory("deployment", deploymentCmds),
 
 	// other
 	edgeUpdaterCmd,

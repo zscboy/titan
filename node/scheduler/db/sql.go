@@ -55,11 +55,11 @@ const (
 	projectInfoTable     = "project_info"
 	projectReplicasTable = "project_replicas"
 
-	deploymentTable = "deployments"
-	providersTable  = "providers"
-	propertiesTable = "properties"
-	servicesTable   = "services"
-	domainsTable    = "domains"
+	// deploymentTable = "deployments"
+	// providersTable  = "providers"
+	// propertiesTable = "properties"
+	// servicesTable   = "services"
+	// domainsTable    = "domains"
 
 	nodeStatisticsTable = "node_statistics"
 	nodeRetrieveTable   = "node_retrieve"
@@ -128,11 +128,11 @@ func InitTables(d *SQLDB, serverID dtypes.ServerID) error {
 	tx.MustExec(fmt.Sprintf(cProjectReplicasTable, projectReplicasTable))
 	tx.MustExec(fmt.Sprintf(cProjectEventTable, projectEventTable))
 	tx.MustExec(fmt.Sprintf(cOnlineCountTable, onlineCountTable))
-	tx.MustExec(fmt.Sprintf(cDeploymentTable, deploymentTable))
-	tx.MustExec(fmt.Sprintf(cProviderTable, providersTable))
-	tx.MustExec(fmt.Sprintf(cPropertiesTable, propertiesTable))
-	tx.MustExec(fmt.Sprintf(cServicesTable, servicesTable))
-	tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
+	// tx.MustExec(fmt.Sprintf(cDeploymentTable, deploymentTable))
+	// tx.MustExec(fmt.Sprintf(cProviderTable, providersTable))
+	// tx.MustExec(fmt.Sprintf(cPropertiesTable, propertiesTable))
+	// tx.MustExec(fmt.Sprintf(cServicesTable, servicesTable))
+	// tx.MustExec(fmt.Sprintf(cDomainTable, domainsTable))
 	tx.MustExec(fmt.Sprintf(cAssetDownloadTable, assetDownloadTable))
 	tx.MustExec(fmt.Sprintf(cNodeStatisticsTable, nodeStatisticsTable))
 	tx.MustExec(fmt.Sprintf(cNodeRetrieveTable, nodeRetrieveTable))
@@ -150,8 +150,8 @@ func doExec(d *SQLDB, serverID dtypes.ServerID) {
 	// if err != nil {
 	// 	log.Errorf("InitTables doExec err:%s", err.Error())
 	// }
-	_, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD hash            VARCHAR(128) NOT NULL", assetDataTable))
-	if err != nil {
-		log.Errorf("InitTables doExec err:%s", err.Error())
-	}
+	// _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD hash            VARCHAR(128) NOT NULL", assetDataTable))
+	// if err != nil {
+	// 	log.Errorf("InitTables doExec err:%s", err.Error())
+	// }
 }

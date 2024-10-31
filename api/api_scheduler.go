@@ -241,7 +241,7 @@ type Scheduler interface {
 	AssetAPI
 	NodeAPI
 	ProjectAPI
-	ContainerAPI
+	// ContainerAPI
 
 	// NodeValidationResult processes the validation result for a node
 	NodeValidationResult(ctx context.Context, r io.Reader, sign string) error //perm:edge,candidate
@@ -292,4 +292,6 @@ type Scheduler interface {
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error)                                        //perm:edge
 	GetNodeUploadInfo(ctx context.Context, userID string, pass string, urlMode bool) (*types.UploadInfo, error) //perm:user,web,admin
 	UserAssetDownloadResult(ctx context.Context, userID, cid string, totalTraffic, peakBandwidth int64) error   //perm:candidate
+
+	GetDeploymentProviderIP(ctx context.Context, id types.DeploymentID) (string, error) //perm:edge,candidate,web,locator,admin
 }

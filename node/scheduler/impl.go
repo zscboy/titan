@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Filecoin-Titan/titan/node/scheduler/container"
-
 	"github.com/Filecoin-Titan/titan/node/modules/dtypes"
 	"github.com/Filecoin-Titan/titan/node/scheduler/nat"
 	"github.com/Filecoin-Titan/titan/node/scheduler/projects"
@@ -77,7 +75,7 @@ type Scheduler struct {
 	GetSchedulerConfigFunc dtypes.GetSchedulerConfigFunc
 	WorkloadManager        *workload.Manager
 	ProjectManager         *projects.Manager
-	ContainerManager       *container.Manager
+	// ContainerManager       *container.Manager
 
 	PrivateKey *rsa.PrivateKey
 	Transport  *quic.Transport

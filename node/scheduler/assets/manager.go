@@ -216,10 +216,7 @@ func (m *Manager) setAssetTimeout(hash, msg string) {
 	cid, _ := cidutil.HashToCID(hash)
 
 	for _, nodeID := range nodes {
-		node := m.nodeMgr.GetNode(nodeID)
-		if node != nil {
-			go node.DeleteAsset(context.Background(), cid)
-		}
+		go m.requestAssetDelete(nodeID, cid)
 	}
 
 	err = m.assetStateMachines.Send(AssetHash(hash), PullFailed{error: xerrors.Errorf("pull timeout ; %s", msg)})
@@ -944,7 +941,8 @@ func (m *Manager) checkAssetReliability(hash string) (effectiveEdges, candidateR
 			continue
 		}
 
-		if lastSeen.Add(maxNodeOfflineTime * 5).Before(time.Now()) {
+		if lastSeen.Add(maxNodeOfflineTime * 10).Before(time.Now()) {
+			log.Warnf("checkAssetReliability %s lastSeen %s", nodeID, lastSeen.String())
 			deleteNodes = append(deleteNodes, nodeID)
 			continue
 		}

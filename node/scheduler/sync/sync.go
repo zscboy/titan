@@ -42,16 +42,17 @@ func NewDataSync(nodeManager *node.Manager) *DataSync {
 }
 
 func (ds *DataSync) startCheckNodeTimer() {
-	now := time.Now()
+	// now := time.Now()
 
-	nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 1, 0, 0, now.Location())
-	if now.After(nextTime) {
-		nextTime = nextTime.Add(syncInterval)
-	}
+	// nextTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 1, 0, 0, now.Location())
+	// if now.After(nextTime) {
+	// 	nextTime = nextTime.Add(syncInterval)
+	// }
 
-	duration := nextTime.Sub(now)
+	// duration := nextTime.Sub(now)
+	// timer := time.NewTimer(duration)
 
-	timer := time.NewTimer(duration)
+	timer := time.NewTicker(2 * time.Hour)
 	defer timer.Stop()
 
 	for {
@@ -59,7 +60,7 @@ func (ds *DataSync) startCheckNodeTimer() {
 
 		ds.notifyCandidateSyncAsset()
 
-		timer.Reset(syncInterval)
+		// timer.Reset(syncInterval)
 	}
 }
 

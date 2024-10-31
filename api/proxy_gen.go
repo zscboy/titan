@@ -234,42 +234,6 @@ type ContainerAPIStruct struct {
 
 	Internal struct {
 
-		AddDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 *types.Certificate) (error) `perm:"web,admin"`
-
-		CloseDeployment func(p0 context.Context, p1 *types.Deployment, p2 bool) (error) `perm:"web,admin"`
-
-		CreateDeployment func(p0 context.Context, p1 *types.Deployment) (error) `perm:"web,admin"`
-
-		DeleteDeploymentDomain func(p0 context.Context, p1 types.DeploymentID, p2 string) (error) `perm:"web,admin"`
-
-		GetDeploymentDomains func(p0 context.Context, p1 types.DeploymentID) ([]*types.DeploymentDomain, error) `perm:"web,admin"`
-
-		GetDeploymentList func(p0 context.Context, p1 *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) `perm:"web,candidate,admin"`
-
-		GetDeploymentProviderIP func(p0 context.Context, p1 types.DeploymentID) (string, error) `perm:"edge,candidate,web,locator,admin"`
-
-		GetEvents func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceEvent, error) `perm:"web,admin"`
-
-		GetIngress func(p0 context.Context, p1 types.DeploymentID) (*types.Ingress, error) `perm:"web,admin"`
-
-		GetLeaseShellEndpoint func(p0 context.Context, p1 types.DeploymentID) (*types.LeaseEndpoint, error) `perm:"web,admin"`
-
-		GetLogs func(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceLog, error) `perm:"web,admin"`
-
-		GetProviderList func(p0 context.Context, p1 *types.GetProviderOption) (*types.ProvidersResp, error) `perm:"web,admin"`
-
-		GetProviders func(p0 context.Context, p1 *types.GetProviderOption) ([]*types.Provider, error) `perm:"web,admin"`
-
-		GetRemoteAddress func(p0 context.Context) (string, error) `perm:"web,candidate,admin"`
-
-		GetStatistics func(p0 context.Context, p1 string) (*types.ResourcesStatistics, error) `perm:"web,admin"`
-
-		SetProperties func(p0 context.Context, p1 *types.Properties) (error) `perm:"web,admin"`
-
-		UpdateDeployment func(p0 context.Context, p1 *types.Deployment) (error) `perm:"web,admin"`
-
-		UpdateIngress func(p0 context.Context, p1 types.DeploymentID, p2 map[string]string) (error) `perm:"web,admin"`
-
 	}
 }
 
@@ -516,8 +480,6 @@ type NodeAPIStruct struct {
 
 		UpdateNodePort func(p0 context.Context, p1 string, p2 string) (error) `perm:"web,admin"`
 
-		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
-
 		UserAssetDownloadResultV2 func(p0 context.Context, p1 *types.RetrieveEvent) (error) `perm:"candidate"`
 
 		VerifyTokenWithLimitCount func(p0 context.Context, p1 string) (*types.JWTPayload, error) `perm:"edge,candidate"`
@@ -609,8 +571,6 @@ type SchedulerStruct struct {
 
 	ProjectAPIStruct
 
-	ContainerAPIStruct
-
 	Internal struct {
 
 		AssignTunserverURL func(p0 context.Context) (*types.TunserverRsp, error) `perm:"edge"`
@@ -622,6 +582,8 @@ type SchedulerStruct struct {
 		GenerateCandidateCodes func(p0 context.Context, p1 int, p2 types.NodeType, p3 bool) ([]string, error) `perm:"admin"`
 
 		GetCandidateCodeInfos func(p0 context.Context, p1 string, p2 string) ([]*types.CandidateCodeInfo, error) `perm:"admin,web,locator"`
+
+		GetDeploymentProviderIP func(p0 context.Context, p1 types.DeploymentID) (string, error) `perm:"edge,candidate,web,locator,admin"`
 
 		GetEdgeUpdateConfigs func(p0 context.Context) (map[int]*EdgeUpdateConfig, error) `perm:"edge"`
 
@@ -657,6 +619,8 @@ type SchedulerStruct struct {
 
 		SubmitWorkloadReportV2 func(p0 context.Context, p1 *types.WorkloadRecordReq) (error) `perm:"default"`
 
+		UserAssetDownloadResult func(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) `perm:"candidate"`
+
 	}
 }
 
@@ -669,8 +633,6 @@ type SchedulerStub struct {
 	NodeAPIStub
 
 	ProjectAPIStub
-
-	ContainerAPIStub
 
 }
 
@@ -1514,204 +1476,6 @@ func (s *CommonStub) Version(p0 context.Context) (APIVersion, error) {
 
 
 
-func (s *ContainerAPIStruct) AddDeploymentDomain(p0 context.Context, p1 types.DeploymentID, p2 *types.Certificate) (error) {
-	if s.Internal.AddDeploymentDomain == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.AddDeploymentDomain(p0, p1, p2)
-}
-
-func (s *ContainerAPIStub) AddDeploymentDomain(p0 context.Context, p1 types.DeploymentID, p2 *types.Certificate) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) CloseDeployment(p0 context.Context, p1 *types.Deployment, p2 bool) (error) {
-	if s.Internal.CloseDeployment == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CloseDeployment(p0, p1, p2)
-}
-
-func (s *ContainerAPIStub) CloseDeployment(p0 context.Context, p1 *types.Deployment, p2 bool) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) CreateDeployment(p0 context.Context, p1 *types.Deployment) (error) {
-	if s.Internal.CreateDeployment == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.CreateDeployment(p0, p1)
-}
-
-func (s *ContainerAPIStub) CreateDeployment(p0 context.Context, p1 *types.Deployment) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) DeleteDeploymentDomain(p0 context.Context, p1 types.DeploymentID, p2 string) (error) {
-	if s.Internal.DeleteDeploymentDomain == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.DeleteDeploymentDomain(p0, p1, p2)
-}
-
-func (s *ContainerAPIStub) DeleteDeploymentDomain(p0 context.Context, p1 types.DeploymentID, p2 string) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetDeploymentDomains(p0 context.Context, p1 types.DeploymentID) ([]*types.DeploymentDomain, error) {
-	if s.Internal.GetDeploymentDomains == nil {
-		return *new([]*types.DeploymentDomain), ErrNotSupported
-	}
-	return s.Internal.GetDeploymentDomains(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetDeploymentDomains(p0 context.Context, p1 types.DeploymentID) ([]*types.DeploymentDomain, error) {
-	return *new([]*types.DeploymentDomain), ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetDeploymentList(p0 context.Context, p1 *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) {
-	if s.Internal.GetDeploymentList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetDeploymentList(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetDeploymentList(p0 context.Context, p1 *types.GetDeploymentOption) (*types.GetDeploymentListResp, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetDeploymentProviderIP(p0 context.Context, p1 types.DeploymentID) (string, error) {
-	if s.Internal.GetDeploymentProviderIP == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetDeploymentProviderIP(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetDeploymentProviderIP(p0 context.Context, p1 types.DeploymentID) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetEvents(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceEvent, error) {
-	if s.Internal.GetEvents == nil {
-		return *new([]*types.ServiceEvent), ErrNotSupported
-	}
-	return s.Internal.GetEvents(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetEvents(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceEvent, error) {
-	return *new([]*types.ServiceEvent), ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetIngress(p0 context.Context, p1 types.DeploymentID) (*types.Ingress, error) {
-	if s.Internal.GetIngress == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetIngress(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetIngress(p0 context.Context, p1 types.DeploymentID) (*types.Ingress, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetLeaseShellEndpoint(p0 context.Context, p1 types.DeploymentID) (*types.LeaseEndpoint, error) {
-	if s.Internal.GetLeaseShellEndpoint == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetLeaseShellEndpoint(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetLeaseShellEndpoint(p0 context.Context, p1 types.DeploymentID) (*types.LeaseEndpoint, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetLogs(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceLog, error) {
-	if s.Internal.GetLogs == nil {
-		return *new([]*types.ServiceLog), ErrNotSupported
-	}
-	return s.Internal.GetLogs(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetLogs(p0 context.Context, p1 *types.Deployment) ([]*types.ServiceLog, error) {
-	return *new([]*types.ServiceLog), ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetProviderList(p0 context.Context, p1 *types.GetProviderOption) (*types.ProvidersResp, error) {
-	if s.Internal.GetProviderList == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetProviderList(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetProviderList(p0 context.Context, p1 *types.GetProviderOption) (*types.ProvidersResp, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetProviders(p0 context.Context, p1 *types.GetProviderOption) ([]*types.Provider, error) {
-	if s.Internal.GetProviders == nil {
-		return *new([]*types.Provider), ErrNotSupported
-	}
-	return s.Internal.GetProviders(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetProviders(p0 context.Context, p1 *types.GetProviderOption) ([]*types.Provider, error) {
-	return *new([]*types.Provider), ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetRemoteAddress(p0 context.Context) (string, error) {
-	if s.Internal.GetRemoteAddress == nil {
-		return "", ErrNotSupported
-	}
-	return s.Internal.GetRemoteAddress(p0)
-}
-
-func (s *ContainerAPIStub) GetRemoteAddress(p0 context.Context) (string, error) {
-	return "", ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) GetStatistics(p0 context.Context, p1 string) (*types.ResourcesStatistics, error) {
-	if s.Internal.GetStatistics == nil {
-		return nil, ErrNotSupported
-	}
-	return s.Internal.GetStatistics(p0, p1)
-}
-
-func (s *ContainerAPIStub) GetStatistics(p0 context.Context, p1 string) (*types.ResourcesStatistics, error) {
-	return nil, ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) SetProperties(p0 context.Context, p1 *types.Properties) (error) {
-	if s.Internal.SetProperties == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.SetProperties(p0, p1)
-}
-
-func (s *ContainerAPIStub) SetProperties(p0 context.Context, p1 *types.Properties) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) UpdateDeployment(p0 context.Context, p1 *types.Deployment) (error) {
-	if s.Internal.UpdateDeployment == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateDeployment(p0, p1)
-}
-
-func (s *ContainerAPIStub) UpdateDeployment(p0 context.Context, p1 *types.Deployment) (error) {
-	return ErrNotSupported
-}
-
-func (s *ContainerAPIStruct) UpdateIngress(p0 context.Context, p1 types.DeploymentID, p2 map[string]string) (error) {
-	if s.Internal.UpdateIngress == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UpdateIngress(p0, p1, p2)
-}
-
-func (s *ContainerAPIStub) UpdateIngress(p0 context.Context, p1 types.DeploymentID, p2 map[string]string) (error) {
-	return ErrNotSupported
-}
-
 
 
 
@@ -2544,17 +2308,6 @@ func (s *NodeAPIStub) UpdateNodePort(p0 context.Context, p1 string, p2 string) (
 	return ErrNotSupported
 }
 
-func (s *NodeAPIStruct) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
-	if s.Internal.UserAssetDownloadResult == nil {
-		return ErrNotSupported
-	}
-	return s.Internal.UserAssetDownloadResult(p0, p1, p2, p3, p4)
-}
-
-func (s *NodeAPIStub) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
-	return ErrNotSupported
-}
-
 func (s *NodeAPIStruct) UserAssetDownloadResultV2(p0 context.Context, p1 *types.RetrieveEvent) (error) {
 	if s.Internal.UserAssetDownloadResultV2 == nil {
 		return ErrNotSupported
@@ -2905,6 +2658,17 @@ func (s *SchedulerStub) GetCandidateCodeInfos(p0 context.Context, p1 string, p2 
 	return *new([]*types.CandidateCodeInfo), ErrNotSupported
 }
 
+func (s *SchedulerStruct) GetDeploymentProviderIP(p0 context.Context, p1 types.DeploymentID) (string, error) {
+	if s.Internal.GetDeploymentProviderIP == nil {
+		return "", ErrNotSupported
+	}
+	return s.Internal.GetDeploymentProviderIP(p0, p1)
+}
+
+func (s *SchedulerStub) GetDeploymentProviderIP(p0 context.Context, p1 types.DeploymentID) (string, error) {
+	return "", ErrNotSupported
+}
+
 func (s *SchedulerStruct) GetEdgeUpdateConfigs(p0 context.Context) (map[int]*EdgeUpdateConfig, error) {
 	if s.Internal.GetEdgeUpdateConfigs == nil {
 		return *new(map[int]*EdgeUpdateConfig), ErrNotSupported
@@ -3089,6 +2853,17 @@ func (s *SchedulerStruct) SubmitWorkloadReportV2(p0 context.Context, p1 *types.W
 }
 
 func (s *SchedulerStub) SubmitWorkloadReportV2(p0 context.Context, p1 *types.WorkloadRecordReq) (error) {
+	return ErrNotSupported
+}
+
+func (s *SchedulerStruct) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
+	if s.Internal.UserAssetDownloadResult == nil {
+		return ErrNotSupported
+	}
+	return s.Internal.UserAssetDownloadResult(p0, p1, p2, p3, p4)
+}
+
+func (s *SchedulerStub) UserAssetDownloadResult(p0 context.Context, p1 string, p2 string, p3 int64, p4 int64) (error) {
 	return ErrNotSupported
 }
 

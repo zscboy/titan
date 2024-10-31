@@ -1035,7 +1035,7 @@ func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.Ass
 			continue
 		}
 
-		if len(sources) > 6 {
+		if len(sources) > 30 {
 			continue
 		}
 

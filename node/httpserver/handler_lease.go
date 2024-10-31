@@ -6,13 +6,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/Filecoin-Titan/titan/api/types"
-	"github.com/gbrlsnchs/jwt/v3"
 	"io"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Filecoin-Titan/titan/api/types"
+	"github.com/gbrlsnchs/jwt/v3"
 
 	cliutil "github.com/Filecoin-Titan/titan/cli/util"
 	"github.com/gorilla/websocket"
@@ -53,16 +54,16 @@ func (hs *HttpServer) LeaseShellHandler(writer http.ResponseWriter, req *http.Re
 		return
 	}
 
-	deployments, err := hs.scheduler.GetDeploymentList(context.Background(), &types.GetDeploymentOption{DeploymentID: types.DeploymentID(payload.DeploymentID)})
-	if err != nil {
-		uploadResult(writer, -1, fmt.Sprintf("%s, http status code %d", err.Error(), http.StatusUnauthorized))
-		return
-	}
+	// deployments, err := hs.scheduler.GetDeploymentList(context.Background(), &types.GetDeploymentOption{DeploymentID: types.DeploymentID(payload.DeploymentID)})
+	// if err != nil {
+	// 	uploadResult(writer, -1, fmt.Sprintf("%s, http status code %d", err.Error(), http.StatusUnauthorized))
+	// 	return
+	// }
 
-	if len(deployments.Deployments) <= 0 || deployments.Deployments[0].Owner != payload.UserID {
-		uploadResult(writer, -1, fmt.Sprintf("%s, http status code %d", "invalid token", http.StatusUnauthorized))
-		return
-	}
+	// if len(deployments.Deployments) <= 0 || deployments.Deployments[0].Owner != payload.UserID {
+	// 	uploadResult(writer, -1, fmt.Sprintf("%s, http status code %d", "invalid token", http.StatusUnauthorized))
+	// 	return
+	// }
 
 	fmt.Println("connection from: ", payload.UserID, req.URL.String(), id)
 
@@ -171,7 +172,6 @@ func (hs *HttpServer) LeaseShellHandler(writer http.ResponseWriter, req *http.Re
 	if terminalSizeUpdate != nil {
 		close(terminalSizeUpdate)
 	}
-
 }
 
 func leaseShellPingHandler(ctx context.Context, wg *sync.WaitGroup, ws *websocket.Conn) {
