@@ -767,7 +767,7 @@ func (m *Manager) updateAssetPullResults(nodeID string, result *types.PullResult
 			if err != nil {
 				log.Errorf("updateAssetPullResults %s %v AddAssetView send err:%s", nodeID, succeededCIDs, err.Error())
 			} else {
-				log.Errorf("updateAssetPullResults %s %v AddAssetView", nodeID, succeededCIDs)
+				log.Infof("updateAssetPullResults %s %v AddAssetView", nodeID, succeededCIDs)
 			}
 		}
 	}
