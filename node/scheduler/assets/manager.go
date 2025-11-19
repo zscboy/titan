@@ -41,7 +41,7 @@ const (
 	// Interval to get asset pull progress from node (Unit:Second)
 	uploadProgressInterval = time.Second
 	// Interval to check candidate backup of asset (Unit:Minute)
-	checkCandidateBackupInterval = 5 * time.Minute
+	checkCandidateBackupInterval = 20 * time.Minute
 	// The number of retries to select the pull asset node
 	selectNodeRetryLimit = 2
 	// If the node disk size is greater than this value, pulling will not continue
@@ -54,10 +54,6 @@ const (
 	assetTimeoutLimit = 3
 
 	checkAssetReplicaLimit = 50
-
-	nodeProfitsLimitOfDay = 50000.0
-	// Maximum number of candidates for asset upload
-	maxCandidateForSelect = 5
 
 	expirationOfStorageAsset = 150 // day
 

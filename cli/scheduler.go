@@ -28,6 +28,7 @@ var SchedulerCMDs = []*cli.Command{
 	loadWorkloadCmd,
 	reNatCmd,
 	showValidatorCmd,
+	setNodeCountLimitCmd,
 }
 
 var (
@@ -171,6 +172,31 @@ var showValidatorCmd = &cli.Command{
 		}
 
 		return nil
+	},
+}
+
+var setNodeCountLimitCmd = &cli.Command{
+	Name:  "node-limit",
+	Usage: "Set the maximum number of nodes allowed",
+	Flags: []cli.Flag{
+		limitFlag,
+	},
+
+	Before: func(cctx *cli.Context) error {
+		return nil
+	},
+	Action: func(cctx *cli.Context) error {
+		limit := cctx.Int("limit")
+
+		ctx := ReqContext(cctx)
+
+		schedulerAPI, closer, err := GetSchedulerAPI(cctx, "")
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		return schedulerAPI.SetNodeCountLimit(ctx, limit)
 	},
 }
 

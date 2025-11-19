@@ -65,13 +65,13 @@ func (m *Manager) startValidationTicker() {
 }
 
 func (m *Manager) computeNodeProfits(nodes []*node.Node) {
-	if nodes == nil || len(nodes) == 0 {
+	if len(nodes) == 0 {
 		return
 	}
 
 	for _, node := range nodes {
 		rsp, err := m.nodeMgr.LoadValidationResultInfos(node.NodeID, 20, 0)
-		if err != nil || len(rsp.ValidationResultInfos) == 0 {
+		if err != nil {
 			log.Warnf("%s LoadValidationResultInfos err:%v", node.NodeID, err)
 			continue
 		}

@@ -179,6 +179,7 @@ func DefaultSchedulerCfg() *SchedulerCfg {
 		AssetPullTaskLimit: 10,
 		IPLimit:            5,
 		L2ValidatorCount:   0,
+		NodeCountLimit:     12000,
 		NodeScoreLevel: map[string][]int{
 			"A": {90, 100},
 			"B": {50, 89},
