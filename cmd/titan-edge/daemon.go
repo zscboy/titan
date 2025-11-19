@@ -65,6 +65,14 @@ type daemon struct {
 func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSwitch) (*daemon, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
+	// Only cancel context if function exits with error
+	isExitWithError := true
+	defer func() {
+		if isExitWithError {
+			cancel()
+		}
+	}()
+
 	// Register all metric views
 	if err := view.Register(
 		metrics.DefaultViews...,
@@ -197,6 +205,7 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 		}),
 		node.Override(new(dtypes.InternalIP), func() (dtypes.InternalIP, error) {
 			schedulerAddr := strings.Split(schedulerURL, "/")
+
 			conn, err := net.DialTimeout("tcp", schedulerAddr[2], connectTimeout)
 			if err != nil {
 				return "", err
@@ -238,6 +247,7 @@ func newDaemon(ctx context.Context, repoPath string, daemonSwitch *clib.DaemonSw
 	log.Info("New titan daemon")
 
 	isExistWithError = false
+	isExitWithError = false // Mark success, don't cancel context
 
 	d := &daemon{
 		ID:           nodeID,
