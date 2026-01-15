@@ -15,7 +15,3 @@ func NewRegion(dbPath dtypes.GeoDBPath) (region.Region, error) {
 func NewLocatorStorage(addresses dtypes.EtcdAddresses) (locator.Storage, error) {
 	return locator.NewEtcdClient(addresses)
 }
-
-func NewSchedulerAPIMap() (locator.SchedulerAPIMap, error) {
-	return make(locator.SchedulerAPIMap), nil
-}

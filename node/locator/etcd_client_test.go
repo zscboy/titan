@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	testEtcdAddress = "39.108.143.56:2379"
+	testEtcdAddress = "127.0.0.1:2379"
 )
 
 func TestEtcd(t *testing.T) {

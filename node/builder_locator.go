@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/Filecoin-Titan/titan/api"
@@ -48,7 +49,6 @@ func ConfigLocator(c interface{}) Option {
 		Override(new(dtypes.ServerID), modules.NewServerID),
 		Override(new(region.Region), locator.NewRegion(cfg)),
 		Override(new(locator.Storage), modules.NewLocatorStorage),
-		Override(new(locator.SchedulerAPIMap), modules.NewSchedulerAPIMap),
 		Override(new(dtypes.EtcdAddresses), func() dtypes.EtcdAddresses {
 			return dtypes.EtcdAddresses(cfg.EtcdAddresses)
 		}),
@@ -56,5 +56,6 @@ func ConfigLocator(c interface{}) Option {
 			return dtypes.GeoDBPath(cfg.GeoDBPath)
 		}),
 		Override(new(*rand.Rand), rand.New(rand.NewSource(time.Now().Unix()))),
+		Override(new(sync.Map), sync.Map{}),
 	)
 }
