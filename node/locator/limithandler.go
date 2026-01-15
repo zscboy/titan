@@ -3,9 +3,15 @@ package locator
 import (
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+)
+
+const (
+	ErrServerBusy = "server busy"
+	ErrIPLimited  = "too many requests from this IP"
 )
 
 type LimitHandler struct {
@@ -33,41 +39,51 @@ func (l *LimitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case l.sem <- struct{}{}:
 		defer func() { <-l.sem }()
 	default:
-		if shouldLog(&l.lastGlobalLog, time.Minute) {
-			log.Warn("LimitHandler: global concurrency limit reached")
+		if l.shouldLog(&l.lastGlobalLog, 30*time.Second) {
+			log.Errorf("LimitHandler: global concurrency limit reached")
 		}
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = w.Write([]byte("server busy"))
+		http.Error(w, ErrServerBusy, http.StatusServiceUnavailable)
 		return
 	}
 
 	if l.ipLimit > 0 {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		remoteAddr := r.RemoteAddr
+		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			remoteAddr = strings.Split(xff, ",")[0]
 		}
 
-		v, _ := l.ipCount.LoadOrStore(ip, new(int32))
+		ip, _, err := net.SplitHostPort(remoteAddr)
+		if err != nil {
+			ip = remoteAddr // Fallback if no port present
+		}
+
+		v, ok := l.ipCount.Load(ip)
+		if !ok {
+			v, _ = l.ipCount.LoadOrStore(ip, new(int32))
+		}
+
 		if atomic.AddInt32(v.(*int32), 1) > int32(l.ipLimit) {
 			atomic.AddInt32(v.(*int32), -1)
 
-			if shouldLog(&l.lastIPLog, time.Minute) {
-				log.Warnf("LimitHandler: ip %s reached concurrency limit (%d)", ip, l.ipLimit)
+			if l.shouldLog(&l.lastIPLog, 30*time.Second) {
+				log.Errorf("LimitHandler: ip %s reached concurrency limit (%d)", ip, l.ipLimit)
 			}
 
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte("too many requests from this IP"))
+			http.Error(w, ErrIPLimited, http.StatusTooManyRequests)
 			return
 		}
 
-		defer atomic.AddInt32(v.(*int32), -1)
+		defer func() {
+			if atomic.AddInt32(v.(*int32), -1) <= 0 {
+				l.ipCount.Delete(ip)
+			}
+		}()
 	}
 
 	l.h.ServeHTTP(w, r)
 }
 
-func shouldLog(last *int64, interval time.Duration) bool {
+func (l *LimitHandler) shouldLog(last *int64, interval time.Duration) bool {
 	now := time.Now().UnixNano()
 	prev := atomic.LoadInt64(last)
 	if now-prev < interval.Nanoseconds() {
