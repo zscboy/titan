@@ -148,6 +148,7 @@ type LocatorCfg struct {
 	DNSRecords       map[string]string
 	DefaultAreas     []string
 	WebGeoAPI        string
+	MaxConns         int
 }
 
 // SchedulerCfg scheduler config

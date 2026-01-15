@@ -174,6 +174,10 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("failed to instantiate rpc handler: %w", err)
 		}
 
+		if locatorCfg.MaxConns > 0 {
+			handler = locator.NewLimitHandler(handler, locatorCfg.MaxConns)
+		}
+
 		udpPacketConn, err := net.ListenPacket("udp", locatorCfg.ListenAddress)
 		if err != nil {
 			return err
