@@ -175,7 +175,7 @@ var runCmd = &cli.Command{
 		}
 
 		if locatorCfg.MaxConns > 0 {
-			handler = locator.NewLimitHandler(handler, locatorCfg.MaxConns)
+			handler = locator.NewLimitHandler(handler, locatorCfg.MaxConns, locatorCfg.MaxConnsPerIP)
 		}
 
 		udpPacketConn, err := net.ListenPacket("udp", locatorCfg.ListenAddress)

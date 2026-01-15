@@ -148,7 +148,8 @@ type LocatorCfg struct {
 	DNSRecords       map[string]string
 	DefaultAreas     []string
 	WebGeoAPI        string
-	MaxConns         int
+	MaxConns         int // maximum global concurrent connections
+	MaxConnsPerIP    int // maximum concurrent connections per IP
 }
 
 // SchedulerCfg scheduler config
