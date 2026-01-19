@@ -228,4 +228,6 @@ type SchedulerCfg struct {
 	IOSSymbol     string
 	WindowsSymbol string
 	MacosSymbol   string
+
+	NodeCountLimit int
 }

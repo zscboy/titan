@@ -26,9 +26,9 @@ func (m *Manager) startNodePenaltyTimer() {
 }
 
 func (m *Manager) penaltyNode() {
-	list, err := m.LoadNodeInfosOfType(int(types.NodeCandidate))
+	list, err := m.LoadCandidateInfos()
 	if err != nil {
-		log.Errorf("LoadNodeInfosOfType err:%s", err.Error())
+		log.Errorf("LoadCandidateInfos err:%s", err.Error())
 		return
 	}
 
@@ -51,7 +51,7 @@ func (m *Manager) penaltyNode() {
 		// No penalty for the first 30 minutes of each day
 		count := m.candidateOfflineTime[info.NodeID]
 		if count > 30 {
-			dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (info.OfflineDuration + 1), info.OnlineDuration)
+			dInfo := m.CalculatePenalty(info.NodeID, info.Profit, (max(info.OfflineDuration+1-info.FreeDeductionTime, 0)), info.OnlineDuration)
 			if dInfo != nil {
 				detailsList = append(detailsList, dInfo)
 			}

@@ -25,8 +25,8 @@ const (
 	// Interval to get asset pull progress from node (Unit:Second)
 	progressInterval = 30 * time.Second
 
-	checkFailedProjectInterval    = 5 * time.Minute
-	checkServicingProjectInterval = 10 * time.Minute
+	checkFailedProjectInterval    = 30 * time.Minute
+	checkServicingProjectInterval = 30 * time.Minute
 
 	maxNodeOfflineTime = 12 * time.Hour
 

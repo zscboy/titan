@@ -20,7 +20,7 @@ var log = logging.Logger("scheduler/nat")
 
 const (
 	miniCandidateCount = 2
-	detectInterval     = 30
+	detectInterval     = 100
 	maxRetry           = 100
 
 	checkNodeNat = 12 * time.Hour
@@ -86,10 +86,10 @@ func (m *Manager) startTicker() {
 	for {
 		time.Sleep(detectInterval * time.Second)
 
-		if m.nodeManager.Candidates >= miniCandidateCount {
-			m.retryDetectCandidatesNatType(m.getCandidateList())
-			m.retryDetectEdgesNatType(m.getEdgeList())
-		}
+		// if m.nodeManager.Candidates >= miniCandidateCount {
+		m.retryDetectCandidatesNatType(m.getCandidateList())
+		m.retryDetectEdgesNatType(m.getEdgeList())
+		// }
 	}
 }
 
@@ -115,30 +115,6 @@ func (m *Manager) addCandidateNode(n *retryNode) {
 	}
 
 	m.retryCandidateList = append(m.retryCandidateList, n)
-}
-
-func (m *Manager) isInRetryEdgeList(nodeID string) bool {
-	m.retryEdgeLock.Lock()
-	defer m.retryEdgeLock.Unlock()
-	for _, node := range m.retryEdgeList {
-		if node.id == nodeID {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (m *Manager) isInRetryCandidateList(nodeID string) bool {
-	m.retryCandidateLock.Lock()
-	defer m.retryCandidateLock.Unlock()
-	for _, node := range m.retryCandidateList {
-		if node.id == nodeID {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (m *Manager) delayEdgeDetectNatType(n *retryNode) {
@@ -242,19 +218,19 @@ func (m *Manager) retryEdgeDetectNatType(rInfo *retryNode) {
 	}
 	defer m.edgeMap.Delete(nodeID)
 
-	eNode := m.nodeManager.GetNode(nodeID)
-	if eNode == nil {
+	bNode := m.nodeManager.GetNode(nodeID)
+	if bNode == nil {
 		return
 	}
 
 	cNodes := m.nodeManager.GetCandidateNodes(miniCandidateCount)
 
-	eNode.NATType = determineNodeNATType(eNode, cNodes, m.http3Client)
+	bNode.NATType = determineNodeNATType(bNode, cNodes, m.http3Client)
 
-	if eNode.NATType == types.NatTypeUnknown.String() && rInfo.retry < maxRetry {
+	if bNode.NATType == types.NatTypeUnknown.String() && rInfo.retry < maxRetry {
 		m.addEdgeNode(rInfo)
 	}
-	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, eNode.NATType, rInfo.retry)
+	log.Debugf("retry detect node %s nat type %s , %d", rInfo.id, bNode.NATType, rInfo.retry)
 }
 
 // DetermineCandidateNATType Determine node NATType

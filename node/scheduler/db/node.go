@@ -373,17 +373,22 @@ func (n *SQLDB) LoadActiveNodeInfos(limit, offset int) (*sqlx.Rows, int64, error
 		limit = loadNodeInfosDefaultLimit
 	}
 
+	// EXPLAIN SELECT a.*,b.node_type as type FROM node_info a LEFT JOIN node_register_info b ON a.node_id = b.node_id where a.last_seen>'2025-06-30 00:00:00' order by node_id asc LIMIT 10 OFFSET 10;
 	sQuery := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where a.last_seen>? order by node_id asc LIMIT ? OFFSET ?`, nodeInfoTable, nodeRegisterTable)
 	rows, err := n.db.QueryxContext(context.Background(), sQuery, t, limit, offset)
 	return rows, total, err
 }
 
-// LoadNodeInfosOfType fetches node information filtered by node type.
-func (n *SQLDB) LoadNodeInfosOfType(nodeType int) ([]*types.NodeInfo, error) {
-	query := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where b.node_type=?;`, nodeInfoTable, nodeRegisterTable)
+// EXPLAIN SELECT a.*,b.node_type as type FROM node_info a LEFT JOIN node_register_info b ON a.node_id = b.node_id where b.node_type=2;
+// EXPLAIN SELECT * FROM node_info where node_id like 'c_%';
+
+// LoadCandidateInfos fetches node information
+func (n *SQLDB) LoadCandidateInfos() ([]*types.NodeInfo, error) {
+	// query := fmt.Sprintf(`SELECT a.*,b.node_type as type FROM %s a LEFT JOIN %s b ON a.node_id = b.node_id where b.node_type=?;`, nodeInfoTable, nodeRegisterTable)
+	query := fmt.Sprintf(`SELECT * FROM %s where node_id like ?`, nodeInfoTable)
 
 	var out []*types.NodeInfo
-	if err := n.db.Select(&out, query, nodeType); err != nil {
+	if err := n.db.Select(&out, query, "c%"); err != nil {
 		return nil, err
 	}
 
@@ -828,7 +833,7 @@ func (n *SQLDB) LoadDeactivateNodes(time int64) ([]string, error) {
 
 // CleanData performs a cleanup of outdated records across various tables based on predefined intervals.
 func (n *SQLDB) CleanData() {
-	query := fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 30 DAY) `, replicaEventTable)
+	query := fmt.Sprintf(`DELETE FROM %s WHERE created_time<DATE_SUB(NOW(), INTERVAL 10 DAY) `, replicaEventTable)
 	_, err := n.db.Exec(query)
 	if err != nil {
 		log.Warnf("CleanData replicaEventTable err:%s", err.Error())
@@ -880,7 +885,7 @@ func (n *SQLDB) cleanTableData(table string) {
 	for {
 		query := fmt.Sprintf(`
             DELETE FROM %s 
-            WHERE created_time < DATE_SUB(NOW(), INTERVAL 30 DAY) 
+            WHERE created_time < DATE_SUB(NOW(), INTERVAL 10 DAY) 
             LIMIT %d`,
 			table, batchSize)
 
@@ -908,7 +913,7 @@ func (n *SQLDB) cleanServiceEventTableData() {
 	for {
 		query := fmt.Sprintf(`
             DELETE FROM %s 
-            WHERE start_time < DATE_SUB(NOW(), INTERVAL 30 DAY) 
+            WHERE start_time < DATE_SUB(NOW(), INTERVAL 10 DAY) 
             LIMIT %d`,
 			serviceEventTable, batchSize)
 
@@ -941,7 +946,7 @@ func (n *SQLDB) cleanProfitDetailsData() {
 	for {
 		query := fmt.Sprintf(`
             DELETE FROM %s 
-            WHERE created_time < DATE_SUB(NOW(), INTERVAL 150 DAY) 
+            WHERE created_time < DATE_SUB(NOW(), INTERVAL 10 DAY) 
             LIMIT %d`,
 			profitDetailsTable, batchSize)
 

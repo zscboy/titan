@@ -13,7 +13,7 @@ import (
 
 const (
 	// Interval to dispatch tasks to populate node disks
-	fillDiskInterval = 2 * time.Minute
+	fillDiskInterval = 30 * time.Minute
 )
 
 // initFillDiskTimer dispatch tasks to populate node disks

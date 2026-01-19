@@ -6,11 +6,13 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -319,7 +321,12 @@ func openRepo(cctx *cli.Context) (repo.LockedRepo, error) {
 func startHTTP3Server(transport *quic.Transport, handler http.Handler, schedulerCfg *config.SchedulerCfg) error {
 	var tlsConfig *tls.Config
 	if len(schedulerCfg.CertificatePath) == 0 || len(schedulerCfg.PrivateKeyPath) == 0 {
-		config, err := defaultTLSConfig()
+		hostname, err := extractHostname(schedulerCfg.ExternalURL)
+		if err != nil {
+			return err
+		}
+
+		config, err := defaultTLSConfig(hostname)
 		if err != nil {
 			log.Errorf("startUDPServer, defaultTLSConfig error:%s", err.Error())
 			return err
@@ -361,12 +368,24 @@ func startHTTP3Server(transport *quic.Transport, handler http.Handler, scheduler
 	return err
 }
 
-func defaultTLSConfig() (*tls.Config, error) {
+func defaultTLSConfig(hostname string) (*tls.Config, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
 	}
-	template := x509.Certificate{SerialNumber: big.NewInt(1)}
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: hostname,
+		},
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(5 * 365 * 24 * time.Hour),
+		KeyUsage:  x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+	}
+
+	log.Infof("template NotAfter:%s , NotBefore:%s , hostname:%s", template.NotAfter.Format(time.DateOnly), template.NotBefore.Format(time.DateOnly), hostname)
+
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
 	if err != nil {
 		return nil, err
@@ -384,6 +403,16 @@ func defaultTLSConfig() (*tls.Config, error) {
 		NextProtos:         []string{"h2", "h3"},
 		InsecureSkipVerify: true, //nolint:gosec // skip verify in default config
 	}, nil
+}
+
+func extractHostname(fullURL string) (string, error) {
+	u, err := url.Parse(fullURL)
+	if err != nil {
+		return "", err
+	}
+
+	hostname := u.Hostname()
+	return hostname, nil
 }
 
 func setEndpointAPI(lr repo.LockedRepo, address string) error {

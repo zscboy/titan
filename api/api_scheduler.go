@@ -296,6 +296,8 @@ type Scheduler interface {
 
 	AddNodeServiceEvent(ctx context.Context, event *types.ServiceEvent) error //perm:web,admin
 
+	SetNodeCountLimit(ctx context.Context, limit int) error //perm:web,admin
+
 	// Deprecated api
 	// AssignTunserverURL
 	AssignTunserverURL(ctx context.Context) (*types.TunserverRsp, error)                                        //perm:edge

@@ -73,7 +73,7 @@ func (m *Manager) popWorkloadResult() *Result {
 func (m *Manager) PushResult(data *types.WorkloadRecordReq, nodeID string) error {
 	log.Infof("workload PushResult nodeID:[%s] , %s [%s]\n", nodeID, data.WorkloadID, data.AssetCID)
 
-	m.addWorkloadResult(&Result{data: data, nodeID: nodeID})
+	// m.addWorkloadResult(&Result{data: data, nodeID: nodeID})
 	// m.resultQueue <- &WorkloadResult{data: data, nodeID: nodeID}
 
 	return nil

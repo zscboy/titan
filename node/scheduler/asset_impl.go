@@ -652,7 +652,7 @@ func (s *Scheduler) selectUploadNodes3() ([]*node.Node, error) {
 	}
 
 	if len(cNodes) == 0 {
-		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: "storage's nodes not found"}
 	}
 
 	// TODO New rules Sort by remaining bandwidth
@@ -674,7 +674,7 @@ func (s *Scheduler) selectUploadNodes2() ([]*node.Node, error) {
 	}
 
 	if len(cNodes) == 0 {
-		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: fmt.Sprintf("storage's nodes not found")}
+		return nil, &api.ErrWeb{Code: terrors.NodeOffline.Int(), Message: "storage's nodes not found"}
 	}
 
 	sort.Slice(cNodes, func(i, j int) bool {
