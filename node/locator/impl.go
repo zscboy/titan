@@ -67,6 +67,12 @@ func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([
 		return nil, fmt.Errorf("params nodeID or areaID can not empty")
 	}
 
+	// L1, loop all schedulers to find the node
+	// ignore areaID
+	if strings.HasPrefix(nodeID, "c_") {
+		return l.findSchedulerForL1(ctx, nodeID)
+	}
+
 	configs, err := l.GetSchedulerConfigs(areaID)
 	if err != nil {
 		log.Errorf("node %s areaID %s, GetSchedulerConfigs error:%v", nodeID, areaID, err)
@@ -107,6 +113,23 @@ func (l *Locator) GetAccessPoints(ctx context.Context, nodeID, areaID string) ([
 
 	return schedulers, nil
 
+}
+
+func (l *Locator) findSchedulerForL1(ctx context.Context, nodeID string) ([]string, error) {
+	configs := l.GetAllSchedulerConfigs()
+	schedulerAPIs, err := l.getOrNewSchedulerAPIs(configs)
+	if err != nil {
+		log.Errorf("findSchedulerForL1Node node %s , getOrNewSchedulerAPIs error:%v", nodeID, err)
+		return nil, err
+	}
+	schedulers, err := l.selectBestSchedulers(ctx, schedulerAPIs, nodeID)
+	if len(schedulers) == 0 {
+		log.Errorf("findSchedulerForL1Node selectBestSchedulers result empty,  node %s ", nodeID)
+		return nil, fmt.Errorf("no available scheduler for node %s", nodeID)
+	}
+
+	log.Infof("findSchedulerForL1Node get L1 %s schedulers %v", nodeID, schedulers[0])
+	return []string{schedulers[0]}, nil
 }
 
 // GetAccessPointsV2 get schedulers urls with special areaID, and those schedulers have the node
@@ -460,7 +483,10 @@ func (l *Locator) GetUserAccessPoint(ctx context.Context, userIP string) (*api.A
 	geoInfo, err := l.GetGeoInfo(userIP)
 	if err != nil {
 		log.Errorf("GetUserAccessPoint GetGeoInfo %s error %v", userIP, err)
-		return nil, err
+		// return nil, err
+	}
+	if geoInfo == nil {
+		geoInfo = &region.GeoInfo{IP: userIP}
 	}
 
 	log.Infof("GetUserAccessPoint ip %s, areaID %s", userIP, geoInfo.Geo)
