@@ -304,7 +304,7 @@ func (n *SQLDB) LoadPullingReplicaCountNodeID(nodeID string) (int64, error) {
 func (n *SQLDB) LoadSucceedReplicasByNodeID(nodeID string, limit, offset int) (*types.ListNodeAssetRsp, error) {
 	res := new(types.ListNodeAssetRsp)
 	var infos []*types.NodeAssetInfo
-	query := fmt.Sprintf("SELECT a.hash,a.end_time,b.cid,b.total_size,b.expiration FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.node_id=? AND a.status=? order by a.end_time desc LIMIT ? OFFSET ?", replicaInfoTable, assetRecordTable)
+	query := fmt.Sprintf("SELECT a.hash,a.start_time,b.cid,b.total_size,b.expiration FROM %s a LEFT JOIN %s b ON a.hash = b.hash WHERE a.node_id=? AND a.status=? order by a.start_time desc LIMIT ? OFFSET ?", replicaInfoTable, assetRecordTable)
 	if limit > loadReplicaDefaultLimit {
 		limit = loadReplicaDefaultLimit
 	}

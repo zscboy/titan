@@ -393,7 +393,6 @@ var daemonStartCmd = &cli.Command{
 		}
 
 		// httpServer.Stats().
-
 		go startHTTP3Server(transport, handler, tlsCfg)
 
 		go func() {

@@ -28,6 +28,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"golang.org/x/xerrors"
 )
 
@@ -36,7 +37,40 @@ const (
 
 	// Interval for initiating free space release
 	freeUpDayInterval = 1
+
+	// 0
+	deactivateReductionRate = 0.6
 )
+
+func isInFirstWeekOfMonth() bool {
+	now := time.Now().UTC()
+
+	day := now.Day()
+	return day >= 1 && day <= 7
+}
+
+func getDeactivateReductionRate() float64 {
+	if isInFirstWeekOfMonth() {
+		return 0
+	}
+
+	return deactivateReductionRate
+}
+
+var nodeCountLimit int
+
+func (s *Scheduler) SetNodeCountLimit(ctx context.Context, limit int) error {
+	nodeCountLimit = limit
+	return nil
+}
+
+func (s *Scheduler) getNodeCountLimit() int {
+	if nodeCountLimit <= 0 {
+		nodeCountLimit = s.SchedulerCfg.NodeCountLimit
+	}
+
+	return nodeCountLimit
+}
 
 // GetOnlineNodeCount returns the count of online nodes for a given node type
 func (s *Scheduler) GetOnlineNodeCount(ctx context.Context, nodeType types.NodeType) (int, error) {
@@ -133,6 +167,10 @@ func (s *Scheduler) RegisterCandidateNode(ctx context.Context, nodeID, publicKey
 
 // RegisterNode register node
 func (s *Scheduler) RegisterNode(ctx context.Context, nodeID, publicKey string, nodeType types.NodeType) (*types.ActivationDetail, error) {
+	if nodeType == types.NodeEdge && s.NodeManager.GetOnlineNodeCount(types.NodeEdge) > s.getNodeCountLimit() {
+		return nil, errors.Errorf("The number of nodes exceeds the limit")
+	}
+
 	remoteAddr := handler.GetRemoteAddr(ctx)
 	ip, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
@@ -312,7 +350,7 @@ func (s *Scheduler) DeactivateNode(ctx context.Context, nodeID string, hours int
 	// if node is candidate , need to backup asset
 	s.AssetManager.CandidateDeactivate(nodeID)
 
-	pe, _ := s.NodeManager.CalculateDowntimePenalty(info.Profit, 0.6)
+	pe, _ := s.NodeManager.CalculateDowntimePenalty(info.Profit, getDeactivateReductionRate())
 	penaltyPoint = info.Profit - pe
 
 	deactivateTime = time.Now().Add(time.Duration(minute) * time.Minute).Unix()
@@ -501,7 +539,7 @@ func (s *Scheduler) CalculateDowntimePenalty(ctx context.Context, nodeID string)
 		return types.ExitProfitRsp{}, err
 	}
 
-	pe, exitRate := s.NodeManager.CalculateDowntimePenalty(info.Profit, 0.6)
+	pe, exitRate := s.NodeManager.CalculateDowntimePenalty(info.Profit, getDeactivateReductionRate())
 	return types.ExitProfitRsp{
 		CurrentPoint:   info.Profit,
 		RemainingPoint: pe,
@@ -595,10 +633,10 @@ func (s *Scheduler) RequestActivationCodes(ctx context.Context, nodeType types.N
 
 // UpdateNodePort sets the port for the specified node.
 func (s *Scheduler) UpdateNodePort(ctx context.Context, nodeID, port string) error {
-	node := s.NodeManager.GetNode(nodeID)
-	if node != nil {
-		node.PortMapping = port
-	}
+	// node := s.NodeManager.GetNode(nodeID)
+	// if node != nil {
+	// 	node.PortMapping = port
+	// }
 
 	return s.NodeManager.UpdatePortMapping(nodeID, port)
 }
@@ -610,6 +648,10 @@ func (s *Scheduler) CandidateConnect(ctx context.Context, opts *types.ConnectOpt
 
 // EdgeConnect edge node login to the scheduler
 func (s *Scheduler) EdgeConnect(ctx context.Context, opts *types.ConnectOptions) error {
+	if s.NodeManager.GetOnlineNodeCount(types.NodeEdge) > s.getNodeCountLimit() {
+		return xerrors.Errorf("The number of nodes exceeds the limit")
+	}
+
 	return s.nodeConnect(ctx, opts, types.NodeEdge)
 }
 
@@ -697,7 +739,7 @@ func (s *Scheduler) lnNodeConnected(ctx context.Context, opts *types.ConnectOpti
 
 	if dbInfo != nil {
 		// init node info
-		nodeInfo.PortMapping = dbInfo.PortMapping
+		// nodeInfo.PortMapping = dbInfo.PortMapping
 		nodeInfo.OnlineDuration = dbInfo.OnlineDuration
 		nodeInfo.OfflineDuration = dbInfo.OfflineDuration
 		nodeInfo.BandwidthDown = dbInfo.BandwidthDown
@@ -810,6 +852,8 @@ func (s *Scheduler) GetNodeInfo(ctx context.Context, nodeID string) (*types.Node
 		nodeInfo.TodayOnlineTimeWindow = s.loadNodeTodayOnlineTimeWindow(nodeID, todayDate)
 
 		log.Debugf("%s node select codes:%v , url:%s", nodeID, n.SelectWeights(), n.ExternalURL)
+	} else {
+		nodeInfo.Mx = node.RateOfL2Mx(nodeInfo.OnlineDuration)
 	}
 
 	return nodeInfo, nil
@@ -866,6 +910,8 @@ func (s *Scheduler) GetNodeList(ctx context.Context, offset int, limit int) (*ty
 			nodeInfo.RemoteAddr = n.RemoteAddr
 			nodeInfo.Mx = node.RateOfL2Mx(n.OnlineDuration)
 			nodeInfo.TodayOnlineTimeWindow = s.loadNodeTodayOnlineTimeWindow(nodeInfo.NodeID, todayDate)
+		} else {
+			nodeInfo.Mx = node.RateOfL2Mx(nodeInfo.OnlineDuration)
 		}
 
 		nodeInfos = append(nodeInfos, *nodeInfo)
@@ -1037,9 +1083,8 @@ func (s *Scheduler) getSource(cNode *node.Node, cid string, titanRsa *titanrsa.R
 func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.AssetSourceDownloadInfoRsp, int64, int, error) {
 	hash, err := cidutil.CIDToHash(cid)
 	if err != nil {
-		return nil, 0, 0, xerrors.Errorf("GetAssetSourceDownloadInfo %s cid to hash err:%s", cid, err.Error())
+		return nil, 0, 0, xerrors.Errorf("CIDToHash %s err:%s", cid, err)
 	}
-
 	aInfo, err := s.db.LoadAssetRecord(hash)
 	if err != nil {
 		return nil, 0, 0, err
@@ -1054,82 +1099,159 @@ func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.Ass
 	if err != nil {
 		return out, 0, 0, err
 	}
-
-	count := len(replicas)
-	if count == 0 {
-		return out, 0, count, nil
+	replicaCount := len(replicas)
+	if replicaCount == 0 {
+		return out, 0, replicaCount, nil
 	}
 
-	type nodeBandwidthUp struct {
-		NodeID      string
-		BandwidthUp int64
-	}
-
-	list := []*nodeBandwidthUp{}
-	for _, rInfo := range replicas {
-		nodeID := rInfo.NodeID
-
-		cNode := s.NodeManager.GetNode(nodeID)
-		if cNode != nil {
-			list = append(list, &nodeBandwidthUp{NodeID: nodeID, BandwidthUp: cNode.BandwidthUp})
-		}
-	}
-
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].BandwidthUp > list[j].BandwidthUp
-	})
-
+	sources := make([]*types.SourceDownloadInfo, 0, 10)
+	nodeList := make([]*node.Node, 0, len(replicas))
 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
-	sources := make([]*types.SourceDownloadInfo, 0)
 
-	for i := 0; i < len(list); i++ {
-		rInfo := list[i]
-		nodeID := rInfo.NodeID
-		// candidate
-		cNode := s.NodeManager.GetCandidateNode(nodeID)
-		if cNode != nil {
-			source := s.getSource(cNode, cid, titanRsa)
-			if source != nil {
-				sources = append(sources, source)
-			}
-
+	for _, r := range replicas {
+		node := s.NodeManager.GetNode(r.NodeID)
+		if node == nil {
 			continue
 		}
 
-		// edge
 		if needCandidate {
-			continue
+			if node.Type != types.NodeCandidate {
+				continue
+			}
+		} else {
+			if node.NATType != types.NatTypeNo.String() &&
+				node.NATType != types.NatTypeFullCone.String() {
+				continue
+			}
 		}
 
-		if len(sources) > 10 {
-			continue
+		nodeList = append(nodeList, node)
+	}
+
+	if len(nodeList) > 0 {
+		sort.Slice(nodeList, func(i, j int) bool {
+			return nodeList[i].BandwidthUp > nodeList[j].BandwidthUp
+		})
+
+		limit := 10
+		if len(nodeList) < limit {
+			limit = len(nodeList)
 		}
 
-		eNode := s.NodeManager.GetEdgeNode(nodeID)
-		if eNode == nil {
-			continue
-		}
-
-		if eNode.NATType == types.NatTypeNo.String() || eNode.NATType == types.NatTypeFullCone.String() {
-			source := s.getSource(cNode, cid, titanRsa)
-			if source != nil {
+		for i := 0; i < limit; i++ {
+			node := nodeList[i]
+			if source := s.getSource(node, cid, titanRsa); source != nil {
 				sources = append(sources, source)
 			}
 		}
 	}
 
-	if len(sources) == 0 {
-		return out, 0, count, nil
+	if len(sources) > 1 {
+		rand.Shuffle(len(sources), func(i, j int) {
+			sources[i], sources[j] = sources[j], sources[i]
+		})
 	}
-
-	rand.Shuffle(len(sources), func(i, j int) {
-		sources[i], sources[j] = sources[j], sources[i]
-	})
 
 	out.SourceList = sources
-
-	return out, aInfo.TotalSize, count, nil
+	return out, aInfo.TotalSize, replicaCount, nil
 }
+
+// func (s *Scheduler) getDownloadInfos(cid string, needCandidate bool) (*types.AssetSourceDownloadInfoRsp, int64, int, error) {
+// 	hash, err := cidutil.CIDToHash(cid)
+// 	if err != nil {
+// 		return nil, 0, 0, xerrors.Errorf("GetAssetSourceDownloadInfo %s cid to hash err:%s", cid, err.Error())
+// 	}
+
+// 	aInfo, err := s.db.LoadAssetRecord(hash)
+// 	if err != nil {
+// 		return nil, 0, 0, err
+// 	}
+
+// 	out := &types.AssetSourceDownloadInfoRsp{}
+// 	if aInfo.Source == int64(types.AssetSourceAWS) {
+// 		out.AWSBucket = aInfo.Note
+// 	}
+
+// 	replicas, err := s.db.LoadReplicasByStatus(hash, []types.ReplicaStatus{types.ReplicaStatusSucceeded})
+// 	if err != nil {
+// 		return out, 0, 0, err
+// 	}
+
+// 	count := len(replicas)
+// 	if count == 0 {
+// 		return out, 0, count, nil
+// 	}
+
+// 	type nodeBandwidthUp struct {
+// 		NodeID      string
+// 		BandwidthUp int64
+// 	}
+
+// 	list := []*nodeBandwidthUp{}
+// 	for _, rInfo := range replicas {
+// 		nodeID := rInfo.NodeID
+
+// 		cNode := s.NodeManager.GetNode(nodeID)
+// 		if cNode != nil {
+// 			list = append(list, &nodeBandwidthUp{NodeID: nodeID, BandwidthUp: cNode.BandwidthUp})
+// 		}
+// 	}
+
+// 	sort.Slice(list, func(i, j int) bool {
+// 		return list[i].BandwidthUp > list[j].BandwidthUp
+// 	})
+
+// 	titanRsa := titanrsa.New(crypto.SHA256, crypto.SHA256.New())
+// 	sources := make([]*types.SourceDownloadInfo, 0)
+
+// 	for i := 0; i < len(list); i++ {
+// 		rInfo := list[i]
+// 		nodeID := rInfo.NodeID
+// 		// candidate
+// 		cNode := s.NodeManager.GetCandidateNode(nodeID)
+// 		if cNode != nil {
+// 			source := s.getSource(cNode, cid, titanRsa)
+// 			if source != nil {
+// 				sources = append(sources, source)
+// 			}
+
+// 			continue
+// 		}
+
+// 		// edge
+// 		if needCandidate {
+// 			continue
+// 		}
+
+// 		if len(sources) > 10 {
+// 			continue
+// 		}
+
+// 		eNode := s.NodeManager.GetEdgeNode(nodeID)
+// 		if eNode == nil {
+// 			continue
+// 		}
+
+// 		if eNode.NATType == types.NatTypeNo.String() || eNode.NATType == types.NatTypeFullCone.String() {
+// 			source := s.getSource(cNode, cid, titanRsa)
+// 			if source != nil {
+// 				sources = append(sources, source)
+// 			}
+// 		}
+// 	}
+
+// 	if len(sources) == 0 {
+// 		return out, 0, count, nil
+// 	}
+
+// 	rand.Shuffle(len(sources), func(i, j int) {
+// 		sources[i], sources[j] = sources[j], sources[i]
+// 	})
+
+// 	out.SourceList = sources
+
+// 	return out, aInfo.TotalSize, count, nil
+// }
 
 // GetAssetSourceDownloadInfo retrieves the download details for a specified asset.
 func (s *Scheduler) GetAssetSourceDownloadInfo(ctx context.Context, cid string) (*types.AssetSourceDownloadInfoRsp, error) {
